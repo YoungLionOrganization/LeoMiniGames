@@ -5,8 +5,9 @@ from pathlib import Path
 import hashlib, os, subprocess, sys, zipfile
 
 ROOT=Path(__file__).resolve().parents[2]
-OUT=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT.parent/'LeoMiniGames_v0.7.0_Source.zip'
-PREFIX='LeoMiniGames_v0.7.0_Source'
+VERSION=os.environ.get('LMG_VERSION','0.7.0').strip() or '0.7.0'
+OUT=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT.parent/f'LeoMiniGames-v{VERSION}-Source.zip'
+PREFIX=f'LeoMiniGames-v{VERSION}-Source'
 EXCLUDE_DIRS={'.git','.qtcreator','dist','__pycache__','.pytest_cache','.mypy_cache','.idea','.vscode'}
 EXCLUDE_PREFIXES=('build','_cmake_probe')
 EXCLUDE_TOP={'deployment'}  # backend/server material is intentionally maintained separately

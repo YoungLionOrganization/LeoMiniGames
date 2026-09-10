@@ -1,0 +1,22 @@
+LeoMiniGames — Licensing and Project Notice
+
+The LeoMiniGames host application is licensed under GNU GPL v3 or later
+(GPL-3.0-or-later). The standard GPL text in LICENSE is intentionally kept
+unmodified. Project-specific copyright and ecosystem policy live in separate
+files rather than editing the GNU license text.
+
+Independent games, mods and themes are separate content packages and must
+declare their own license. A package's license does not grant YoungLion
+publisher verification, Official status, Developer Mode access, Native/L3
+permission, backend access, signing authority, trademark rights or account
+privileges. Those are separate technical/account trust decisions.
+
+The repository currently contains a placeholder for a future YoungLion closed-
+source mod license. Do not distribute proprietary content under that placeholder
+until the final license text has been reviewed and adopted.
+
+YoungLion and LeoMiniGames names, logos and verification badges are project
+identity/trust marks and are not automatically licensed for misleading use by
+third-party packages merely because the application source is GPL-licensed.
+
+See docs/DEVELOPER_LICENSING.md and licenses/README.md.

@@ -2,10 +2,11 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BUILD_DIR="${1:?usage: package_linux.sh <build-dir>}"
+VERSION="${LMG_VERSION:-0.7.0}"
 DIST="$ROOT/dist/linux"
 APPDIR="$DIST/LeoMiniGames.AppDir"
 rm -rf "$DIST"
-mkdir -p "$APPDIR/usr/bin"
+mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" "$APPDIR/usr/share/icons/hicolor/512x512/apps"
 
 EXE="$(find "$BUILD_DIR" -type f -name LeoMiniGames -perm -111 | head -n1)"
 [ -n "$EXE" ] || { echo 'LeoMiniGames executable not found' >&2; exit 2; }
@@ -16,12 +17,25 @@ APPIMAGETOOL="${APPIMAGETOOL:-$(command -v appimagetool || true)}"
 
 cp "$EXE" "$APPDIR/usr/bin/LeoMiniGames"
 cp -a "$ROOT/LICENSE" "$ROOT/README.md" "$APPDIR/"
-"$LINUXDEPLOY" --appdir "$APPDIR" --executable "$APPDIR/usr/bin/LeoMiniGames"
+cp "$ROOT/resources/branding/leominigames_icon_512.png" "$APPDIR/usr/share/icons/hicolor/512x512/apps/leominigames.png"
+cat > "$APPDIR/usr/share/applications/leominigames.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=LeoMiniGames
+Comment=Modular Qt mini-game platform
+Exec=LeoMiniGames
+Icon=leominigames
+Categories=Game;
+Terminal=false
+EOF
+"$LINUXDEPLOY" --appdir "$APPDIR" \
+  --executable "$APPDIR/usr/bin/LeoMiniGames" \
+  --desktop-file "$APPDIR/usr/share/applications/leominigames.desktop" \
+  --icon-file "$APPDIR/usr/share/icons/hicolor/512x512/apps/leominigames.png"
 [ -x "$APPDIR/AppRun" ] || { echo 'linuxdeploy did not create a runnable AppDir/AppRun.' >&2; exit 5; }
 
-# Portable archive contains the same deployed Qt runtime as the AppImage source.
-tar -C "$DIST" -czf "$DIST/LeoMiniGames-v0.7.0-Linux-x86_64.tar.gz" "$(basename "$APPDIR")"
-"$APPIMAGETOOL" "$APPDIR" "$DIST/LeoMiniGames-v0.7.0-Linux-x86_64.AppImage"
+tar -C "$DIST" -czf "$DIST/LeoMiniGames-v${VERSION}-Linux-x86_64.tar.gz" "$(basename "$APPDIR")"
+"$APPIMAGETOOL" "$APPDIR" "$DIST/LeoMiniGames-v${VERSION}-Linux-x86_64.AppImage"
 
-echo "Portable: $DIST/LeoMiniGames-v0.7.0-Linux-x86_64.tar.gz"
-echo "AppImage: $DIST/LeoMiniGames-v0.7.0-Linux-x86_64.AppImage"
+echo "Portable: $DIST/LeoMiniGames-v${VERSION}-Linux-x86_64.tar.gz"
+echo "AppImage: $DIST/LeoMiniGames-v${VERSION}-Linux-x86_64.AppImage"

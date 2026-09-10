@@ -26,8 +26,25 @@ if ci.is_file():
     if re.search(r'(?m)^\s*tags\s*:',s) or 'gh release create' in s or 'action-gh-release' in s:
         err('Section 22 release/tag automation found in CI')
     else: ok('CI has no tag/GitHub Release automation')
-    for platform in ['ubuntu-24.04','windows-2025','macos-15','macos-15-intel','target: android','target: ios']:
+    required_tokens=['ubuntu-24.04','macos-15','macos-15-intel','target: android','target: ios']
+    for platform in required_tokens:
         (ok if platform in s else err)(f'CI platform token {platform}')
+    (ok if re.search(r'runs-on:\s*windows-(?:2022|2025|latest)',s) else err)('CI has a supported Windows runner')
+    if 'QT_CI_VERSION: "6.11.1"' in s and 'install-qt-action' in s:
+        warn('CI pins Qt 6.11.1 through aqt/install-qt-action; aqt 3.3.x cannot reliably resolve the Qt 6.11 repository layout')
+
+    artifacts=ROOT/'.github/workflows/build-artifacts.yml'
+    if not artifacts.exists():
+        err('.github/workflows/build-artifacts.yml exists')
+    else:
+        ok('.github/workflows/build-artifacts.yml exists')
+        a=artifacts.read_text(encoding='utf-8')
+        if re.search(r'(?m)^\s*(push|pull_request|release):',a) or re.search(r'(?m)^\s*tags\s*:',a):
+            err('Build artifacts workflow must remain manual-only')
+        else:
+            ok('Build artifacts workflow is manual-only')
+        for token in ['workflow_dispatch','package_windows.ps1','package_linux.sh','package_macos.sh','package_android.sh','package_ios.sh','actions/upload-artifact@v7','archive: false']:
+            (ok if token in a else err)(f'Build artifacts workflow token {token}')
 
 # Installer metadata must force-install the real application component.
 for rel in ['installer/config/config.xml','installer/packages/xyz.younglion.leominigames/meta/package.xml','installer/packages/xyz.younglion.leominigames/meta/installscript.qs']:

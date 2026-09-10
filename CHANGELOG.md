@@ -2,6 +2,13 @@
 
 ## 0.7.0 — Compatibility, SDK, Security and Distribution
 
+### GitHub / release engineering
+- Reworked CI to use a verified Qt 6.10.2 compatibility lane while aqtinstall 3.3.x cannot reliably consume the changed Qt 6.11 online repository metadata; local Qt 6.11.1 support is unchanged.
+- Added a manual Build Release Artifacts workflow producing direct-download source ZIP, Windows portable ZIP + QtIFW installer, Linux archive + AppImage, macOS ZIP + DMG, signed Android APK/AAB, and unsigned iOS simulator ZIP.
+- Added Android signing through repository secrets without committing keystore material.
+- Added CODEOWNERS, issue forms, pull-request template, Dependabot GitHub Actions updates and repository text/binary normalization.
+- Added project copyright/notice files and explicit developer/package licensing guidance while keeping the standard GPL license text verbatim.
+
 ### New
 - Added explicit game API version negotiation and capability discovery.
 - Added Developer Mode / Developer Lab local RCC validation, diagnostics and device profiles.

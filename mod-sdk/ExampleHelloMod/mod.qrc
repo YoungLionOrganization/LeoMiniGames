@@ -1,1 +1,11 @@
-<RCC><qresource prefix="/"><file alias="Main.qml">Main.qml</file><file alias="manifest.json">manifest.json</file><file alias="assets/icon.png">assets/icon.png</file><file alias="sfx/click.wav">sfx/click.wav</file><file alias="sfx/success.wav">sfx/success.wav</file><file alias="sfx/fail.wav">sfx/fail.wav</file></qresource></RCC>
+<RCC>
+  <qresource prefix="/">
+    <file alias="Main.qml">Main.qml</file>
+    <file alias="manifest.json">manifest.json</file>
+    <file alias="LICENSE">LICENSE</file>
+    <file alias="assets/icon.png">assets/icon.png</file>
+    <file alias="sfx/click.wav">sfx/click.wav</file>
+    <file alias="sfx/success.wav">sfx/success.wav</file>
+    <file alias="sfx/fail.wav">sfx/fail.wav</file>
+  </qresource>
+</RCC>

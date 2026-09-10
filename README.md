@@ -1,5 +1,6 @@
 # LeoMiniGames
 
+[![CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml/badge.svg)](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml)
 ![Qt](https://img.shields.io/badge/Qt-6.11.1-41CD52?logo=qt&logoColor=white)
 ![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20iOS%20%7C%20macOS-lightgrey)
@@ -187,9 +188,11 @@ Upstream Fastlane metadata and an fdroiddata recipe template are included. The t
 
 See `F_DROID_READINESS.md` and `fdroid/README.md`.
 
-## CI
+## CI and build artifacts
 
-`.github/workflows/ci.yml` runs static validators and configures Linux, Windows, macOS arm64/x86_64, Android and unsigned iOS-simulator builds/tests. **There is intentionally no tag-triggered GitHub Release workflow in v0.7.0**, because release-workflow automation (the original task's Section 22) was explicitly excluded.
+`.github/workflows/ci.yml` runs static validators plus Linux, Windows, macOS arm64/x86_64, Android and unsigned iOS-simulator builds/tests. CI intentionally uses Qt 6.10.2 while `aqtinstall` catches up with the changed Qt 6.11 repository metadata; local Qt 6.11.1 remains supported and recommended.
+
+`.github/workflows/build-artifacts.yml` is a **manual** Actions workflow that produces source ZIPs, Windows portable ZIP + QtIFW Setup EXE, Linux archive + AppImage, macOS ZIP + DMG, signed Android APK/AAB (when repository signing secrets are configured), and an unsigned iOS simulator ZIP. It does not create a GitHub Release automatically. See `docs/GITHUB_RELEASES.md`.
 
 ## Contributing and security
 
@@ -197,4 +200,4 @@ See `CONTRIBUTING.md`. Security-sensitive issues should follow `SECURITY.md`. Do
 
 ## License
 
-LeoMiniGames source is licensed under **GPL-3.0-or-later**. See `LICENSE`.
+LeoMiniGames host source is licensed under **GPL-3.0-or-later**. The standard GNU license text is kept unmodified in `LICENSE`; project copyright and ecosystem notices are in `COPYRIGHT` and `NOTICE`. Games/mods/themes must declare their own license, and developer verification/Official/Native-L3 permissions are separate from copyright licensing. See `docs/DEVELOPER_LICENSING.md` and `licenses/README.md`.

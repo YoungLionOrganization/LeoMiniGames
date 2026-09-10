@@ -3,3 +3,13 @@ CMakeUserPresets.json
 *.user
 *.user.*
 .DS_Store
+# Release/build output
+/dist/
+*.jks
+*.keystore
+keystore.base64.txt
+
+# Generated source bundles should be GitHub Actions artifacts, not repository content.
+/LeoMiniGames*.zip
+/SHA256SUMS
+

@@ -1,0 +1,27 @@
+name: Feature request
+description: Propose an improvement to LeoMiniGames or its SDK.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / use case
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Backward compatibility impact
+      description: Explain how v0.5/v0.6 content should continue to work.
+  - type: textarea
+    id: platforms
+    attributes:
+      label: Platform considerations
+      description: Windows, Linux, Android, iOS and macOS implications.

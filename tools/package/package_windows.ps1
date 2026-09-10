@@ -1,9 +1,11 @@
 param(
   [Parameter(Mandatory=$true)][string]$BuildDir,
   [string]$QtBin = $env:QT_BIN,
-  [string]$IfwBin = $env:QT_IFW_BIN
+  [string]$IfwBin = $env:QT_IFW_BIN,
+  [string]$Version = $env:LMG_VERSION
 )
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($Version)) { $Version = '0.7.0' }
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $Dist = Join-Path $Root 'dist/windows'
 $Stage = Join-Path $Dist 'portable'
@@ -15,7 +17,7 @@ Copy-Item $Exe.FullName $Stage
 $Deploy = if ($QtBin) { Join-Path $QtBin 'windeployqt.exe' } else { (Get-Command windeployqt.exe -ErrorAction Stop).Source }
 & $Deploy --release --qmldir (Join-Path $Root 'qml') (Join-Path $Stage 'LeoMiniGames.exe')
 if ($LASTEXITCODE -ne 0) { throw "windeployqt failed: $LASTEXITCODE" }
-$Portable = Join-Path $Dist 'LeoMiniGames-v0.7.0-Windows-x86_64.zip'
+$Portable = Join-Path $Dist "LeoMiniGames-v$Version-Windows-x86_64.zip"
 Compress-Archive -Path (Join-Path $Stage '*') -DestinationPath $Portable -Force
 
 $PkgData = Join-Path $Root 'installer/packages/xyz.younglion.leominigames/data'
@@ -27,7 +29,8 @@ if ($IfwBin) {
 } else {
   $Creator = (Get-Command binarycreator.exe -ErrorAction Stop).Source
 }
-$Setup = Join-Path $Dist 'LeoMiniGames-v0.7.0-Windows-x86_64-Setup.exe'
+if (-not (Test-Path $Creator)) { throw "binarycreator.exe not found: $Creator" }
+$Setup = Join-Path $Dist "LeoMiniGames-v$Version-Windows-x86_64-Setup.exe"
 & $Creator --offline-only -c (Join-Path $Root 'installer/config/config.xml') -p (Join-Path $Root 'installer/packages') --include xyz.younglion.leominigames $Setup
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $Setup)) { throw 'QtIFW installer build failed.' }
 Write-Host "Portable: $Portable"

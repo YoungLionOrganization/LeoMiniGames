@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a reproducible LeoMiniGames bug or regression.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Include the expected and actual behavior.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: [Windows, Linux X11, Linux Wayland, Android, iOS, macOS, Other]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: LeoMiniGames version / commit
+      placeholder: v0.7.0 or commit SHA
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      placeholder: "1. Open...\n2. Install...\n3. ..."
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / QML warnings / crash output
+      render: shell
+  - type: input
+    id: content
+    attributes:
+      label: Game/mod/theme ID and version (if applicable)
+  - type: checkboxes
+    id: regression
+    attributes:
+      label: Regression
+      options:
+        - label: This worked on an older LeoMiniGames version.

@@ -9,5 +9,8 @@
   "description": "SDK example with catalog icon and mod-local audio.",
   "package_format": "rcc-v1",
   "entry": "Main.qml",
-  "min_app_version": "0.5.1"
+  "min_app_version": "0.5.1",
+  "license": "MIT",
+  "license_file": "LICENSE",
+  "source_available": true
 }

@@ -1,0 +1,29 @@
+LeoMiniGames Plugin / Mod Exception — DRAFT OUTLINE ONLY
+
+STATUS: NOT ADOPTED. NOT A LICENSE. DO NOT RELY ON THIS FILE AS LEGAL PERMISSION.
+
+Purpose of the future exception:
+Provide an explicit additional permission under GNU GPL v3 section 7 so that an
+independently authored game, mod, theme or plugin that uses only designated
+public LeoMiniGames SDK/API boundaries may be distributed under a license chosen
+by its author, including a proprietary license, without that package becoming
+GPL-covered solely because it communicates through those designated interfaces.
+
+The final reviewed text should define at least:
+1. "Independent Package" and "Designated Public Interface" precisely.
+2. RCC/QML/data-only package coverage.
+3. Whether and exactly how Native/L3 plugins are covered. Native/L3 coverage
+   should be limited to a published public ABI/SDK; private/internal headers and
+   copied core implementation must not receive an accidental exception.
+4. That distributing/modifying LeoMiniGames core remains subject to GPL-3.0-or-later.
+5. That the exception does not grant trademarks, Official/Verified status,
+   Developer Mode access, backend credentials, signing rights or Native/L3
+   permission.
+6. Treatment of combined distributions and third-party GPL code for which
+   YoungLion does not own the copyright.
+7. Contributor consent/inbound licensing needed for code that YoungLion does not
+   solely own.
+8. Compatibility with F-Droid/free-software distribution of the host itself.
+
+This outline must be replaced by final reviewed legal text before the project
+claims a formal LeoMiniGames Plugin/Mod Exception.
