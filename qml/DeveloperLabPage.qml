@@ -8,7 +8,19 @@ Item {
     id: root
     required property var developer
     required property var gameLogger
+    property alias apiKeyText: keyField.text
     signal backRequested()
+
+    function openImportDialog() { importDialog.open() }
+    function openTextExportDialog() { textExportDialog.open() }
+    function openJsonExportDialog() { jsonExportDialog.open() }
+    function verifyApiKeyFromField() {
+        const value = root.apiKeyText
+        if (value.length === 0)
+            return
+        root.developer.verifyApiKey(value)
+        root.apiKeyText = ""
+    }
 
     AppBackground { anchors.fill: parent }
 
@@ -81,7 +93,7 @@ Item {
                     Row {
                         spacing: Constants.u8
                         BronzeButton { visible: !root.developer.authenticated; text: qsTr("Open Developer Portal"); onClicked: root.developer.openDeveloperPortal() }
-                        BronzeButton { visible: !root.developer.authenticated; enabled: !root.developer.verifying && keyField.text.length > 0; text: root.developer.verifying ? qsTr("Verifying…") : qsTr("Verify key"); onClicked: { root.developer.verifyApiKey(keyField.text); keyField.text = "" } }
+                        BronzeButton { visible: !root.developer.authenticated; enabled: !root.developer.verifying && root.apiKeyText.length > 0; text: root.developer.verifying ? qsTr("Verifying…") : qsTr("Verify key"); onClicked: root.verifyApiKeyFromField() }
                         BronzeButton { visible: root.developer.authenticated; text: qsTr("Log out"); onClicked: root.developer.logout() }
                     }
                     Text { visible: root.developer.lastError.length > 0; width: parent.width; text: root.developer.lastError; color: Constants.danger; wrapMode: Text.WordWrap }
@@ -99,7 +111,7 @@ Item {
                     spacing: Constants.u8
                     Row {
                         spacing: Constants.u8
-                        BronzeButton { text: qsTr("Import .rcc"); onClicked: importDialog.open() }
+                        BronzeButton { text: qsTr("Import .rcc"); onClicked: root.openImportDialog() }
                         BronzeButton { enabled: Object.keys(root.developer.packageInfo).length > 0; text: qsTr("Run package"); onClicked: root.developer.launchImported() }
                         BronzeButton { enabled: Object.keys(root.developer.packageInfo).length > 0; text: qsTr("Clear"); onClicked: root.developer.clearImported() }
                     }
@@ -163,12 +175,12 @@ Item {
 
                         BronzeButton {
                             text: qsTr("Export TXT")
-                            onClicked: textExportDialog.open()
+                            onClicked: root.openTextExportDialog()
                         }
 
                         BronzeButton {
                             text: qsTr("Export JSON")
-                            onClicked: jsonExportDialog.open()
+                            onClicked: root.openJsonExportDialog()
                         }
 
                         BronzeButton {

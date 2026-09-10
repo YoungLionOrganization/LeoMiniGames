@@ -1,14 +1,22 @@
-# fdroiddata submission recipe TEMPLATE for LeoMiniGames 0.7.0.
-# Do not submit this file until REPO_URL and FULL_COMMIT_SHA are replaced by
-# the canonical public repository and the exact 40-character commit hash.
+# LeoMiniGames 0.7.0 fdroiddata metadata scaffold.
+#
+# Canonical repository information is real and MUST NOT be replaced.
+# Before submission, replace only FULL_COMMIT_SHA with the exact immutable
+# 40-character commit that contains the final F-Droid build recipe.
+#
+# IMPORTANT: This is still a scaffold because the Qt 6 Android source-build
+# stanza must be integrated/tested in fdroidserver before an fdroiddata MR.
 Categories:
   - Games
 License: GPL-3.0-or-later
+AuthorName: YoungLion
+WebSite: https://leominigames.younglion.xyz
+SourceCode: https://github.com/YoungLionOrganization/LeoMiniGames
+IssueTracker: https://github.com/YoungLionOrganization/LeoMiniGames/issues
+Changelog: https://github.com/YoungLionOrganization/LeoMiniGames/blob/main/RELEASES.md
 AutoName: LeoMiniGames
-SourceCode: REPO_URL
-IssueTracker: REPO_URL/issues
 RepoType: git
-Repo: REPO_URL
+Repo: https://github.com/YoungLionOrganization/LeoMiniGames.git
 
 Builds:
   - versionName: 0.7.0
@@ -18,9 +26,19 @@ Builds:
     ndk: 27.2.12479018
     sudo:
       - apt-get update
-      - apt-get install -y cmake ninja-build clang python3 git perl
-    # Qt for Android must be built from FOSS source/srclibs in the final fdroiddata MR.
-    # The exact Qt srclib recipe must be pinned to the public v0.7.0 source commit.
+      - apt-get install -y cmake ninja-build clang python3 git perl 7zip build-essential
+    # F-Droid already packages Qt 6 applications using its Qt5 srclib name;
+    # current fdroiddata examples use Qt5@v6.10.1 and build Qt from source.
+    # LeoMiniGames needs a tested, minimized adaptation of that source-build
+    # before this scaffold can be submitted. Do not replace it with Qt Online
+    # Installer binaries.
+    srclibs:
+      - Qt5@v6.10.1
+    prebuild:
+      - python3 tools/audit_prebuilt_binaries.py
+      - python3 tools/validate_v070.py
+    # The final MR must build a host Qt and Android Qt from $$Qt5$$, exporting
+    # QT_HOST_PATH/qt-cmake before invoking this project helper.
     build:
       - ./tools/fdroid_clean_build.sh
     output: build-fdroid/android-build/build/outputs/apk/release/android-build-release-unsigned.apk

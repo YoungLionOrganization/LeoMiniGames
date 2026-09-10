@@ -13,11 +13,10 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Qt 6.11.x is supported by the project and is used by local development,
-# but aqtinstall 3.3.x currently cannot reliably resolve the changed 6.11
-# online-repository metadata. CI therefore uses the latest verified 6.10 LTS-ish
-# compatibility lane until the installer tooling catches up.
 env:
+  # Local development may use Qt 6.11.1. GitHub CI deliberately stays on the
+  # verified 6.10.2 online-repository lane because install-qt-action/aqt has
+  # had repository-metadata problems with 6.11.x. CMake still accepts Qt 6.5+.
   QT_CI_VERSION: "6.10.2"
   ANDROID_NDK_VERSION: "27.2.12479018"
   ANDROID_PLATFORM: "android-36"
@@ -43,15 +42,33 @@ jobs:
           find tools -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
 
   linux:
-    name: Linux x86_64
+    name: Linux ${{ matrix.label }}
     needs: static-validation
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            label: Ubuntu-22.04-x86_64
+            host: linux
+            qt_arch: linux_gcc_64
+          - runner: ubuntu-24.04
+            label: Ubuntu-24.04-x86_64
+            host: linux
+            qt_arch: linux_gcc_64
+          - runner: ubuntu-24.04-arm
+            label: Ubuntu-24.04-arm64
+            host: linux_arm64
+            qt_arch: linux_gcc_arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
       - name: Install Qt
         uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
         with:
           version: ${{ env.QT_CI_VERSION }}
+          host: ${{ matrix.host }}
+          arch: ${{ matrix.qt_arch }}
           modules: qtmultimedia
           cache: true
       - name: Configure
@@ -61,7 +78,7 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
-  windows:
+  windows-msvc-x64:
     name: Windows x86_64 (MSVC 2022)
     needs: static-validation
     runs-on: windows-2022
@@ -80,6 +97,51 @@ jobs:
         run: cmake --build build --config Release --parallel
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
+
+  windows-llvm-mingw:
+    name: Windows x86_64 (LLVM-MinGW)
+    needs: static-validation
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Qt LLVM-MinGW
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        with:
+          version: ${{ env.QT_CI_VERSION }}
+          arch: win64_llvm_mingw
+          modules: qtmultimedia
+          tools: tools_llvm_mingw1706,qt.tools.win64_llvm_mingw1706
+          cache: true
+      - name: Verify LLVM-MinGW toolchain
+        shell: pwsh
+        run: |
+          clang++ --version
+          ninja --version
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  windows-arm64:
+    name: Windows ARM64 (MSVC 2022 cross-build)
+    needs: static-validation
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Qt ARM64 cross-compiled kit
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        with:
+          version: ${{ env.QT_CI_VERSION }}
+          arch: win64_msvc2022_arm64_cross_compiled
+          modules: qtmultimedia
+          cache: true
+      - name: Configure ARM64
+        run: cmake -S . -B build -A ARM64 -DBUILD_TESTING=OFF
+      - name: Build ARM64
+        run: cmake --build build --config Release --parallel
 
   macos:
     name: macOS ${{ matrix.arch }}
@@ -120,19 +182,24 @@ jobs:
             abi: arm64-v8a
           - qt_arch: android_armv7
             abi: armeabi-v7a
+          - qt_arch: android_x86_64
+            abi: x86_64
+          - qt_arch: android_x86
+            abi: x86
     steps:
       - uses: actions/checkout@v7
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
       - name: Install Android SDK/NDK components
         shell: bash
         run: |
-          sdkmanager --install \
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" \
             "platform-tools" \
             "platforms;${ANDROID_PLATFORM}" \
             "build-tools;${ANDROID_BUILD_TOOLS}" \
@@ -149,18 +216,31 @@ jobs:
       - name: Configure Android
         shell: bash
         run: |
-          qt-cmake -S . -B build-android -G Ninja \
+          # Some Qt Android archives lose the executable bit on bin/qt-cmake.
+          # It is a shell wrapper, so invoke it through bash instead of relying
+          # on archive permissions. This fixes the armeabi-v7a runner failure.
+          test -f "$QT_ROOT_DIR/bin/qt-cmake"
+          bash "$QT_ROOT_DIR/bin/qt-cmake" -S . -B build-android -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTING=OFF \
+            -DANDROID_ABI="${{ matrix.abi }}" \
             -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" \
             -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT"
       - name: Build APK
         run: cmake --build build-android --target apk --parallel
 
   ios-simulator:
-    name: iOS unsigned simulator
+    name: iOS simulator ${{ matrix.arch }} (unsigned)
     needs: static-validation
-    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
       - name: Install Qt for iOS
@@ -171,11 +251,14 @@ jobs:
           modules: qtmultimedia
           cache: true
       - name: Configure unsigned simulator build
+        shell: bash
         run: |
-          qt-cmake -S . -B build-ios -G Xcode \
+          test -f "$QT_ROOT_DIR/bin/qt-cmake"
+          bash "$QT_ROOT_DIR/bin/qt-cmake" -S . -B build-ios -G Xcode \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_OSX_SYSROOT=iphonesimulator \
-            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
             -DBUILD_TESTING=OFF
       - name: Build unsigned simulator app
         run: cmake --build build-ios --config Release --parallel

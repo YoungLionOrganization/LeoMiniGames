@@ -1,80 +1,303 @@
 # LeoMiniGames
 
 [![CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml/badge.svg)](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml)
-![Qt](https://img.shields.io/badge/Qt-6.11.1-41CD52?logo=qt&logoColor=white)
-![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)
-![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20iOS%20%7C%20macOS-lightgrey)
+[![Qt](https://img.shields.io/badge/Qt-6.5%2B-41CD52?logo=qt&logoColor=white)](https://www.qt.io/)
+[![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.7.0-B8860B)](RELEASES.md)
+[![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20iOS%20%7C%20macOS-informational)](#platform-and-architecture-matrix)
 
-LeoMiniGames is a modular Qt 6 / Qt Quick game launcher and runtime. Built-in games, RCC games/mods and themes are kept separate from the host as far as practical, while host services provide theme, save, i18n, audio, haptics, input, lifecycle, statistics and developer tooling.
+**LeoMiniGames** is a modular, cross-platform Qt 6 / Qt Quick mini-game launcher, runtime and content ecosystem. Games, mods and themes are designed to remain as independent from the host application as practical while reusing a common service layer for theme, save, localization, audio, haptics, input, lifecycle, statistics, achievements, package management and developer tooling.
 
-This source tree is the **v0.7.0** compatibility/security upgrade. Its primary rule is that supported v0.5/v0.6 RCC content must continue to run through compatibility adapters rather than being rejected for not using the new SDK.
+The v0.7.0 line is a **compatibility-first security and SDK upgrade**. A major design requirement is that supported v0.5/v0.6 RCC games continue to run through compatibility adapters instead of being rejected merely because they predate the new API negotiation model.
+
+> **Project rule:** reliability and backward compatibility take priority over forcing old content to migrate. New security boundaries are introduced through scoped adapters, validation and trust provenance rather than by deleting legacy public APIs.
+
+## Contents
+
+- [Highlights](#v070-highlights)
+- [Built-in games](#built-in-games)
+- [Architecture](#architecture)
+- [Runtime/content types](#runtime-and-content-types)
+- [Platform and architecture matrix](#platform-and-architecture-matrix)
+- [Backward compatibility](#backward-compatibility)
+- [Host service API](#host-service-api)
+- [RCC package contract](#rcc-package-contract)
+- [Developer Mode and Developer Lab](#developer-mode-and-developer-lab)
+- [Publisher trust](#publisher-trust-model)
+- [Theme system](#theme-system)
+- [Localization](#localization)
+- [Save/lifecycle](#save-and-lifecycle)
+- [Audio/haptics/input](#audio-haptics-and-input)
+- [Security](#security-model)
+- [Building](#building)
+- [Release artifacts](#release-artifacts)
+- [GitHub Actions](#github-actions)
+- [Android signing](#android-signing-in-github-actions)
+- [F-Droid](#f-droid)
+- [Validation and QA](#validation-and-qa)
+- [Repository layout](#repository-layout)
+- [Contributing and licensing](#contributing-and-licensing)
 
 ## v0.7.0 highlights
 
-- API version negotiation and capability discovery.
-- Canonical RCC contract (`prefix /`, mounted at `/mods/<id>`) plus a contained legacy `/mods/<id>` compatibility mount.
-- Isolated external `QQmlEngine` with game-scoped compatibility facades instead of raw host objects.
-- Lazy/capability-probed audio and legacy audio overload compatibility.
-- Atomic/forced lifecycle saves and legacy settings copy-on-read migration.
-- Layout-independent physical WASD support through centralized `GameInput`; arrow keys remain available.
-- Expanded theme/i18n runtime contracts and runtime language/theme propagation.
-- Server-authoritative publisher trust boundary; local manifests cannot grant Official/Verified/Native-L3 status.
-- Developer Mode / Developer Lab with session-only credential verification, local RCC validation, diagnostics and device profiles.
-- Cross-platform CI configuration, packaging scripts, QtIFW Windows installer, F-Droid preparation and regression fixtures.
+### Runtime and compatibility
+
+- API version negotiation and capability discovery for modern packages.
+- Missing `api_version` remains a valid legacy package signal.
+- Canonical RCC layout (`prefix /`, host mount `/mods/<id>`) plus contained support for historical `/mods/<id>` RCC prefixes.
+- Legacy context/service names remain available through game-scoped adapters.
+- Existing settings may migrate on read into namespaced storage without rewriting gameplay/save formats.
+- Native/L3 requests from local manifests never grant authority by themselves.
+
+### Reliability
+
+- Forced lifecycle saves on background/close paths.
+- Lazy and bounded audio resources.
+- Package install/update/uninstall model mutation races hardened.
+- Empty game-state/statistics path handling hardened.
+- Built-in card suits rendered without depending on Unicode card glyph font coverage.
+- Cross-platform package scripts validate that expected artifacts actually exist.
+
+### Developer ecosystem
+
+- Developer Lab for local RCC validation and session-only test mounts.
+- Diagnostics export with file/line/severity information.
+- Device profile previews and package capability inspection.
+- Expanded SDK documentation in `docs/sdk/`.
+- Compatibility fixtures and CTest integration for real RCC mount tests when Qt is present.
+
+### Security
+
+- External QML runs in a separate engine and receives scoped service facades.
+- Custom catalogs cannot mint YoungLion Official/Verified/Native-L3 trust.
+- RCC namespace, entry path, size and identity validation before mount.
+- Game-scoped Settings/Audio/Logger facades prevent legacy convenience APIs from becoming unrestricted host access.
+- Native plugin loading is review/hash gated and disabled on mobile where appropriate.
 
 ## Built-in games
 
-The source currently registers: 2048, Blackjack, Memory Match, Minesweeper, Reaction Tap and XOX. External RCC content appears through the same host runtime without becoming a native plugin by default.
+| Game | Type | Core interaction | Persistence |
+| --- | --- | --- | --- |
+| XOX | Board | Mouse/touch | Session/game stats |
+| Blackjack | Card | Mouse/touch | Game state/stats |
+| Minesweeper | Puzzle | Mouse/touch/flag | Game state/stats |
+| 2048 | Puzzle | Keyboard/swipe | Game state/stats |
+| Memory Match | Puzzle | Mouse/touch | Game state/stats |
+| Reaction Tap | Reflex | Mouse/touch | Scores/stats |
+
+Built-ins are compiled Qt plugins. Market/downloaded games are normally RCC/QML packages and use the external runtime rather than being promoted to native plugins.
 
 ## Architecture
 
 ```text
-                    LeoMiniGames shell
-                           |
-       +-------------------+-------------------+
-       |                   |                   |
- Built-in Qt plugins   Installed RCC       Developer RCC
-       |                   |                   |
-       |              validated mount      session-only mount
-       |                   |                   |
-       +----------- Game host/runtime --------+
-                           |
-       +-------------------+-----------------------------+
-       | Theme | I18n | Save | Audio | Input | Lifecycle |
-       | Stats | Achievements | Events | Random | Haptics |
-       +-------------------------------------------------+
-                           |
-                 game-scoped facades
+                           LeoMiniGames Shell
+                                  |
+             +--------------------+--------------------+
+             |                    |                    |
+       Built-in plugins      Installed RCC       Developer RCC
+             |                    |                session-only
+             |              validated mount            |
+             +--------------------+--------------------+
+                                  |
+                         Game Host / Runtime
+                                  |
+    +----------------------------------------------------------------+
+    | Theme | I18n | Save | Audio | Haptics | Input | Lifecycle      |
+    | Stats | Achievements | Events | Random | Resources | Diagnostics|
+    +----------------------------------------------------------------+
+                                  |
+                         game-scoped facades
+                                  |
+                         External QQmlEngine
 ```
 
-External QML is loaded in a separate engine. Compatibility names such as `Settings`, `Lang`, `Audio`, `App` and `Lifecycle` remain available, but they are adapters scoped to the active game and do not expose application paths, package management or unrestricted filesystem access.
+The main application owns package installation, trusted publisher metadata, filesystem locations and global settings. External game QML does not receive those mutable internals directly.
+
+## Runtime and content types
+
+| Content | Typical format | Runtime trust | Notes |
+| --- | --- | --- | --- |
+| Built-in game | C++/Qt plugin | Host-shipped | Compiled with app |
+| RCC game/mod | `.rcc` | Sandboxed/scoped | Preferred downloadable format |
+| Theme | theme package/RCC | Data-driven | Host applies theme tokens |
+| Developer RCC | local `.rcc` | Session-only | No native/L3 escalation |
+| Native/L3 | reviewed native module | Explicit server/local trust | Higher-risk, separately authorized |
+
+## Platform and architecture matrix
+
+The application target set remains Windows, Linux, Android, iOS and macOS. GitHub CI deliberately tests more OS/toolchain/CPU combinations than the minimum release set.
+
+| Platform | Architecture/toolchain | CI role | Release artifact |
+| --- | --- | --- | --- |
+| Windows | x86_64 / MSVC 2022 | build + CTest | portable ZIP + QtIFW EXE |
+| Windows | x86_64 / LLVM-MinGW | build + CTest | compatibility lane |
+| Windows | ARM64 / MSVC cross-build | build | portable ZIP + QtIFW EXE |
+| Linux | Ubuntu 22.04 x86_64 | build + CTest | compatibility lane |
+| Linux | Ubuntu 24.04 x86_64 | build + CTest | tar.gz + AppImage |
+| Linux | Ubuntu 24.04 ARM64 | build + CTest | tar.gz + AppImage |
+| macOS | Apple Silicon arm64 | build + CTest | ZIP + DMG |
+| macOS | Intel x86_64 | build + CTest | ZIP + DMG |
+| Android | arm64-v8a | APK build | signed APK + AAB lane |
+| Android | armeabi-v7a | APK build | signed APK |
+| Android | x86_64 | APK build | signed APK |
+| Android | x86 | APK build | signed APK |
+| iOS Simulator | arm64 | unsigned build | test ZIP |
+| iOS Simulator | x86_64 | unsigned build | test ZIP |
+
+A configured matrix is not the same as physical-device verification. Hardware QA is tracked separately in `GAMER_AUDIT.md` and `BUILD_MATRIX.md`.
 
 ## Backward compatibility
 
-v0.7.0 supports three package paths:
+### Package generations
 
-1. **v0.5/v0.6 legacy** — missing `api_version` is treated as legacy and receives compatibility services.
-2. **Legacy RCC prefix** — `/mods/<id>` inside the RCC remains mountable only when every resource stays under that same package namespace.
-3. **v0.7 modern** — explicit `api_version`, `min_api_version` and `required_capabilities` are negotiated.
+| Generation | Identification | Runtime behavior |
+| --- | --- | --- |
+| v0.5 legacy | no modern API metadata | compatibility adapters |
+| v0.6 legacy | legacy capability/service conventions | compatibility adapters |
+| v0.7 modern | `api_version` / `required_capabilities` | negotiated capabilities |
 
-Legacy generic `capabilities` are not retroactively interpreted as hard v0.7 requirements. Existing settings can be migrated on read into game-scoped keys. Gameplay/save representations are not rewritten merely for v0.7.
+A package is **not** rejected simply because `api_version` is absent. Legacy generic `capabilities` are not retroactively reinterpreted as strict v0.7 requirements.
 
-Regression fixtures live in `tests/fixtures/compat/`. With Qt available, CTest builds real RCCs for canonical v0.5, legacy-prefix v0.5, v0.6 and v0.7 packages, plus a malicious namespace fixture that must be rejected.
+### Legacy RCC prefix
 
-See `docs/sdk/COMPATIBILITY.md` and `COMPATIBILITY_REPORT.md`.
+New packages should use RCC internal prefix `/`. The host mounts them under `/mods/<game_id>`.
 
-## Build
+Historical packages that already baked `/mods/<game_id>` into the RCC remain supported only when every resource is contained under that same namespace. A legacy package attempting to inject resources into host paths such as `/themes` or `/i18n` is rejected.
 
-Requirements:
+### Legacy services
+
+Compatibility-facing names such as `Settings`, `Lang`, `Audio`, `App` and `Lifecycle` remain available. They are implemented as scoped adapters rather than raw host objects. This preserves common old calls while preventing one game from mutating another game's state or application-global security settings.
+
+See [`docs/sdk/COMPATIBILITY.md`](docs/sdk/COMPATIBILITY.md) and [`COMPATIBILITY_REPORT.md`](COMPATIBILITY_REPORT.md).
+
+## Host service API
+
+| Service | Purpose | Persistence/security note |
+| --- | --- | --- |
+| `GameTheme` | semantic theme tokens | host-owned active theme |
+| `GameI18n` | localized text/fallback/plurals | normalized locale paths |
+| `GameSave` | game state slots | atomic/forced lifecycle save |
+| `GameAudio` | named/package audio | game-scoped URL policy |
+| `Haptics` | tactile feedback | capability/failure safe |
+| `GameInput` | logical/physical input | keyboard-layout-aware WASD |
+| `GameLifecycle` | pause/resume/save | host lifecycle bridge |
+| `GameStats` | bounded statistics | per-game storage |
+| `Achievements` | achievements/progress | per-game storage |
+| `GameResources` | resource lookup | package namespace aware |
+| `GameLogger` | diagnostics | scoped facade for external games |
+
+Modern packages should use the documented SDK surface rather than discovering host QObject internals dynamically.
+
+## RCC package contract
+
+Canonical layout:
+
+```text
+RCC internal prefix: /
+manifest.json
+Main.qml
+assets/
+i18n/
+```
+
+At runtime an `example_game` package becomes:
+
+```text
+qrc:/mods/example_game/manifest.json
+qrc:/mods/example_game/Main.qml
+qrc:/mods/example_game/assets/...
+qrc:/mods/example_game/i18n/...
+```
+
+Do **not** bake `/mods/<id>` into newly authored RCC packages. That is a backward-compatibility path, not the modern authoring contract.
+
+A modern manifest can declare API requirements, but publisher verification/native authority never comes from self-declared manifest flags.
+
+## Developer Mode and Developer Lab
+
+Developer Lab is intended for local package iteration without publishing every build. It can inspect package ID/version/API, entry point, capabilities, mount mode, locale/save declarations and publisher/native requests before a session mount.
+
+Local RCCs are copied to a session cache, are not inserted into the normal installed-content database and do not automatically remount after restart. Installed content with the same ID cannot be silently shadowed by a local developer package.
+
+The current production integration supports scoped `lmg_...` developer credentials as a session-only fallback. Raw developer credentials are not intentionally persisted to QSettings/disk. A full browser-to-native-app OAuth callback remains a separate backend integration concern.
+
+## Publisher trust model
+
+Publisher status is a **trust property**, not a manifest preference.
+
+| Badge | Meaning |
+| --- | --- |
+| Gold / Official | YoungLion-authoritative official publication |
+| Green / Verified Native/L3 | verified publisher with explicit higher native permission |
+| Blue / Verified | verified publisher |
+| Unverified | no authoritative verification |
+
+Legacy admin-only canonical catalog rows that predate modern publisher metadata are compatibility-mapped to Official. This fallback is restricted to the canonical YoungLion catalog boundary; a custom/third-party catalog cannot gain a Gold badge by copying old response fields.
+
+## Theme system
+
+The host owns one active theme. Games consume semantic aliases such as background, surface, text, border, accent, status, button and gameplay roles rather than maintaining a second theme engine. v0.7 adds canonical spacing, radius, touch-target, icon-size, typography, animation and effect tokens while retaining legacy aliases.
+
+Runtime theme changes should propagate without forcing a game restart when the game uses the host facade correctly.
+
+## Localization
+
+The host normalizes locale values, supports deterministic fallback and propagates runtime language changes. English source strings are the canonical fallback. Missing translations are reported rather than filled with fake translated text.
+
+Minimum ecosystem target languages include English, Türkçe, Azərbaycanca, Русский, Deutsch, Français, Español, Português, 中文 and 日本語; actual per-string coverage is reported by the validator.
+
+```bash
+python3 tools/validate_i18n.py
+```
+
+## Save and lifecycle
+
+Game state and application settings are intentionally different concerns. Settings may use host settings storage; game save data goes through `GameSave` and atomic persistence paths.
+
+Lifecycle events use forced-save paths where a normal dirty optimization could otherwise lose a just-completed action. Background/close behavior is therefore treated as a durability boundary rather than a cosmetic callback.
+
+## Audio, haptics and input
+
+Qt Multimedia is optional at configure time. The host exposes an audio capability/fallback rather than crashing when a platform/backend cannot provide sound. Dynamic effects are lazily allocated and bounded.
+
+Android haptics use the Qt Android context and fail safely when vibrator capability is unavailable.
+
+Keyboard input centralizes physical WASD handling so AZ/TR/DE/RU keyboard layouts are not expected to hard-code their own duplicated scan-code logic. Arrow keys remain a logical fallback. Mobile games should provide touch/swipe/drag controls appropriate to their genre.
+
+## Security model
+
+Security boundaries include:
+
+- canonical-origin publisher trust;
+- RCC ID/entry/path/size/hash validation;
+- legacy namespace containment;
+- isolated external QML engine;
+- scoped Settings/Audio/Logger service facades;
+- session-only Developer RCC mounts;
+- no local-manifest native/L3 authority;
+- bounded stats/achievement/save files;
+- native plugin review/hash checks;
+- mobile native-loading restrictions;
+- explicit network capability for modern external packages.
+
+Compatibility is not implemented by restoring unrestricted raw host QObject access.
+
+See [`SECURITY.md`](SECURITY.md) and [`BUG_HUNTER_AUDIT.md`](BUG_HUNTER_AUDIT.md).
+
+## Building
+
+### Requirements
 
 - CMake 3.21+
 - C++20 compiler
-- Qt 6.11.1 recommended (minimum host requirement in CMake remains Qt 6.5)
+- Qt 6.5 minimum
 - Qt Core, Gui, Qml, Quick, QuickControls2, Network and Svg
-- Qt Multimedia is optional and capability-probed
-- Ninja is recommended
+- Qt Multimedia optional
+- Ninja recommended where supported
 
-Typical desktop build:
+Local development currently uses Qt 6.11.1 successfully. GitHub Actions intentionally uses Qt 6.10.2 because the current `install-qt-action`/aqt path has been more reliable against that public binary repository. **This is a CI tooling choice, not a downgrade of LeoMiniGames' Qt 6.11 support.**
+
+### Desktop quick build
 
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
@@ -82,92 +305,70 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-More platform detail is in `BUILDING.md`, `docs/BUILDING.md` and `BUILD_MATRIX.md`.
+Platform-specific details are documented in [`BUILDING.md`](BUILDING.md), [`docs/BUILDING.md`](docs/BUILDING.md) and [`BUILD_MATRIX.md`](BUILD_MATRIX.md).
 
-## Distribution helpers
+## Release artifacts
 
-- Windows: `tools/package/package_windows.ps1 <build-dir>` — `windeployqt` portable ZIP plus Qt Installer Framework setup.
-- Linux: `tools/package/package_linux.sh <build-dir>` — linuxdeploy-backed portable AppDir archive plus AppImage.
-- macOS: `tools/package/package_macos.sh <build-dir>` — `macdeployqt`, ZIP and DMG; signing/notarization is not faked.
-- Android: `tools/package/package_android.sh <build-dir>` — APK and AAB targets when supported by the Qt Android toolchain.
-- iOS: `tools/package/package_ios.sh <build-dir>` — unsigned/test app archive when signing credentials are unavailable.
+The manual **Build Release Artifacts** workflow creates assets for manual GitHub Releases. It deliberately does not create a release/tag automatically.
 
-The Windows QtIFW application component is `ForcedInstallation` and `Essential`; the installer cannot intentionally install only the maintenance tool while omitting LeoMiniGames.
+| Target | Artifact |
+| --- | --- |
+| Source | deterministic source ZIP + SHA-256 |
+| Windows x86_64 | portable ZIP + QtIFW Setup EXE |
+| Windows ARM64 | portable ZIP + QtIFW Setup EXE |
+| Linux x86_64 | runtime tar.gz + AppImage |
+| Linux ARM64 | runtime tar.gz + AppImage |
+| macOS arm64 | ZIP + DMG |
+| macOS x86_64 | ZIP + DMG |
+| Android 4 ABIs | signed per-ABI APKs |
+| Android arm64 | signed AAB lane |
+| iOS simulators | unsigned arm64/x86_64 ZIPs |
 
-## Mod / game SDK
+Windows packaging runs `windeployqt` before creating the portable archive. The QtIFW application component is `ForcedInstallation` and `Essential` to prevent a maintenance-tool-only install.
 
-SDK documentation is under `docs/sdk/`:
+## GitHub Actions
 
-- `OVERVIEW.md`
-- `MANIFEST.md`
-- `RESOURCES.md`
-- `THEME_API.md`
-- `I18N_API.md`
-- `SAVE_API.md`
-- `AUDIO_API.md`
-- `INPUT_API.md`
-- `LIFECYCLE_API.md`
-- `DEVELOPER_MODE.md`
-- `COMPATIBILITY.md`
-- `MIGRATION_0.6_TO_0.7.md`
+`ci.yml` is push/PR validation. It runs static validators first, then expands across desktop/mobile operating systems and architectures.
 
-Examples are under `mod-sdk/`.
+`build-artifacts.yml` is manual (`workflow_dispatch`) release asset generation. It requires the requested version to match source metadata. **There is no tag-triggered automatic GitHub Release creation.**
 
-### Canonical RCC layout
+Recent CI fixes include invoking Android target `qt-cmake` through `bash` because some Android Qt archives can lose the executable permission bit, and removing an unnecessary `<QNativeInterface>` include from Android haptics—the Android application native interface is exposed through the Qt Core application header.
 
-```text
-RCC internal prefix: /
-manifest.json
-Main.qml
-assets/...
-i18n/...
-```
+## Android signing in GitHub Actions
 
-The host mounts this resource at `/mods/<game_id>`, producing URLs such as:
+Never commit the `.jks`/`.keystore` file. Configure these GitHub Actions repository secrets:
 
 ```text
-qrc:/mods/example_game/Main.qml
-qrc:/mods/example_game/assets/sfx/hit.wav
+ANDROID_KEYSTORE_BASE64
+ANDROID_KEY_ALIAS
+ANDROID_KEYSTORE_PASSWORD
+ANDROID_KEY_PASSWORD
 ```
 
-Do not bake `/mods/<id>` into new RCCs. That layout is supported only as a legacy compatibility path.
+The workflow decodes the keystore into the runner's temporary directory with restricted permissions, exports Qt signing variables, builds the artifact, and discards the ephemeral runner afterwards.
 
-## Developer Mode
+Keep the same upload/distribution key when application update compatibility requires signature continuity.
 
-Developer Lab can validate and session-mount a local RCC without publishing it. It reports package ID/version/API, capabilities, entry, mount mode, locales, save version, publisher status and whether native/L3 was requested. Local manifests never receive native/L3 authority.
+## F-Droid
 
-The supplied backend currently supports the existing scoped `lmg_...` developer credential path used by this client as a session-only fallback. The raw credential is not persisted to QSettings/disk. Full native browser-to-app OAuth callback support remains a backend integration dependency and is not fabricated inside the client.
+The canonical upstream information is no longer unknown:
 
-## Theme system
-
-`GameTheme` exposes a stable game-facing facade while the host theme runtime owns the active theme. v0.7 adds canonical semantic tokens for background/surface/text/brand/status/buttons/game cells plus spacing, radius, touch targets, icons, typography, animation and effects. Existing aliases remain available through compatibility mappings.
-
-## Localization
-
-Host locale normalization handles language/region variants and falls back deterministically. English source coverage is complete. Other locales intentionally fall back to source English when a translation is missing; the validator reports coverage instead of silently filling untranslated strings with fake translations.
-
-Run:
-
-```bash
-python3 tools/validate_i18n.py
+```text
+App ID:       xyz.younglion.leominigames
+Version:      0.7.0
+Version code: 700
+Source:       https://github.com/YoungLionOrganization/LeoMiniGames
+Git:          https://github.com/YoungLionOrganization/LeoMiniGames.git
+License:      GPL-3.0-or-later
 ```
 
-## Security model
+Qt itself is not a categorical F-Droid blocker. fdroiddata already contains Qt 6 applications that build Qt from source through the historically named `Qt5` srclib; the current GCompris recipe demonstrates `Qt5@v6.10.1`. LeoMiniGames still needs its own tested, minimized source-build stanza and a final immutable commit SHA before submission.
 
-- Publisher trust comes from the canonical YoungLion catalog boundary, not `manifest.json`.
-- Custom catalogs may distribute content but cannot mint YoungLion Official/Verified/Native-L3 trust.
-- RCC IDs, entry paths, sizes, hashes and namespace layout are validated before mount.
-- External QML receives scoped service facades rather than application-internal mutable objects.
-- Modern v0.7 network access is capability-gated; legacy installed RCC content retains its historical HTTPS behavior for compatibility.
-- Developer local RCC network access is disabled.
-- Native plugins require an explicit reviewed local trust snapshot and SHA-256 match; native dynamic loading is disabled on Android/iOS.
-- Save/stat/achievement files use bounded parsing/writes and atomic save paths where applicable.
+See [`F_DROID_READINESS.md`](F_DROID_READINESS.md).
 
-See `SECURITY.md` and `BUG_HUNTER_AUDIT.md`.
+## Validation and QA
 
-## Validation
-
-Static validation entry points:
+Static validators:
 
 ```bash
 python3 tools/source_guard.py
@@ -180,24 +381,45 @@ python3 tools/audit_prebuilt_binaries.py
 python3 tools/validate_v070.py
 ```
 
-Qt runtime/physical-device tests are separate from static validation. A validator PASS must not be interpreted as proof of Android/iOS/macOS hardware behavior.
+Qt-enabled CTest adds compiled/runtime-oriented checks including RCC compatibility fixtures. Static PASS is not presented as physical-device verification. Gamer/QA reports explicitly distinguish code review, CI configuration and actual hardware testing.
 
-## F-Droid
+## Repository layout
 
-Upstream Fastlane metadata and an fdroiddata recipe template are included. The template remains disabled-by-convention with `REPO_URL` / `FULL_COMMIT_SHA` placeholders until the canonical public repository and immutable full commit hash exist. No proprietary SDK is introduced by the F-Droid build option, and no fake screenshots are included.
+```text
+.github/              Actions, issue/PR templates, CODEOWNERS
+android/              Android package template/resources
+docs/                 architecture/build/SDK documentation
+fastlane/             Android/F-Droid metadata and graphics
+fdroid/                fdroiddata scaffold and notes
+installer/             Qt Installer Framework configuration
+licenses/              mod/plugin licensing material
+mod-sdk/               RCC mod/game examples and SDK resources
+plugins/builtin/       built-in native games
+qml/                   application and reusable QML components
+resources/             app resources/branding/audio
+src/core/              host runtime/services
+src/sdk/               public native SDK boundary
+tests/                 CTest and compatibility fixtures
+theme-sdk/             theme authoring resources
+tools/                 validators and packaging helpers
+```
 
-See `F_DROID_READINESS.md` and `fdroid/README.md`.
+## Contributing and licensing
 
-## CI and build artifacts
+LeoMiniGames host source is licensed under **GPL-3.0-or-later**. The standard GPL text is kept verbatim in [`LICENSE`](LICENSE). Project-specific copyright/licensing context is documented separately in [`COPYRIGHT`](COPYRIGHT), [`NOTICE`](NOTICE), [`docs/DEVELOPER_LICENSING.md`](docs/DEVELOPER_LICENSING.md) and [`licenses/README.md`](licenses/README.md).
 
-`.github/workflows/ci.yml` runs static validators plus Linux, Windows, macOS arm64/x86_64, Android and unsigned iOS-simulator builds/tests. CI intentionally uses Qt 6.10.2 while `aqtinstall` catches up with the changed Qt 6.11 repository metadata; local Qt 6.11.1 remains supported and recommended.
+Content copyright licenses, publisher verification and Native/L3 permission are different concepts. A package cannot grant itself Official/Verified status through its license or manifest.
 
-`.github/workflows/build-artifacts.yml` is a **manual** Actions workflow that produces source ZIPs, Windows portable ZIP + QtIFW Setup EXE, Linux archive + AppImage, macOS ZIP + DMG, signed Android APK/AAB (when repository signing secrets are configured), and an unsigned iOS simulator ZIP. It does not create a GitHub Release automatically. See `docs/GITHUB_RELEASES.md`.
+Contributions should follow [`CONTRIBUTING.md`](CONTRIBUTING.md). Security-sensitive issues should follow [`SECURITY.md`](SECURITY.md).
 
-## Contributing and security
+## Project links
 
-See `CONTRIBUTING.md`. Security-sensitive issues should follow `SECURITY.md`. Do not report a mod as trusted because its local manifest says `official`, `verified`, `reviewed`, `native` or `plugin_level: 3`.
+- Website: <https://leominigames.younglion.xyz>
+- Source: <https://github.com/YoungLionOrganization/LeoMiniGames>
+- Issues: <https://github.com/YoungLionOrganization/LeoMiniGames/issues>
+- Release documentation: [`RELEASES.md`](RELEASES.md)
+- Compatibility report: [`COMPATIBILITY_REPORT.md`](COMPATIBILITY_REPORT.md)
 
-## License
+---
 
-LeoMiniGames host source is licensed under **GPL-3.0-or-later**. The standard GNU license text is kept unmodified in `LICENSE`; project copyright and ecosystem notices are in `COPYRIGHT` and `NOTICE`. Games/mods/themes must declare their own license, and developer verification/Official/Native-L3 permissions are separate from copyright licensing. See `docs/DEVELOPER_LICENSING.md` and `licenses/README.md`.
+LeoMiniGames aims to be more than a launcher that merely builds: the target is a stable, modular, backward-compatible and genuinely playable ecosystem across desktop and mobile platforms.

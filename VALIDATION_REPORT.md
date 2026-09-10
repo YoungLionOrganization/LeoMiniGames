@@ -12,8 +12,8 @@ The source-level v0.7.0 validation suite is clean for the checks that can be exe
 - `tools/sanity_check.py`: **PASS**
 - `tools/security_audit.py`: **16 PASS / 0 WARNING / 0 ERROR**
 - `tools/audit_prebuilt_binaries.py`: **PASS**
-- `tools/validate_v070.py`: **47 PASS / 0 WARNING / 0 ERROR**
-- `tools/validate_distribution.py`: **40 PASS / 1 WARNING / 0 ERROR**
+- `tools/validate_v070.py`: **51 PASS / 0 WARNING / 0 ERROR**
+- `tools/validate_distribution.py`: **82 PASS / 1 WARNING / 0 ERROR**
 - `tools/validate_i18n.py`: **0 ERROR / 22 coverage warnings**
 - Python validator/package scripts: **syntax PASS**
 - Shell scripts: **`bash -n` PASS**
@@ -70,7 +70,7 @@ Source-level validation confirms the following hardening is present:
 
 Static distribution validation confirms:
 
-- CI covers Linux, Windows, macOS arm64, macOS Intel, Android and unsigned iOS simulator build paths;
+- CI covers Ubuntu 22.04/24.04 x86_64, Ubuntu 24.04 ARM64, Windows MSVC/LLVM-MinGW x86_64, Windows ARM64 cross-build, macOS arm64/x86_64, all four Qt Android ABIs and unsigned iOS simulator arm64/x86_64 build paths;
 - Section 22 remains intentionally excluded: no tag-triggered GitHub Release automation is added;
 - QtIFW package metadata is v0.7.0 and marks the main application component forced/essential;
 - Windows packaging creates a portable ZIP and QtIFW installer path;
@@ -78,7 +78,7 @@ Static distribution validation confirms:
 - macOS packaging uses `macdeployqt` and provides ZIP/DMG paths;
 - Android package script checks for actual APK/AAB output rather than claiming an artifact that does not exist;
 - iOS packaging explicitly labels its output unsigned/test when signing credentials are unavailable;
-- F-Droid recipe is an explicit template until a canonical public full commit SHA is available;
+- F-Droid scaffold now uses the real canonical public repository URLs; only the final immutable 40-character submission commit SHA and a tested fdroidserver Qt source-build stanza remain unresolved;
 - backend/account/admin reference material is excluded from the application source package.
 
 ## i18n coverage
@@ -114,7 +114,7 @@ The repository contains CI/build/test paths for these checks, but configured CI 
 
 - Complete human-reviewed translations are still required for full multilingual parity.
 - Real application screenshots must be captured before an F-Droid submission that uses upstream screenshots.
-- The canonical public repository commit SHA is required before enabling the final fdroiddata recipe.
+- The final immutable 40-character source commit SHA is required before generating the fdroiddata submission recipe.
 - Native browser-to-LeoMiniGames OAuth loopback/App-Link flow depends on backend/account support; the application retains a session-only scoped developer credential fallback and does not invent a nonexistent backend endpoint.
 
 ## Final package policy
@@ -151,3 +151,15 @@ This environment still does not have a functioning local Qt SDK installation, so
 - Root cause: historical admin-only Mod rows expose no v0.7 publisher trust fields; historical Theme rows can expose stale `publisher_verified=false`. The v0.7 client therefore downgraded admin-published official packages to Unverified.
 - Client fix: canonical YoungLion legacy catalog rows with no modern trust shape resolve to `Official Publisher`; modern explicit trust remains authoritative and third-party origins remain unverified.
 - CTest regression source: `tests/test_publisher_trust_resolver.cpp`.
+
+
+## GitHub Actions / F-Droid workflow hotfix verification
+
+- Current GitHub Android arm64 failure root cause addressed: the standalone `<QNativeInterface>` include was removed; Qt documents `QNativeInterface::QAndroidApplication` through the Core application header.
+- Current GitHub Android armeabi-v7a failure root cause addressed: target `qt-cmake` is invoked through `bash`, so a missing executable bit no longer prevents configuration.
+- Android CI now covers `arm64-v8a`, `armeabi-v7a`, `x86_64` and `x86`.
+- Desktop CI adds Linux ARM64, Windows ARM64 cross-build and a Windows LLVM-MinGW lane matching local development expectations.
+- Linux release packaging uses `linuxdeploy-plugin-qt` and the maintained `AppImage/appimagetool` project.
+- F-Droid SourceCode/Repo/IssueTracker/website/application/version identifiers are no longer placeholders.
+- F-Droid Qt source-build status is documented accurately: Qt 6 is feasible in fdroiddata, but LeoMiniGames still needs its own tested source-build stanza and final immutable commit.
+- README and RELEASES were expanded with architecture, artifact, compatibility, trust, signing, F-Droid and validation documentation.

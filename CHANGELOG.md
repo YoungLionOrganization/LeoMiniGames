@@ -3,6 +3,11 @@
 ## 0.7.0 — Compatibility, SDK, Security and Distribution
 
 ### GitHub / release engineering
+- Fixed the current Android CI failures: Android `qt-cmake` wrappers are invoked through `bash` to avoid lost executable bits in extracted kits, and the Haptics Android native-interface include now follows the Qt Core header contract.
+- Expanded CI to Ubuntu 22.04/24.04 x86_64, Ubuntu 24.04 ARM64, Windows MSVC x86_64, Windows LLVM-MinGW x86_64, Windows ARM64 cross-build, macOS arm64/x86_64, all four Qt Android ABIs, and iOS simulator arm64/x86_64.
+- Expanded manual release artifacts to Windows x86_64/ARM64, Linux x86_64/ARM64, macOS arm64/x86_64, per-ABI Android APKs, an arm64 AAB lane, and unsigned iOS simulator archives.
+- Linux AppImage packaging now uses the maintained AppImage/appimagetool repository plus linuxdeploy-plugin-qt so Qt/QML resources are actually deployed.
+- Corrected F-Droid upstream metadata to the real YoungLionOrganization repository and documented the existing fdroiddata Qt 6 source-build precedent (`Qt5@v6.10.1`).
 - Reworked CI to use a verified Qt 6.10.2 compatibility lane while aqtinstall 3.3.x cannot reliably consume the changed Qt 6.11 online repository metadata; local Qt 6.11.1 support is unchanged.
 - Added a manual Build Release Artifacts workflow producing direct-download source ZIP, Windows portable ZIP + QtIFW installer, Linux archive + AppImage, macOS ZIP + DMG, signed Android APK/AAB, and unsigned iOS simulator ZIP.
 - Added Android signing through repository secrets without committing keystore material.
@@ -25,7 +30,7 @@
 - Fixed Qt 6.11 build errors reported by a real Windows LLVM-MinGW build: removed duplicate `qt_finalize_executable(LeoMiniGames)`, corrected `GameAudio` `releasePrefix()` argument type, and switched the external-runtime factory include to the actual Qt `QQmlNetworkAccessManagerFactory` header.
 - Fixed `ExternalGameRuntime` network-factory lifetime: `QQmlEngine` does not own the factory, so the runtime now retains it until engine teardown instead of leaking it.
 - Reduced `DeveloperLabPage.qml` unqualified-access warnings with `pragma ComponentBehavior: Bound`, required service properties and root-qualified service access.
-- Added explicit `<QNativeInterface>` inclusion for the Android haptics path.
+- Fixed Android haptics portability by relying on the Qt Core application header for `QNativeInterface::QAndroidApplication` instead of a standalone `QNativeInterface` include that failed in the Qt 6.10 Android kit.
 - Fixed `DeveloperLabPage.qml` runtime-diagnostics action row syntax that caused Qt 6.11 `qmlcachegen` to fail with `Unexpected token `;``.
 - Fixed lifecycle paths that could skip a required disk save; close/background/quit now use force-save safety paths.
 - Fixed layout-dependent direct WASD handling by routing through centralized physical/native GameInput mappings.

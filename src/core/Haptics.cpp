@@ -6,7 +6,6 @@
 #ifdef Q_OS_ANDROID
 #include <QCoreApplication>
 #include <QJniObject>
-#include <QNativeInterface>
 
 namespace {
 QJniObject androidVibrator()
