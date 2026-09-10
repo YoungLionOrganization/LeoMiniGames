@@ -1,0 +1,7 @@
+{
+  "id": "legacy_v05_canonical",
+  "name": "Legacy v0.5 Canonical Fixture",
+  "version": "0.5.2",
+  "entry": "Main.qml",
+  "package_format": "rcc-v1"
+}

@@ -1,0 +1,31 @@
+:root{
+  --bg:#140d09;--panel:#25170f;--panel2:#2b1b13;--line:#3a2418;
+  --bronze:#b7793e;--bronze2:#d09a61;--gold:#d6ad60;--cream:#f4e8d6;
+  --muted:#bdae9f;--danger:#d06e5a;--success:#8fa66a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at 20% -10%,#3a2418 0,transparent 38%),var(--bg);color:var(--cream);font-family:Inter,Segoe UI,Arial,sans-serif}
+a{color:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding:24px}
+header{display:flex;align-items:center;gap:16px;margin-bottom:28px}
+.logo{width:74px;height:74px;object-fit:contain;border-radius:18px}
+.brand h1{margin:0;font-size:28px}.brand p{margin:4px 0 0;color:var(--bronze2)}
+.hero,.panel,.card{background:linear-gradient(180deg,rgba(43,27,19,.96),rgba(37,23,15,.96));border:1px solid var(--line);border-radius:20px}
+.hero{padding:24px;margin-bottom:22px}.hero h2{margin:0 0 8px;font-size:24px}.hero p{margin:0;color:var(--muted);line-height:1.55}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+input,textarea,select,button{font:inherit}
+input,textarea,select{background:#1d120c;color:var(--cream);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+button,.btn{background:var(--panel2);color:var(--cream);border:1px solid var(--bronze);border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:700;text-decoration:none}
+button:hover,.btn:hover{border-color:var(--gold);transform:translateY(-1px)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.card{padding:16px;min-height:190px;display:flex;flex-direction:column;gap:8px}
+.card h3{margin:0;font-size:20px}.meta{color:var(--bronze2);font-size:13px}.desc{color:var(--muted);line-height:1.45;flex:1}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#3a2418;color:var(--gold);font-size:11px}
+.status{color:var(--muted);padding:14px 0}.error{color:var(--danger)}
+footer{color:#8e8075;font-size:12px;padding:30px 0 10px}
+.admin{max-width:780px}.panel{padding:18px;margin-bottom:16px}
+.field{display:grid;gap:6px;margin-bottom:12px}.field label{color:var(--bronze2);font-size:12px;font-weight:700}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+pre{white-space:pre-wrap;word-break:break-word;background:#100a07;border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--muted)}
+.progress{height:8px;background:#1d120c;border-radius:999px;overflow:hidden}.progress>div{height:100%;width:0;background:var(--gold);transition:width .15s}
+@media(max-width:640px){.wrap{padding:16px}.row{grid-template-columns:1fr}.logo{width:60px;height:60px}}

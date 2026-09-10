@@ -1,0 +1,111 @@
+name: LeoMiniGames CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_VERSION: "6.11.1"
+
+jobs:
+  static-validation:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Static validators
+        run: |
+          python3 tools/source_guard.py
+          python3 tools/validate_project.py
+          python3 tools/sanity_check.py
+          python3 tools/security_audit.py
+          python3 tools/validate_i18n.py
+          python3 tools/validate_distribution.py
+          python3 tools/audit_prebuilt_binaries.py
+          python3 tools/validate_v070.py
+          python3 -m py_compile tools/*.py
+          find tools -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
+
+  desktop:
+    needs: static-validation
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            name: Linux-x86_64
+          - os: windows-2025
+            name: Windows-x86_64
+            qt_arch: win64_msvc2022_64
+          - os: macos-15
+            name: macOS-arm64
+          - os: macos-15-intel
+            name: macOS-x86_64
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Qt
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: ${{ matrix.qt_arch }}
+          modules: "qtmultimedia qtsvg"
+          cache: true
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: CTest
+        run: ctest --test-dir build -C Release --output-on-failure
+
+  android:
+    needs: static-validation
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [android_arm64_v8a, android_armv7]
+    runs-on: ubuntu-24.04
+    name: Android-${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Qt for Android
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: android
+          arch: ${{ matrix.arch }}
+          modules: "qtmultimedia qtsvg"
+          cache: true
+      - name: Configure Android
+        shell: bash
+        run: qt-cmake -S . -B build-android -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+      - name: Build Android library
+        run: cmake --build build-android --parallel
+      - name: Build APK
+        run: cmake --build build-android --target apk --parallel
+
+  ios-unsigned-simulator:
+    needs: static-validation
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Qt for iOS
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: ios
+          modules: "qtmultimedia qtsvg"
+          cache: true
+      - name: Configure unsigned iOS simulator build
+        run: qt-cmake -S . -B build-ios -G Xcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64 -DBUILD_TESTING=OFF
+      - name: Build unsigned iOS simulator app
+        run: cmake --build build-ios --config Release --parallel

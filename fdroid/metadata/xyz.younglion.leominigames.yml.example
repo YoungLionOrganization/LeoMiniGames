@@ -1,0 +1,31 @@
+# fdroiddata submission recipe TEMPLATE for LeoMiniGames 0.7.0.
+# Do not submit this file until REPO_URL and FULL_COMMIT_SHA are replaced by
+# the canonical public repository and the exact 40-character commit hash.
+Categories:
+  - Games
+License: GPL-3.0-or-later
+AutoName: LeoMiniGames
+SourceCode: REPO_URL
+IssueTracker: REPO_URL/issues
+RepoType: git
+Repo: REPO_URL
+
+Builds:
+  - versionName: 0.7.0
+    versionCode: 700
+    commit: FULL_COMMIT_SHA
+    subdir: .
+    ndk: 27.2.12479018
+    sudo:
+      - apt-get update
+      - apt-get install -y cmake ninja-build clang python3 git perl
+    # Qt for Android must be built from FOSS source/srclibs in the final fdroiddata MR.
+    # The exact Qt srclib recipe must be pinned to the public v0.7.0 source commit.
+    build:
+      - ./tools/fdroid_clean_build.sh
+    output: build-fdroid/android-build/build/outputs/apk/release/android-build-release-unsigned.apk
+
+AutoUpdateMode: None
+UpdateCheckMode: None
+CurrentVersion: 0.7.0
+CurrentVersionCode: 700

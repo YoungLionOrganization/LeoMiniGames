@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>LeoMiniGames Publisher</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<div class="wrap admin">
+<header>
+  <img class="logo" src="/assets/logo.png" alt="">
+  <div class="brand"><h1>Publisher</h1><p>Private mod publishing · no user accounts</p></div>
+</header>
+
+<section class="panel">
+  <div class="field"><label>Admin token</label><input id="token" type="password" autocomplete="off" placeholder="Bearer token"></div>
+  <div class="row">
+    <div class="field"><label>Mod ID</label><input id="id" placeholder="example_mod"></div>
+    <div class="field"><label>Version</label><input id="version" value="1.0.0"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Name</label><input id="name" placeholder="Example Mod"></div>
+    <div class="field"><label>Author</label><input id="author" placeholder="YoungLion"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Category</label><input id="category" value="Game"></div>
+    <div class="field"><label>Icon text</label><input id="icon" value="MOD" maxlength="16"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Minimum app version</label><input id="min" value="0.4.0"></div>
+    <div class="field"><label>QML entry</label><input id="entry" value="Main.qml"></div>
+  </div>
+  <div class="field"><label>Description</label><textarea id="description" rows="4" placeholder="What does this mod add?"></textarea></div>
+  <div class="field"><label>RCC package</label><input id="file" type="file" accept=".rcc,application/octet-stream"></div>
+  <div class="progress"><div id="bar"></div></div>
+  <p id="status" class="status">Choose a trusted <code>.rcc</code> package.</p>
+  <button id="publish">Upload to R2 & Publish</button>
+</section>
+
+<section class="panel">
+<h3>Important</h3>
+<p class="desc">The browser uploads the package directly to Cloudflare R2 using a short-lived presigned PUT URL. The mod file is never stored on cPanel. cPanel stores only the catalog metadata in MySQL.</p>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s),status=$('#status'),bar=$('#bar');
+const val=id=>$('#'+id).value.trim();
+function setStatus(text,error=false){status.textContent=text;status.className=error?'status error':'status'}
+async function api(path,opts={}){
+  const token=val('token');opts.headers=Object.assign({'Authorization':'Bearer '+token},opts.headers||{});
+  const r=await fetch(path,opts);let j={};try{j=await r.json()}catch{}
+  if(!r.ok)throw new Error(j?.error?.message||`HTTP ${r.status}`);return j;
+}
+async function sha256(file){
+  const b=await file.arrayBuffer();const h=await crypto.subtle.digest('SHA-256',b);
+  return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function uploadPut(url,file){
+  return new Promise((resolve,reject)=>{
+    const x=new XMLHttpRequest();x.open('PUT',url,true);
+    x.setRequestHeader('Content-Type','application/octet-stream');
+    x.upload.onprogress=e=>{if(e.lengthComputable)bar.style.width=((e.loaded/e.total)*100).toFixed(1)+'%'};
+    x.onload=()=>x.status>=200&&x.status<300?resolve():reject(new Error('R2 upload failed: HTTP '+x.status));
+    x.onerror=()=>reject(new Error('R2 network/CORS error. Check the OPTIONS request and bucket CORS policy.'));
+    x.send(file);
+  });
+}
+$('#publish').addEventListener('click',async()=>{
+  const file=$('#file').files[0];if(!file){setStatus('Select an .rcc package first.',true);return}
+  if(!val('token')){setStatus('Admin token is required.',true);return}
+  try{
+    bar.style.width='0%';setStatus('Calculating SHA-256…');
+    const hash=await sha256(file);
+    setStatus('Requesting direct R2 upload URL…');
+    const ticket=await api('/api/v1/admin/upload-url',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:val('id'),version:val('version'),sha256:hash,size_bytes:file.size})
+    });
+    setStatus('Uploading directly to Cloudflare R2…');
+    await uploadPut(ticket.data.upload_url,file);
+    setStatus('Publishing catalog metadata…');
+    const payload={
+      id:val('id'),name:val('name'),description:val('description'),author:val('author'),
+      version:val('version'),category:val('category'),icon:val('icon'),min_app_version:val('min'),
+      package_format:'rcc-v1',entry:val('entry'),object_key:ticket.data.object_key,
+      sha256:hash,size_bytes:file.size
+    };
+    const result=await api('/api/v1/admin/mods',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+    });
+    bar.style.width='100%';setStatus(`Published ${result.data.name} v${result.data.version}.`);
+  }catch(e){setStatus(e.message,true)}
+});
+</script>
+</body>
+</html>

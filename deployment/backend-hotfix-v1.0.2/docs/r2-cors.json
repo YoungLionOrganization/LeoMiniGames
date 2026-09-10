@@ -1,0 +1,17 @@
+[
+  {
+    "AllowedOrigins": [
+      "https://leominigames.younglion.xyz"
+    ],
+    "AllowedMethods": [
+      "PUT"
+    ],
+    "AllowedHeaders": [
+      "*"
+    ],
+    "ExposeHeaders": [
+      "ETag"
+    ],
+    "MaxAgeSeconds": 3600
+  }
+]

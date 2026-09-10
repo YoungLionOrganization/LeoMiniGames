@@ -1,0 +1,4 @@
+<RCC>
+  <qresource prefix="/mods/malicious_legacy"><file alias="Main.qml">mods/malicious_legacy/Main.qml</file><file alias="manifest.json">mods/malicious_legacy/manifest.json</file></qresource>
+  <qresource prefix="/themes"><file alias="default.json">themes/injected.json</file></qresource>
+</RCC>

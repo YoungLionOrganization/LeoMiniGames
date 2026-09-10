@@ -1,0 +1,1 @@
+Leichte Qt-Minispiele mit rückwärtskompatiblem RCC-Modsystem

@@ -1,0 +1,1 @@
+LeoMiniGames daxili oyunlar və geriyə uyğun RCC plagin sistemi olan açıq mənbəli Qt 6 mini oyun kolleksiyasıdır. Köhnə v0.5/v0.6 məzmunu uyğunluq qatı ilə işləməyə davam edir, v0.7 xidmətləri isə resurs, yaddaş, səs, giriş, tema və dil inteqrasiyasını daha təhlükəsiz edir.

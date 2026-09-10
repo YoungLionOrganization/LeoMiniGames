@@ -1,0 +1,1 @@
+LeoMiniGames, yerleşik oyunlar ve geriye uyumlu RCC eklenti sistemi içeren açık kaynaklı bir Qt 6 mini oyun koleksiyonudur. Eski v0.5/v0.6 içeriklerini uyumluluk katmanı üzerinden çalıştırırken yeni v0.7 servisleri daha güvenli kaynak, kayıt, ses, giriş, tema ve dil entegrasyonu sunar.

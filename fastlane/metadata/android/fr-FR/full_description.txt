@@ -1,0 +1,1 @@
+LeoMiniGames est une collection libre de mini-jeux Qt 6 avec des jeux intégrés et un système de mods RCC rétrocompatible. Le contenu v0.5/v0.6 continue de fonctionner via une couche de compatibilité, tandis que v0.7 renforce les services de ressources, sauvegarde, audio, entrée, thème et langue.

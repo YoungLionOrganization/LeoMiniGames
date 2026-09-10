@@ -1,0 +1,1 @@
+Minijuegos Qt ligeros con sistema de mods RCC retrocompatible

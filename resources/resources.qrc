@@ -1,0 +1,55 @@
+<RCC>
+    <qresource prefix="/themes">
+        <file alias="default_theme.json">themes/default_theme.json</file>
+    </qresource>
+    <qresource prefix="/i18n">
+        <file alias="ar.json">i18n/ar.json</file>
+        <file alias="az.json">i18n/az.json</file>
+        <file alias="de.json">i18n/de.json</file>
+        <file alias="el.json">i18n/el.json</file>
+        <file alias="es.json">i18n/es.json</file>
+        <file alias="fa.json">i18n/fa.json</file>
+        <file alias="fr.json">i18n/fr.json</file>
+        <file alias="hi.json">i18n/hi.json</file>
+        <file alias="id.json">i18n/id.json</file>
+        <file alias="it.json">i18n/it.json</file>
+        <file alias="ja.json">i18n/ja.json</file>
+        <file alias="ko.json">i18n/ko.json</file>
+        <file alias="nl.json">i18n/nl.json</file>
+        <file alias="pl.json">i18n/pl.json</file>
+        <file alias="pt.json">i18n/pt.json</file>
+        <file alias="ru.json">i18n/ru.json</file>
+        <file alias="sv.json">i18n/sv.json</file>
+        <file alias="tr.json">i18n/tr.json</file>
+        <file alias="uk.json">i18n/uk.json</file>
+        <file alias="vi.json">i18n/vi.json</file>
+        <file alias="zh_cn.json">i18n/zh_cn.json</file>
+        <file alias="zh_tw.json">i18n/zh_tw.json</file>
+    </qresource>
+    <qresource prefix="/branding">
+        <file alias="leominigames_logo.png">branding/leominigames_logo_384.png</file>
+        <file alias="leominigames_logo_master.png">branding/leominigames_logo_master.png</file>
+        <file alias="leominigames_icon.png">branding/leominigames_icon_512.png</file>
+    </qresource>
+    <qresource prefix="/sfx">
+        <file alias="card.wav">sfx/card.wav</file>
+        <file alias="click.wav">sfx/click.wav</file>
+        <file alias="deal.wav">sfx/deal.wav</file>
+        <file alias="download.wav">sfx/download.wav</file>
+        <file alias="error.wav">sfx/error.wav</file>
+        <file alias="flag.wav">sfx/flag.wav</file>
+        <file alias="flip.wav">sfx/flip.wav</file>
+        <file alias="install.wav">sfx/install.wav</file>
+        <file alias="lose.wav">sfx/lose.wav</file>
+        <file alias="match.wav">sfx/match.wav</file>
+        <file alias="merge.wav">sfx/merge.wav</file>
+        <file alias="miss.wav">sfx/miss.wav</file>
+        <file alias="move.wav">sfx/move.wav</file>
+        <file alias="ready.wav">sfx/ready.wav</file>
+        <file alias="shuffle.wav">sfx/shuffle.wav</file>
+        <file alias="success.wav">sfx/success.wav</file>
+        <file alias="tap.wav">sfx/tap.wav</file>
+        <file alias="uninstall.wav">sfx/uninstall.wav</file>
+        <file alias="win.wav">sfx/win.wav</file>
+    </qresource>
+</RCC>

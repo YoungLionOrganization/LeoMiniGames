@@ -1,0 +1,13 @@
+{
+  "id": "example_hello",
+  "name": "Example Hello Mod",
+  "version": "1.1.0",
+  "author": "YoungLion",
+  "category": "Example",
+  "icon": "HELLO",
+  "icon_path": "assets/icon.png",
+  "description": "SDK example with catalog icon and mod-local audio.",
+  "package_format": "rcc-v1",
+  "entry": "Main.qml",
+  "min_app_version": "0.5.1"
+}

@@ -1,0 +1,15 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="Main.qml">Main.qml</file>
+    <file alias="SdkPanel.qml">SdkPanel.qml</file>
+    <file alias="SdkText.qml">SdkText.qml</file>
+    <file alias="SdkButton.qml">SdkButton.qml</file>
+    <file alias="manifest.json">manifest.json</file>
+    <file alias="LICENSE">LICENSE</file>
+    <file alias="assets/icon.png">assets/icon.png</file>
+    <file alias="sfx/click.wav">sfx/click.wav</file>
+    <file alias="i18n/en.json">i18n/en.json</file>
+    <file alias="i18n/tr.json">i18n/tr.json</file>
+    <file alias="i18n/az.json">i18n/az.json</file>
+  </qresource>
+</RCC>

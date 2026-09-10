@@ -1,0 +1,11 @@
+{
+  "id":"legacy_v06_services",
+  "name":"Legacy v0.6 Services Fixture",
+  "version":"0.6.2",
+  "entry":"Main.qml",
+  "package_format":"rcc-v1",
+  "capabilities":["audio","save","theme","i18n","input"],
+  "save_version":2,
+  "default_locale":"en",
+  "locales":["en","tr","az"]
+}

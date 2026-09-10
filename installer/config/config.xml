@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Installer>
+    <Name>LeoMiniGames</Name>
+    <Version>0.7.0</Version>
+    <Title>LeoMiniGames 0.7.0 Setup</Title>
+    <Publisher>YoungLion</Publisher>
+    <ProductUrl>https://leominigames.younglion.xyz</ProductUrl>
+    <StartMenuDir>LeoMiniGames</StartMenuDir>
+    <TargetDir>@ApplicationsDir@/LeoMiniGames</TargetDir>
+    <MaintenanceToolName>LeoMiniGamesMaintenance</MaintenanceToolName>
+    <AllowNonAsciiCharacters>true</AllowNonAsciiCharacters>
+</Installer>

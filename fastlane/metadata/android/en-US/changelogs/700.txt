@@ -1,0 +1,1 @@
+LeoMiniGames 0.7.0 modernizes the mod runtime while preserving v0.5/v0.6 compatibility. It adds safer RCC validation, capability-driven APIs, Developer Lab diagnostics, improved save/audio/input handling, expanded theme aliases, and cross-platform build tooling.

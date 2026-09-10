@@ -1,0 +1,10 @@
+{
+  "id":"modern_v07_fixture",
+  "name":"Modern v0.7 Fixture",
+  "version":"0.7.0",
+  "entry":"Main.qml",
+  "package_format":"rcc-v1",
+  "api_version":"0.7",
+  "min_api_version":"0.7",
+  "required_capabilities":["theme","i18n","save.atomic","lifecycle","resources"]
+}

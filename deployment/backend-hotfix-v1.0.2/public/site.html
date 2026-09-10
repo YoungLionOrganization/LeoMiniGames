@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LeoMiniGames Mods</title>
+<meta name="description" content="Official reviewed mod catalog for LeoMiniGames by YoungLion.">
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img class="logo" src="/assets/logo.png" alt="LeoMiniGames">
+    <div class="brand"><h1>LeoMiniGames</h1><p>Official mod catalog · YoungLion</p></div>
+  </header>
+
+  <section class="hero">
+    <h2>Reviewed community add-ons</h2>
+    <p>Only mods approved by the LeoMiniGames publisher are listed here. The desktop/mobile app verifies every downloaded RCC package with SHA-256 before installing it.</p>
+  </section>
+
+  <div class="toolbar">
+    <input id="q" placeholder="Search mods…" aria-label="Search mods">
+    <select id="sort" aria-label="Sort">
+      <option value="updated">Recently updated</option>
+      <option value="downloads">Most downloaded</option>
+      <option value="name">Name</option>
+    </select>
+    <button id="reload">Refresh</button>
+  </div>
+
+  <div id="status" class="status">Loading catalog…</div>
+  <main id="grid" class="grid"></main>
+  <footer>LeoMiniGames · Bronze Gold + Espresso · API <code>/api/v1</code></footer>
+</div>
+<script>
+const grid=document.querySelector('#grid'),status=document.querySelector('#status'),q=document.querySelector('#q'),sort=document.querySelector('#sort');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const bytes=n=>n<1024?`${n} B`:n<1048576?`${(n/1024).toFixed(1)} KiB`:`${(n/1048576).toFixed(1)} MiB`;
+async function load(){
+  status.textContent='Loading catalog…'; status.className='status'; grid.innerHTML='';
+  const u=new URL('/api/v1/mods',location.origin);u.searchParams.set('limit','100');u.searchParams.set('sort',sort.value);if(q.value.trim())u.searchParams.set('q',q.value.trim());
+  try{
+    const r=await fetch(u);const j=await r.json();if(!r.ok)throw new Error(j?.error?.message||`HTTP ${r.status}`);
+    status.textContent=j.data.length?`${j.meta.total} published mod(s)`:'No mods are published yet.';
+    grid.innerHTML=j.data.map(m=>`<article class="card">
+      <div><span class="badge">${esc(m.icon||'MOD')}</span></div>
+      <h3>${esc(m.name)}</h3>
+      <div class="meta">${esc(m.author)} · v${esc(m.version)} · ${esc(m.category)}</div>
+      <div class="desc">${esc(m.description)}</div>
+      <div class="meta">${bytes(m.size_bytes)} · ${Number(m.downloads||0).toLocaleString()} downloads</div>
+    </article>`).join('');
+  }catch(e){status.textContent=e.message;status.className='status error';}
+}
+let timer; q.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(load,250)});sort.addEventListener('change',load);document.querySelector('#reload').addEventListener('click',load);load();
+</script>
+</body>
+</html>

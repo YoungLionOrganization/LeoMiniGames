@@ -1,0 +1,1 @@
+LeoMiniGames 0.7.0: geriye/geri uyumlu v0.5/v0.6 çalışma katmanı, daha güvenli RCC doğrulama ve geliştirilmiş v0.7 servisleri.

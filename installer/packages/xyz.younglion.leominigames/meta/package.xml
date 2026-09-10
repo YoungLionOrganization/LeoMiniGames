@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package>
+    <DisplayName>LeoMiniGames</DisplayName>
+    <Description>LeoMiniGames application and runtime.</Description>
+    <Version>0.7.0</Version>
+    <ReleaseDate>2026-09-10</ReleaseDate>
+    <Name>xyz.younglion.leominigames</Name>
+    <Default>true</Default>
+    <ForcedInstallation>true</ForcedInstallation>
+    <Essential>true</Essential>
+    <Script>installscript.qs</Script>
+    <Licenses><License name="GNU GPL v3 or later" file="LICENSE.txt" /></Licenses>
+</Package>
