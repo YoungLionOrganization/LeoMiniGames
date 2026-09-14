@@ -1,6 +1,6 @@
-YoungLion Mod License — PLACEHOLDER
+YoungLion Mod License compatibility pointer
 
-This file is intentionally NOT the final YoungLion closed-source mod license.
-The final legal text will be supplied separately and must replace this placeholder before any mod is distributed under "YoungLion-Mod-License".
+The adopted v1.0 text is: YOUNGLION_MOD_LICENSE_1.0.txt
+Canonical identifier: LicenseRef-YoungLion-Mod-License-1.0
 
-Do not infer rights, restrictions, permissions, warranties, or redistribution terms from this placeholder.
+This file exists only so older documentation/tooling paths do not break. It does not replace the v1.0 license text.

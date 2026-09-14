@@ -1,27 +1,17 @@
-# LeoMiniGames package licensing
+# LeoMiniGames licensing files
 
-The LeoMiniGames **host application** is GPL-3.0-or-later. `LICENSE` is the
-standard GNU GPL v3 text and must not be edited to insert project-specific
-clauses.
+LeoMiniGames host code is licensed under **GPL-3.0-or-later**. The canonical GNU GPLv3 text is kept verbatim in `/LICENSE`; the example `<year>` / `<name of author>` lines at the end of that GNU document are part of the GPL's own “How to Apply” instructions and are intentionally not edited.
 
-Games, mods, themes and developer packages declare their own license metadata.
-For open-source content, prefer a recognized SPDX identifier such as
-`GPL-3.0-or-later`, `LGPL-3.0-or-later`, `MIT`, `Apache-2.0`, `BSD-3-Clause` or
-`MPL-2.0`, and ship the corresponding license file. When a license requires
-source availability, provide the canonical `source_url`.
+Project-specific licensing is applied through the following files:
 
-`YOUNGLION_MOD_LICENSE.txt` is intentionally a placeholder. It is **not** a
-usable proprietary license yet and grants no rights. The final YoungLion
-closed-source content license must replace it before that identifier is used in
-a release.
+- `../COPYRIGHT` — project copyright holder/contributor notice.
+- `../NOTICE` — host licensing selection and references.
+- `LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt` — GPLv3 section 7 additional permission for qualifying independent packages using designated public interfaces.
+- `YOUNGLION_MOD_LICENSE_1.0.txt` — proprietary end-user license for eligible YoungLion/third-party packages that explicitly select `LicenseRef-YoungLion-Mod-License-1.0`.
+- `../docs/YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md` — publisher ↔ YoungLion distribution-service terms.
+- `../docs/OPEN_SOURCE_LICENSE_POLICY.md` — standard OSS license selection policy.
+- `../docs/TRADEMARK_POLICY.md` — separate trademark/trust-badge policy.
 
-A future LeoMiniGames Plugin/Mod Exception may provide an explicit GPL
-additional permission for independently authored packages that use only the
-documented SDK/API boundary, including an explicitly designated public Native/L3
-ABI. Until its final text is adopted, do not infer that private/internal host
-headers or linked GPL-covered code can be made proprietary merely by calling the
-result a plugin.
+Developer verification, Official/Verified publisher status, Native/L3 approval and package copyright licensing are separate systems. A manifest cannot self-grant YoungLion trust or Native/L3 capability.
 
-Developer verification, Official Publisher status, Native/L3 permission and
-content licensing are separate systems. Manifest fields cannot grant trust or
-account capability.
+Legacy compatibility: old package manifests that do not contain the newer license metadata remain loadable by the runtime. New marketplace submissions may impose stricter metadata requirements without breaking existing installed content.

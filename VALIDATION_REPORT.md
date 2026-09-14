@@ -1,3 +1,24 @@
+# LeoMiniGames v0.7.0 Validation Report
+
+Final packaging audit: 2026-09-14
+
+- `source_guard.py`: PASS
+- `validate_project.py`: PASS
+- `sanity_check.py`: PASS
+- `security_audit.py`: **16 PASS / 0 WARNING / 0 ERROR**
+- `validate_distribution.py`: **143 PASS / 1 expected F-Droid screenshot warning / 0 ERROR**
+- `audit_prebuilt_binaries.py`: PASS
+- `validate_v070.py`: **51 PASS / 0 WARNING / 0 ERROR**
+- Python tool compilation: PASS
+- shell syntax validation: PASS
+- source ZIP integrity: generated after all validators pass
+
+The root GNU GPLv3 text has the same SHA-256 as the pre-integration source (`3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986`); project-specific copyright/additional-permission text is kept outside the canonical GNU document.
+
+See `BUILD_FIX_REPORT.md` for build/link/QML/Android/workflow/installer fixes.
+
+---
+
 # LeoMiniGames v0.7.0 — Final Validation Report
 
 Validation date: 2026-09-10

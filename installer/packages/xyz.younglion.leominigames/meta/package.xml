@@ -8,6 +8,10 @@
     <Default>true</Default>
     <ForcedInstallation>true</ForcedInstallation>
     <Essential>true</Essential>
+    <Checkable>false</Checkable>
     <Script>installscript.qs</Script>
-    <Licenses><License name="GNU GPL v3 or later" file="LICENSE.txt" /></Licenses>
+    <Licenses>
+        <License name="GNU GPL v3 or later" file="LICENSE.txt" />
+        <License name="LeoMiniGames Plugin / Mod Exception v1.0" file="PLUGIN_EXCEPTION.txt" />
+    </Licenses>
 </Package>

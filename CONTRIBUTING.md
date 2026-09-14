@@ -16,6 +16,4 @@ pull request does not by itself transfer copyright ownership to YoungLion. Do no
 submit code you do not have the right to contribute.
 
 Developer account permissions, package publishing permissions, Official/Verified
-status and Native/L3 approval are separate from copyright licensing. A future
-Plugin/Mod Exception or contributor agreement must be adopted explicitly; do not
-assume the current placeholder proprietary-mod license grants those rights.
+status and Native/L3 approval are separate from copyright licensing. The adopted `LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt` is a GPLv3 section 7 additional permission for qualifying public-interface interactions. Contributors must have authority to grant the project license and that additional permission for their contribution. The proprietary package license is `LicenseRef-YoungLion-Mod-License-1.0` and is separate from contribution licensing.

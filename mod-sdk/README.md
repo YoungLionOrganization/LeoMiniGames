@@ -12,6 +12,6 @@ Do not import the private `LeoMiniGames` QML module. Use QtQuick/QtQuick.Control
 
 ## Licensing
 
-Package licensing is independent from developer trust/capability. See `../docs/DEVELOPER_LICENSING.md` before choosing an open-source or proprietary package license. The current `YoungLion-Mod-License` file is only a placeholder and must not be used as final legal terms.
+Package licensing is independent from developer trust/capability. See `../docs/DEVELOPER_LICENSING.md` before choosing an open-source or proprietary package license. Eligible proprietary packages may use `LicenseRef-YoungLion-Mod-License-1.0`; the adopted text is `../licenses/YOUNGLION_MOD_LICENSE_1.0.txt`. Qualifying independent packages using only designated public interfaces may rely on the separate GPLv3 section 7 permission in `../licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt` subject to its exact conditions.
 
-SDK example packages are MIT-licensed so developers may copy/adapt the example code into packages under compatible or proprietary terms. This does not change the GPL license of the LeoMiniGames host or resolve the separate Native/L3 linking boundary.
+SDK example packages are MIT-licensed so developers may copy/adapt the example code into packages under compatible or proprietary terms. This does not change the GPL license of the LeoMiniGames host. Native/L3 proprietary interoperability is permitted only when the package satisfies the adopted Exception and uses the expressly designated public ABI; private/internal coupling remains outside that permission.

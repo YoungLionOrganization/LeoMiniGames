@@ -35,17 +35,13 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import os, re, pathlib, sys
+          import os, re, pathlib
           root=pathlib.Path('.')
           requested=os.environ['REQUESTED_VERSION'].strip()
           cmake=(root/'CMakeLists.txt').read_text(encoding='utf-8')
           m=re.search(r'project\(LeoMiniGames\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)', cmake)
           if not m or m.group(1) != requested:
-              raise SystemExit(f"workflow version {requested!r} does not match CMake project version {m.group(1) if m else 'missing'}")
-          for rel in ['installer/config/config.xml','installer/packages/xyz.younglion.leominigames/meta/package.xml']:
-              text=(root/rel).read_text(encoding='utf-8')
-              if f'<Version>{requested}</Version>' not in text:
-                  raise SystemExit(f"{rel} does not declare version {requested}")
+              raise SystemExit(f"workflow version {requested!r} != project version {m.group(1) if m else 'missing'}")
           print(f'Version contract OK: {requested}')
           PY
       - name: Validate
@@ -67,23 +63,17 @@ jobs:
       - uses: actions/checkout@v7
       - name: Package source
         run: python3 tools/package/package_source.py "${GITHUB_WORKSPACE}/LeoMiniGames-v${LMG_VERSION}-Source.zip"
-      - name: Upload source ZIP
-        uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         with:
-          path: LeoMiniGames-v${{ inputs.version }}-Source.zip
-          archive: false
-          if-no-files-found: error
-          retention-days: 30
-      - name: Upload source checksum
-        uses: actions/upload-artifact@v7
-        with:
-          path: LeoMiniGames-v${{ inputs.version }}-Source.zip.sha256
-          archive: false
+          name: LeoMiniGames-${{ inputs.version }}-source
+          path: |
+            LeoMiniGames-v${{ inputs.version }}-Source.zip
+            LeoMiniGames-v${{ inputs.version }}-Source.zip.sha256
           if-no-files-found: error
           retention-days: 30
 
-  windows:
-    name: Windows ZIP + Setup EXE
+  windows-x64:
+    name: Windows x86_64 ZIP + Setup EXE
     needs: validate
     runs-on: windows-2022
     steps:
@@ -95,87 +85,130 @@ jobs:
           arch: win64_msvc2022_64
           modules: qtmultimedia
           cache: true
-      - name: Install Qt Installer Framework 4.7
+      - name: Install Qt Installer Framework 4.11
         shell: pwsh
         run: |
           python -m pip install "aqtinstall==3.3.0"
-          python -m aqt install-tool -O "$env:RUNNER_TEMP\QtTools" windows desktop tools_ifw qt.tools.ifw.47
+          python -m aqt install-tool -O "$env:RUNNER_TEMP\QtTools" windows desktop tools_ifw qt.tools.ifw.411
           $creator = Get-ChildItem "$env:RUNNER_TEMP\QtTools" -Filter binarycreator.exe -Recurse | Select-Object -First 1
-          if (-not $creator) { throw "binarycreator.exe not found after QtIFW installation" }
-          "QT_IFW_BIN=$($creator.DirectoryName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Configure
-        run: cmake -S . -B build -A x64 -DBUILD_TESTING=ON
-      - name: Build
-        run: cmake --build build --config Release --parallel
-      - name: Test
-        run: ctest --test-dir build -C Release --output-on-failure
-      - name: Package Windows
+          if (-not $creator) { throw "binarycreator.exe not found" }
+          "QT_IFW_BIN=$($creator.DirectoryName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Configure/build/test
+        run: |
+          cmake -S . -B build -A x64 -DBUILD_TESTING=ON
+          cmake --build build --config Release --parallel
+          ctest --test-dir build -C Release --output-on-failure
+      - name: Package
         shell: pwsh
-        run: ./tools/package/package_windows.ps1 -BuildDir build -Version "$env:LMG_VERSION"
-      - name: Upload portable ZIP
-        uses: actions/upload-artifact@v7
+        env:
+          LMG_PLATFORM_SUFFIX: x86_64
+        run: ./tools/package/package_windows.ps1 -BuildDir build
+      - uses: actions/upload-artifact@v7
         with:
-          path: dist/windows/LeoMiniGames-v${{ inputs.version }}-Windows-x86_64.zip
-          archive: false
+          name: LeoMiniGames-${{ inputs.version }}-windows-x86_64
+          path: |
+            dist/windows/LeoMiniGames-v${{ inputs.version }}-Windows-x86_64.zip
+            dist/windows/LeoMiniGames-v${{ inputs.version }}-Windows-x86_64-Setup.exe
           if-no-files-found: error
           retention-days: 30
-      - name: Upload Setup EXE
-        uses: actions/upload-artifact@v7
+
+  windows-arm64:
+    name: Windows ARM64 ZIP + Setup EXE
+    needs: validate
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Qt ARM64 cross kit
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
         with:
-          path: dist/windows/LeoMiniGames-v${{ inputs.version }}-Windows-x86_64-Setup.exe
-          archive: false
+          version: ${{ env.QT_CI_VERSION }}
+          arch: win64_msvc2022_arm64_cross_compiled
+          modules: qtmultimedia
+          cache: true
+      - name: Install Qt Installer Framework 4.11
+        shell: pwsh
+        run: |
+          python -m pip install "aqtinstall==3.3.0"
+          python -m aqt install-tool -O "$env:RUNNER_TEMP\QtTools" windows desktop tools_ifw qt.tools.ifw.411
+          $creator = Get-ChildItem "$env:RUNNER_TEMP\QtTools" -Filter binarycreator.exe -Recurse | Select-Object -First 1
+          if (-not $creator) { throw "binarycreator.exe not found" }
+          "QT_IFW_BIN=$($creator.DirectoryName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Configure/build ARM64
+        run: |
+          cmake -S . -B build -A ARM64 -DBUILD_TESTING=OFF
+          cmake --build build --config Release --parallel
+      - name: Package ARM64
+        shell: pwsh
+        env:
+          LMG_PLATFORM_SUFFIX: ARM64
+        run: ./tools/package/package_windows.ps1 -BuildDir build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: LeoMiniGames-${{ inputs.version }}-windows-arm64
+          path: |
+            dist/windows/LeoMiniGames-v${{ inputs.version }}-Windows-ARM64.zip
+            dist/windows/LeoMiniGames-v${{ inputs.version }}-Windows-ARM64-Setup.exe
           if-no-files-found: error
           retention-days: 30
 
   linux:
-    name: Linux archive + AppImage
+    name: Linux ${{ matrix.arch }} archive + AppImage
     needs: validate
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+            host: linux
+            qt_arch: linux_gcc_64
+            tool_arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            host: linux_arm64
+            qt_arch: linux_gcc_arm64
+            tool_arch: aarch64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
       - name: Install Qt
         uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
         with:
           version: ${{ env.QT_CI_VERSION }}
+          host: ${{ matrix.host }}
+          arch: ${{ matrix.qt_arch }}
           modules: qtmultimedia
           cache: true
-      - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
-      - name: Build and test
-        run: |
-          cmake --build build --parallel
-          ctest --test-dir build --output-on-failure
       - name: Install AppImage tooling
         shell: bash
         run: |
-          mkdir -p "$RUNNER_TEMP/appimage-tools"
-          curl -fL --retry 3 -o "$RUNNER_TEMP/appimage-tools/linuxdeploy" \
-            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          curl -fL --retry 3 -o "$RUNNER_TEMP/appimage-tools/appimagetool" \
-            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod +x "$RUNNER_TEMP/appimage-tools/linuxdeploy" "$RUNNER_TEMP/appimage-tools/appimagetool"
-          echo "LINUXDEPLOY=$RUNNER_TEMP/appimage-tools/linuxdeploy" >> "$GITHUB_ENV"
-          echo "APPIMAGETOOL=$RUNNER_TEMP/appimage-tools/appimagetool" >> "$GITHUB_ENV"
-          echo "APPIMAGE_EXTRACT_AND_RUN=1" >> "$GITHUB_ENV"
-      - name: Package Linux
+          curl -fL "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${{ matrix.tool_arch }}.AppImage" -o "$RUNNER_TEMP/linuxdeploy"
+          curl -fL "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${{ matrix.tool_arch }}.AppImage" -o "$RUNNER_TEMP/appimagetool"
+          curl -fL "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${{ matrix.tool_arch }}.AppImage" -o "$RUNNER_TEMP/linuxdeploy-plugin-qt"
+          chmod +x "$RUNNER_TEMP/linuxdeploy" "$RUNNER_TEMP/appimagetool" "$RUNNER_TEMP/linuxdeploy-plugin-qt"
+          echo "LINUXDEPLOY=$RUNNER_TEMP/linuxdeploy" >> "$GITHUB_ENV"
+          echo "APPIMAGETOOL=$RUNNER_TEMP/appimagetool" >> "$GITHUB_ENV"
+          echo "LINUXDEPLOY_PLUGIN_QT=$RUNNER_TEMP/linuxdeploy-plugin-qt" >> "$GITHUB_ENV"
+      - name: Configure/build/test
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          cmake --build build --parallel
+          ctest --test-dir build --output-on-failure
+      - name: Package
+        env:
+          LMG_PLATFORM_SUFFIX: ${{ matrix.arch }}
         run: ./tools/package/package_linux.sh build
-      - name: Upload Linux archive
-        uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         with:
-          path: dist/linux/LeoMiniGames-v${{ inputs.version }}-Linux-x86_64.tar.gz
-          archive: false
-          if-no-files-found: error
-          retention-days: 30
-      - name: Upload AppImage
-        uses: actions/upload-artifact@v7
-        with:
-          path: dist/linux/LeoMiniGames-v${{ inputs.version }}-Linux-x86_64.AppImage
-          archive: false
+          name: LeoMiniGames-${{ inputs.version }}-linux-${{ matrix.arch }}
+          path: |
+            dist/linux/LeoMiniGames-v${{ inputs.version }}-Linux-${{ matrix.arch }}.tar.gz
+            dist/linux/LeoMiniGames-v${{ inputs.version }}-Linux-${{ matrix.arch }}.AppImage
           if-no-files-found: error
           retention-days: 30
 
   macos:
-    name: macOS ZIP + DMG (${{ matrix.arch }})
+    name: macOS ${{ matrix.arch }} ZIP + DMG
     needs: validate
     strategy:
       fail-fast: false
@@ -194,33 +227,103 @@ jobs:
           version: ${{ env.QT_CI_VERSION }}
           modules: qtmultimedia
           cache: true
-      - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} -DBUILD_TESTING=ON
-      - name: Build and test
+      - name: Configure/build/test
         run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} -DBUILD_TESTING=ON
           cmake --build build --parallel
           ctest --test-dir build --output-on-failure
-      - name: Package macOS
+      - name: Package
         env:
           LMG_PLATFORM_SUFFIX: ${{ matrix.arch }}
         run: ./tools/package/package_macos.sh build
-      - name: Upload macOS ZIP
-        uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         with:
-          path: dist/macos/LeoMiniGames-v${{ inputs.version }}-macOS-${{ matrix.arch }}.zip
-          archive: false
-          if-no-files-found: error
-          retention-days: 30
-      - name: Upload DMG
-        uses: actions/upload-artifact@v7
-        with:
-          path: dist/macos/LeoMiniGames-v${{ inputs.version }}-macOS-${{ matrix.arch }}.dmg
-          archive: false
+          name: LeoMiniGames-${{ inputs.version }}-macos-${{ matrix.arch }}
+          path: |
+            dist/macos/LeoMiniGames-v${{ inputs.version }}-macOS-${{ matrix.arch }}.zip
+            dist/macos/LeoMiniGames-v${{ inputs.version }}-macOS-${{ matrix.arch }}.dmg
           if-no-files-found: error
           retention-days: 30
 
-  android:
-    name: Android signed APK + AAB
+  android-apk:
+    name: Android signed APK (${{ matrix.abi }})
+    needs: validate
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - qt_arch: android_arm64_v8a
+            abi: arm64-v8a
+          - qt_arch: android_armv7
+            abi: armeabi-v7a
+          - qt_arch: android_x86_64
+            abi: x86_64
+          - qt_arch: android_x86
+            abi: x86
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Install Android SDK/NDK components
+        shell: bash
+        run: |
+          command -v sdkmanager >/dev/null
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}" "ndk;${ANDROID_NDK_VERSION}"
+          echo "ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+      - name: Install Qt for Android
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        with:
+          version: ${{ env.QT_CI_VERSION }}
+          target: android
+          arch: ${{ matrix.qt_arch }}
+          modules: qtmultimedia
+          cache: true
+      - name: Prepare Android signing
+        shell: bash
+        run: |
+          for v in ANDROID_KEYSTORE_BASE64 ANDROID_KEY_ALIAS ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_PASSWORD; do
+            [[ -n "${!v:-}" ]] || { echo "Missing GitHub Actions secret: $v" >&2; exit 2; }
+          done
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/leominigames-upload.jks"
+          chmod 600 "$RUNNER_TEMP/leominigames-upload.jks"
+          echo "QT_ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/leominigames-upload.jks" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_STORE_PASS=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_KEY_PASS=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+      - name: Configure signed Android
+        shell: bash
+        run: |
+          bash "$QT_ROOT_DIR/bin/qt-cmake" -S . -B build-android -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
+            -DANDROID_ABI="${{ matrix.abi }}" \
+            -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
+            -DQT_ANDROID_SIGN_APK=ON
+      - name: Build and package signed APK
+        env:
+          LMG_ANDROID_ABI: ${{ matrix.abi }}
+          LMG_BUILD_APK: "1"
+          LMG_BUILD_AAB: "0"
+        run: ./tools/package/package_android.sh build-android
+      - uses: actions/upload-artifact@v7
+        with:
+          name: LeoMiniGames-${{ inputs.version }}-android-${{ matrix.abi }}
+          path: dist/android/LeoMiniGames-v${{ inputs.version }}-Android-${{ matrix.abi }}.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  android-aab:
+    name: Android signed AAB (arm64-v8a)
     needs: validate
     runs-on: ubuntu-24.04
     env:
@@ -230,20 +333,18 @@ jobs:
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v7
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
       - name: Install Android SDK/NDK components
+        shell: bash
         run: |
-          sdkmanager --install \
-            "platform-tools" \
-            "platforms;${ANDROID_PLATFORM}" \
-            "build-tools;${ANDROID_BUILD_TOOLS}" \
-            "ndk;${ANDROID_NDK_VERSION}"
+          command -v sdkmanager >/dev/null
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}" "ndk;${ANDROID_NDK_VERSION}"
           echo "ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
       - name: Install Qt for Android arm64-v8a
         uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
@@ -253,57 +354,49 @@ jobs:
           arch: android_arm64_v8a
           modules: qtmultimedia
           cache: true
-      - name: Prepare Android signing
+      - name: Prepare signing
         shell: bash
         run: |
-          if [[ -n "$ANDROID_KEYSTORE_BASE64" && -n "$ANDROID_KEY_ALIAS" && -n "$ANDROID_KEYSTORE_PASSWORD" && -n "$ANDROID_KEY_PASSWORD" ]]; then
-            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/leominigames-upload.jks"
-            chmod 600 "$RUNNER_TEMP/leominigames-upload.jks"
-            echo "QT_ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/leominigames-upload.jks" >> "$GITHUB_ENV"
-            echo "QT_ANDROID_KEYSTORE_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
-            echo "QT_ANDROID_KEYSTORE_STORE_PASS=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-            echo "QT_ANDROID_KEYSTORE_KEY_PASS=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
-            echo "LMG_ANDROID_SIGNING=1" >> "$GITHUB_ENV"
-          else
-            echo "Required Android signing secrets are missing." >&2
-            echo "Add ANDROID_KEYSTORE_BASE64, ANDROID_KEY_ALIAS, ANDROID_KEYSTORE_PASSWORD and ANDROID_KEY_PASSWORD." >&2
-            exit 2
-          fi
-      - name: Configure signed Android build
+          for v in ANDROID_KEYSTORE_BASE64 ANDROID_KEY_ALIAS ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_PASSWORD; do [[ -n "${!v:-}" ]] || exit 2; done
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/leominigames-upload.jks"
+          chmod 600 "$RUNNER_TEMP/leominigames-upload.jks"
+          echo "QT_ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/leominigames-upload.jks" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_STORE_PASS=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_KEY_PASS=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+      - name: Configure signed AAB
         shell: bash
         run: |
-          qt-cmake -S . -B build-android -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_TESTING=OFF \
-            -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" \
-            -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
-            -DQT_ANDROID_SIGN_APK=ON \
+          bash "$QT_ROOT_DIR/bin/qt-cmake" -S . -B build-android -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
             -DQT_ANDROID_SIGN_AAB=ON
-      - name: Build signed APK and AAB
-        run: |
-          cmake --build build-android --target apk --parallel
-          cmake --build build-android --target aab --parallel
-      - name: Package Android
+      - name: Build and package signed AAB
+        env:
+          LMG_ANDROID_ABI: arm64-v8a
+          LMG_BUILD_APK: "0"
+          LMG_BUILD_AAB: "1"
         run: ./tools/package/package_android.sh build-android
-      - name: Upload APK
-        uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         with:
-          path: dist/android/LeoMiniGames-v${{ inputs.version }}-Android-arm64-v8a.apk
-          archive: false
-          if-no-files-found: error
-          retention-days: 30
-      - name: Upload AAB
-        uses: actions/upload-artifact@v7
-        with:
+          name: LeoMiniGames-${{ inputs.version }}-android-aab-arm64-v8a
           path: dist/android/LeoMiniGames-v${{ inputs.version }}-Android-arm64-v8a.aab
-          archive: false
           if-no-files-found: error
           retention-days: 30
 
   ios:
-    name: iOS unsigned simulator ZIP
+    name: iOS simulator ${{ matrix.arch }} ZIP (unsigned)
     needs: validate
-    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
       - name: Install Qt for iOS
@@ -313,21 +406,21 @@ jobs:
           target: ios
           modules: qtmultimedia
           cache: true
-      - name: Configure
+      - name: Configure/build
+        shell: bash
         run: |
-          qt-cmake -S . -B build-ios -G Xcode \
-            -DCMAKE_SYSTEM_NAME=iOS \
-            -DCMAKE_OSX_SYSROOT=iphonesimulator \
-            -DCMAKE_OSX_ARCHITECTURES=arm64 \
-            -DBUILD_TESTING=OFF
-      - name: Build
-        run: cmake --build build-ios --config Release --parallel
-      - name: Package iOS
+          bash "$QT_ROOT_DIR/bin/qt-cmake" -S . -B build-ios -G Xcode \
+            -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO -DBUILD_TESTING=OFF
+          cmake --build build-ios --config Release --parallel
+      - name: Package
+        env:
+          LMG_PLATFORM_SUFFIX: ${{ matrix.arch }}
         run: ./tools/package/package_ios.sh build-ios
-      - name: Upload unsigned iOS simulator ZIP
-        uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         with:
-          path: dist/ios/LeoMiniGames-v${{ inputs.version }}-iOS-unsigned-simulator.zip
-          archive: false
+          name: LeoMiniGames-${{ inputs.version }}-ios-simulator-${{ matrix.arch }}
+          path: dist/ios/LeoMiniGames-v${{ inputs.version }}-iOS-simulator-${{ matrix.arch }}-unsigned.zip
           if-no-files-found: error
           retention-days: 30

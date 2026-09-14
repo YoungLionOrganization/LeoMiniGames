@@ -32,7 +32,8 @@ for p in ROOT.rglob('*'):
         continue
     if parts[0] in EXCLUDE_TOP:
         continue
-    if any(part in EXCLUDE_DIRS or any(part.startswith(pref) for pref in EXCLUDE_PREFIXES) for part in parts):
+    parent_parts=parts[:-1]
+    if any(part in EXCLUDE_DIRS or any(part.startswith(pref) for pref in EXCLUDE_PREFIXES) for part in parent_parts):
         continue
     if p.suffix=='.pyc' or p.name in {'.DS_Store'}:
         continue

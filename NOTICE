@@ -1,22 +1,12 @@
-LeoMiniGames — Licensing and Project Notice
+LeoMiniGames
 
-The LeoMiniGames host application is licensed under GNU GPL v3 or later
-(GPL-3.0-or-later). The standard GPL text in LICENSE is intentionally kept
-unmodified. Project-specific copyright and ecosystem policy live in separate
-files rather than editing the GNU license text.
+LeoMiniGames is free software licensed under GPL-3.0-or-later.
+The canonical GNU GPL version 3 text is in /LICENSE and is intentionally kept verbatim. The `<year>` and `<name of author>` strings near the end of that document are part of GNU's own “How to Apply” example, not unfinished LeoMiniGames fields.
 
-Independent games, mods and themes are separate content packages and must
-declare their own license. A package's license does not grant YoungLion
-publisher verification, Official status, Developer Mode access, Native/L3
-permission, backend access, signing authority, trademark rights or account
-privileges. Those are separate technical/account trust decisions.
+Project copyright/application information is in /COPYRIGHT and /LICENSING.md.
 
-The repository currently contains a placeholder for a future YoungLion closed-
-source mod license. Do not distribute proprietary content under that placeholder
-until the final license text has been reviewed and adopted.
+Qualifying independently developed packages that interact with LeoMiniGames solely through designated public interfaces may use the additional permission in /licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt (GPLv3 section 7).
 
-YoungLion and LeoMiniGames names, logos and verification badges are project
-identity/trust marks and are not automatically licensed for misleading use by
-third-party packages merely because the application source is GPL-licensed.
+Eligible proprietary packages may use LicenseRef-YoungLion-Mod-License-1.0 under /licenses/YOUNGLION_MOD_LICENSE_1.0.txt. Third-party packages otherwise retain their own licenses and obligations.
 
-See docs/DEVELOPER_LICENSING.md and licenses/README.md.
+Publisher distribution-service terms are in /docs/YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md. YoungLion/LeoMiniGames names, logos and trust badges are governed separately; see /docs/TRADEMARK_POLICY.md.

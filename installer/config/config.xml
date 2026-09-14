@@ -5,8 +5,25 @@
     <Title>LeoMiniGames 0.7.0 Setup</Title>
     <Publisher>YoungLion</Publisher>
     <ProductUrl>https://leominigames.younglion.xyz</ProductUrl>
+
+    <InstallerApplicationIcon>leominigames_installer</InstallerApplicationIcon>
+    <InstallerWindowIcon>installer_window_icon.png</InstallerWindowIcon>
+    <Logo>installer_logo.png</Logo>
+    <PageListPixmap>installer_pagelist.png</PageListPixmap>
+    <StyleSheet>style.qss</StyleSheet>
+    <WizardStyle>Modern</WizardStyle>
+    <WizardShowPageList>true</WizardShowPageList>
+    <WizardDefaultWidth>920</WizardDefaultWidth>
+    <WizardDefaultHeight>620</WizardDefaultHeight>
+    <WizardMinimumWidth>820</WizardMinimumWidth>
+    <WizardMinimumHeight>560</WizardMinimumHeight>
+
     <StartMenuDir>LeoMiniGames</StartMenuDir>
     <TargetDir>@ApplicationsDir@/LeoMiniGames</TargetDir>
     <MaintenanceToolName>LeoMiniGamesMaintenance</MaintenanceToolName>
+    <MaintenanceToolIniFile>LeoMiniGamesMaintenance.ini</MaintenanceToolIniFile>
     <AllowNonAsciiCharacters>true</AllowNonAsciiCharacters>
+
+    <RunProgram>@TargetDir@/LeoMiniGames.exe</RunProgram>
+    <RunProgramDescription>Launch LeoMiniGames</RunProgramDescription>
 </Installer>

@@ -12,6 +12,10 @@ cp -R "$APP" "$DIST/LeoMiniGames.app"
 MACDEPLOYQT="${MACDEPLOYQT:-$(command -v macdeployqt || true)}"
 [ -n "$MACDEPLOYQT" ] || { echo 'macdeployqt not found' >&2; exit 3; }
 "$MACDEPLOYQT" "$DIST/LeoMiniGames.app" -qmldir="$ROOT/qml"
+LEGAL="$DIST/LeoMiniGames.app/Contents/Resources/Legal"
+mkdir -p "$LEGAL/licenses"
+cp "$ROOT/LICENSE" "$ROOT/NOTICE" "$ROOT/COPYRIGHT" "$ROOT/LICENSING.md" "$LEGAL/"
+cp "$ROOT/licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt" "$ROOT/licenses/YOUNGLION_MOD_LICENSE_1.0.txt" "$LEGAL/licenses/"
 ditto -c -k --sequesterRsrc --keepParent "$DIST/LeoMiniGames.app" "$DIST/LeoMiniGames-v${VERSION}-macOS-${SUFFIX}.zip"
 hdiutil create -volname LeoMiniGames -srcfolder "$DIST/LeoMiniGames.app" -ov -format UDZO "$DIST/LeoMiniGames-v${VERSION}-macOS-${SUFFIX}.dmg"
 echo 'Artifacts are unsigned unless signing/notarization is performed separately with user-provided credentials.'

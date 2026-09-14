@@ -76,21 +76,34 @@ target_link_libraries(LeoMiniGames PRIVATE
 if(ANDROID)
     set_target_properties(LeoMiniGames PROPERTIES
         QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android"
+        QT_ANDROID_PACKAGE_NAME "xyz.younglion.leominigames"
+        QT_ANDROID_APP_NAME "LeoMiniGames"
+        QT_ANDROID_APP_ICON "ic_launcher"
         QT_ANDROID_VERSION_CODE ${LEOMINIGAMES_ANDROID_VERSION_CODE}
         QT_ANDROID_VERSION_NAME "${PROJECT_VERSION}"
+        QT_ANDROID_MIN_SDK_VERSION 28
+        QT_ANDROID_TARGET_SDK_VERSION 36
+        QT_ANDROID_COMPILE_SDK_VERSION 36
+        QT_ANDROID_SDK_BUILD_TOOLS_REVISION "36.0.0"
     )
 endif()
 
 if(APPLE)
+    set(LEOMINIGAMES_MAC_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/branding/leominigames.icns")
+    set_source_files_properties("${LEOMINIGAMES_MAC_ICON}" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+    target_sources(LeoMiniGames PRIVATE "${LEOMINIGAMES_MAC_ICON}")
     set_target_properties(LeoMiniGames PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_GUI_IDENTIFIER "xyz.younglion.leominigames"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_ICON_FILE "leominigames.icns"
     )
 endif()
 
 if(WIN32)
+    set(LEOMINIGAMES_WIN_ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/resources/branding/leominigames.ico")
+    configure_file(resources/windows/leominigames.rc.in "${CMAKE_CURRENT_BINARY_DIR}/leominigames.rc" @ONLY)
+    target_sources(LeoMiniGames PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/leominigames.rc")
     set_target_properties(LeoMiniGames PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
-

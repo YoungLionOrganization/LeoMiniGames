@@ -15,6 +15,11 @@ New-Item $Stage -ItemType Directory -Force | Out-Null
 $Exe = Get-ChildItem $BuildDir -Filter LeoMiniGames.exe -Recurse | Select-Object -First 1
 if (-not $Exe) { throw 'LeoMiniGames.exe not found in build directory.' }
 Copy-Item $Exe.FullName $Stage
+$LegalFiles = @('LICENSE','NOTICE','COPYRIGHT','LICENSING.md')
+foreach ($Legal in $LegalFiles) { Copy-Item (Join-Path $Root $Legal) $Stage }
+New-Item (Join-Path $Stage 'licenses') -ItemType Directory -Force | Out-Null
+Copy-Item (Join-Path $Root 'licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt') (Join-Path $Stage 'licenses')
+Copy-Item (Join-Path $Root 'licenses/YOUNGLION_MOD_LICENSE_1.0.txt') (Join-Path $Stage 'licenses')
 $Deploy = if ($QtBin) { Join-Path $QtBin 'windeployqt.exe' } else { (Get-Command windeployqt.exe -ErrorAction Stop).Source }
 & $Deploy --release --qmldir (Join-Path $Root 'qml') (Join-Path $Stage 'LeoMiniGames.exe')
 if ($LASTEXITCODE -ne 0) { throw "windeployqt failed: $LASTEXITCODE" }

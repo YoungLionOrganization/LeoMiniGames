@@ -423,3 +423,8 @@ Contributions should follow [`CONTRIBUTING.md`](CONTRIBUTING.md). Security-sensi
 ---
 
 LeoMiniGames aims to be more than a launcher that merely builds: the target is a stable, modular, backward-compatible and genuinely playable ecosystem across desktop and mobile platforms.
+
+
+## Licensing architecture
+
+The host is **GPL-3.0-or-later**. `LICENSE` is the canonical GPLv3 text; project-specific application, copyright and additional permissions live in `LICENSING.md`, `COPYRIGHT`, `NOTICE` and `licenses/`. LeoMiniGames Plugin / Mod Exception v1.0 is a GPLv3 section 7 additional permission for qualifying independent packages using designated public interfaces. Eligible proprietary content can separately select `LicenseRef-YoungLion-Mod-License-1.0`. Publisher trust, Official/Verified badges and Native/L3 capability are not copyright licenses and remain backend-authoritative.

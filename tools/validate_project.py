@@ -65,9 +65,12 @@ for cls in plugins:
         errors.append(f"Missing plugin target link/reference: {cls}")
 
 manifest = (root / "android/AndroidManifest.xml").read_text(encoding="utf-8")
-for token in ('android:versionName="0.7.0"', 'android:versionCode="700"', 'android:appCategory="game"', 'android.intent.category.GAME'):
+for token in ('%%INSERT_VERSION_NAME%%', '%%INSERT_VERSION_CODE%%', '%%INSERT_APP_NAME%%', 'android:appCategory="game"', 'android.intent.category.GAME'):
     if token not in manifest:
         errors.append(f"Android manifest missing expected token: {token}")
+for token in ('QT_ANDROID_PACKAGE_NAME "xyz.younglion.leominigames"', 'QT_ANDROID_VERSION_NAME "${PROJECT_VERSION}"', 'set(LEOMINIGAMES_ANDROID_VERSION_CODE 700)'):
+    if token not in top_cmake:
+        errors.append(f"CMake Android metadata missing expected token: {token}")
 
 for qml in root.rglob("*.qml"):
     text = qml.read_text(encoding="utf-8")

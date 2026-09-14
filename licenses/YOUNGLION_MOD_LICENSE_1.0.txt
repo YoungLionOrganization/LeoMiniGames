@@ -1,0 +1,221 @@
+YOUNGLION PROPRIETARY MOD / CONTENT LICENSE
+Version 1.0
+Canonical identifier: LicenseRef-YoungLion-Mod-License-1.0
+Effective date: 10 September 2026
+
+IMPORTANT: This is a proprietary license. It is not an Open Source Initiative approved license and is not a free-software license.
+
+Copyright (c) the applicable Publisher. All rights reserved except as expressly granted by this License or mandatory law.
+
+1. PURPOSE AND SCOPE
+
+This YoungLion Proprietary Mod / Content License (the “License”) is intended for independently developed content distributed for use with LeoMiniGames or another YoungLion service that expressly accepts this License.
+
+It may be used for one or more of the following package categories, provided the package manifest accurately identifies its type:
+
+(a) Game Package — a game implemented as a LeoMiniGames package;
+(b) Mod Package — an extension or modification package;
+(c) Theme Package — themes, styles, visual configuration and related resources;
+(d) Asset Package — graphics, audio, fonts, data, models or other content assets; and
+(e) Native/L3 Plugin Package — a separately built native plugin that is authorized by YoungLion to use a designated public Native/L3 interface.
+
+This License does not itself grant Native/L3 access, Verified Publisher status, Official Publisher status, developer API access, OAuth authorization, signing authority or any other YoungLion trust/capability status.
+
+2. DEFINITIONS
+
+“LeoMiniGames” means the GPL-licensed LeoMiniGames host application and its documented public package/plugin interfaces.
+
+“Package” means the game, mod, theme, asset package or Native/L3 plugin expressly distributed under this License.
+
+“Publisher” means the person or legal entity that owns the Package or is legally authorized to license it.
+
+“User” means a person who lawfully obtains the Package.
+
+“Platform” means the YoungLion/LeoMiniGames services through which Packages may be listed, delivered, updated or managed.
+
+“Source Code” means the preferred form of software for making modifications. For a data/content Package, source material means the editable or original form customarily used to modify that content.
+
+“Mandatory Law” means law that applies despite contractual terms to the contrary, including any non-waivable consumer, interoperability, accessibility, security research, exhaustion, resale or reverse-engineering rights that may apply in a jurisdiction.
+
+3. OWNERSHIP
+
+The Publisher retains all copyright and other intellectual-property rights in the Package, except for rights expressly granted under this License or another applicable component license.
+
+Lawfully obtaining, downloading, installing or purchasing a Package does not transfer ownership of the Publisher’s copyright, Source Code, trademarks or protected assets.
+
+YoungLion does not acquire ownership merely because the Package is listed, validated, scanned, signed, hosted, cached or distributed through the Platform. Any license needed by YoungLion to operate the distribution service is governed separately by the YoungLion Developer / Publisher Distribution Terms.
+
+4. END-USER LICENSE GRANT
+
+Subject to this License and any mandatory rights under applicable law, the Publisher grants each lawful User a limited, non-exclusive license to:
+
+(a) download or receive the Package through an authorized source;
+(b) install the Package on compatible devices controlled by the User;
+(c) load, execute, display or otherwise use the Package with LeoMiniGames or another expressly compatible YoungLion service for the Package’s intended purpose; and
+(d) make reasonable personal backup copies solely for recovery, archival or device-migration purposes.
+
+This grant does not include a general right to redistribute, publicly mirror, resell, sublicense, commercially exploit or publish modified copies of the Package.
+
+5. PACKAGE-TYPE RULES
+
+5.1 Game and Mod Packages
+
+Users may run and configure Game and Mod Packages through functionality intentionally exposed by the Package or LeoMiniGames. No general right to create and distribute derivative versions is granted.
+
+5.2 Theme Packages
+
+Users may select, configure and apply a Theme through LeoMiniGames. Configuration through documented user-facing settings does not itself constitute an infringing modification. Unless separately permitted, individual protected theme assets may not be extracted for reuse in unrelated products.
+
+5.3 Asset Packages
+
+The license to an Asset Package is limited to use through the intended Package or compatible YoungLion service. Extracting individual assets for independent reuse, resale, dataset creation, redistribution or incorporation into another product is not permitted unless the Publisher separately authorizes it or Mandatory Law provides otherwise.
+
+5.4 Native/L3 Plugin Packages
+
+A Native/L3 Package may be installed and executed only where the Platform and the User’s device permit it. This License does not grant the Publisher or User any YoungLion trust level or capability. Native execution may be disabled or revoked by YoungLion for security, compatibility or policy reasons independently of the copyright license to copies already lawfully obtained.
+
+6. SOURCE CODE
+
+The Publisher is not required by this License to make Source Code available.
+
+Publishing Source Code without an express open-source license does not by itself grant recipients permission to copy, modify or redistribute it beyond rights provided by applicable law or this License.
+
+If the Publisher wishes to grant open-source rights, the Publisher should use a recognized open-source license instead of, or for clearly separated components in addition to, this License.
+
+7. REDISTRIBUTION AND MIRRORING
+
+Except as expressly authorized by the Publisher or required by Mandatory Law, a User may not:
+
+(a) redistribute the Package to third parties;
+(b) upload or mirror the Package to another website, repository, marketplace, CDN, file host or distribution service;
+(c) bundle the Package into another product or installer for redistribution; or
+(d) represent an altered copy as an authentic Publisher release.
+
+Personal backup copies permitted by Section 4 are not public redistribution.
+
+8. RESALE, RENTAL AND SUBLICENSING
+
+Except as permitted by Mandatory Law or separate written terms, a User may not sell, rent, lease, sublicense or commercially redistribute the Package or an entitlement to it.
+
+Nothing in this Section is intended to eliminate a non-waivable exhaustion, transfer or resale right that applicable law grants to a lawful acquirer.
+
+9. MODIFICATION
+
+Unless the Publisher separately authorizes modification, this License does not grant a general right to modify the Package.
+
+The following are not prohibited solely by this Section:
+
+(a) ordinary configuration through settings intentionally exposed to Users;
+(b) accessibility adaptations that Mandatory Law protects;
+(c) private changes that Mandatory Law expressly permits notwithstanding contract; and
+(d) modifications to separately licensed components to the extent their separate licenses permit them.
+
+Permission to make a private modification does not by itself grant permission to redistribute that modification.
+
+10. EXTRACTION
+
+Except as required for ordinary operation of the Package, authorized backup, debugging expressly permitted by the Publisher, or Mandatory Law, a User may not extract protected implementation material, source assets or data from the Package for independent reuse or redistribution.
+
+This Section does not override rights in separately licensed components.
+
+11. REVERSE ENGINEERING, DECOMPILATION AND INTEROPERABILITY
+
+Except with the Publisher’s permission or to the extent Mandatory Law provides otherwise, Users may not reverse engineer, decompile or disassemble closed-source portions of the Package.
+
+This restriction does not purport to prohibit activity that applicable law makes non-waivable, including qualifying activity necessary to achieve interoperability, diagnose independently created interoperable software, perform accessibility work, or carry out legitimate security research.
+
+A person relying on such an exception should limit the activity and any information obtained to what the applicable law permits. This Section does not authorize unauthorized access to accounts, personal data, YoungLion infrastructure or third-party systems.
+
+12. SECURITY RESEARCH
+
+Good-faith security research may additionally be governed by the YoungLion Responsible Disclosure Policy and service-specific rules.
+
+No provision of this License authorizes destructive testing, persistence, credential theft, privacy invasion, malware deployment, service disruption or public disclosure that violates applicable law.
+
+13. THIRD-PARTY AND OPEN-SOURCE COMPONENTS
+
+A Package may contain components governed by separate licenses. Those licenses continue to govern their respective components.
+
+The Publisher is responsible for identifying and complying with applicable third-party obligations, including required notices, attribution, Source Code disclosure, source offers, relinking rights and patent-license conditions.
+
+The Publisher may not use this License to remove or contradict rights granted under a third-party open-source license.
+
+If a component’s license requires a larger combined work to be distributed under different or incompatible terms, the Publisher must satisfy that license instead of representing the affected work as exclusively governed by this License.
+
+14. TRADEMARKS AND TRUST STATUS
+
+This License grants no trademark license except the minimum permission, if any, required by applicable law to truthfully identify compatibility.
+
+It grants no right to:
+
+(a) use YoungLion or LeoMiniGames logos as branding;
+(b) claim endorsement;
+(c) display or imitate the Gold Official badge, Green Native/L3 Verified badge, Blue Verified badge or successor trust marks;
+(d) claim Official Publisher or Verified Publisher status; or
+(e) imply that YoungLion signed, reviewed or approved a Package when it did not.
+
+15. UPDATES AND COMPATIBILITY
+
+Unless the Publisher separately promises otherwise, the Publisher is not required by this License to provide updates, maintenance, support, compatibility with future LeoMiniGames releases or compatibility with every platform.
+
+A later update may be offered under the same or different license only to the extent the Publisher has legal authority to do so.
+
+A later license change does not retroactively revoke rights already granted for a copy under an earlier license.
+
+16. SERVICE AVAILABILITY
+
+Availability of a Package through the YoungLion/LeoMiniGames market is separate from the copyright license to a lawfully acquired copy.
+
+A Package may be delisted, quarantined, suspended or made unavailable for new downloads due to security, policy, legal, technical or service-operation reasons. Such action does not automatically transfer ownership or rewrite the license applicable to copies already lawfully obtained.
+
+17. TERMINATION
+
+A User’s rights under this License may terminate upon a material breach of this License. Where the breach is reasonably curable and applicable law requires or favors cure, the Publisher should provide a reasonable opportunity to cure before permanent termination.
+
+Termination of this License does not terminate rights granted by separate licenses for third-party components.
+
+YoungLion account, market or platform access may be suspended under separate YoungLion Terms independently of this copyright license.
+
+18. DISCLAIMER OF WARRANTIES
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE PACKAGE IS PROVIDED “AS IS” AND “AS AVAILABLE,” WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED.
+
+THE PUBLISHER DOES NOT GUARANTEE THAT THE PACKAGE WILL BE ERROR-FREE, UNINTERRUPTED, SECURE, COMPATIBLE WITH EVERY DEVICE OR COMPATIBLE WITH EVERY FUTURE VERSION OF LEOMINIGAMES.
+
+MANDATORY CONSUMER WARRANTIES AND OTHER NON-WAIVABLE RIGHTS ARE NOT EXCLUDED.
+
+19. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE PUBLISHER AND YOUNGLION ARE NOT LIABLE UNDER THIS LICENSE FOR INDIRECT, INCIDENTAL, SPECIAL OR CONSEQUENTIAL LOSS ARISING SOLELY FROM USE OF OR INABILITY TO USE THE PACKAGE.
+
+THIS SECTION DOES NOT LIMIT LIABILITY THAT APPLICABLE LAW DOES NOT ALLOW TO BE LIMITED OR EXCLUDED.
+
+20. PLATFORM TERMS
+
+Use of YoungLion accounts, APIs, publishing systems, marketplaces or other services is governed by separate YoungLion Terms, Developer/Publisher Terms, Privacy Policies, Security Policies and service-specific rules.
+
+Those platform rules do not convert this proprietary license into an open-source license and do not override rights granted under a separate open-source license for separately licensed material.
+
+21. GOVERNING LAW
+
+Unless a separate binding agreement identifies another lawful governing law, this License follows the governing-law and dispute-resolution provisions of the applicable YoungLion Terms of Service, subject to Mandatory Law.
+
+22. LANGUAGE
+
+Translations may be provided for convenience. Unless applicable law requires otherwise, the English version controls in the event of a conflict.
+
+23. SEVERABILITY
+
+If a provision is unenforceable in a jurisdiction, it should be limited to the minimum extent necessary while the remaining provisions continue to apply where legally possible.
+
+24. ENTIRE COPYRIGHT LICENSE
+
+For material expressly identified as covered by this License, this document is the applicable end-user copyright license except for separately licensed components, separately granted permissions and Mandatory Law.
+
+Recommended manifest value:
+
+license: "LicenseRef-YoungLion-Mod-License-1.0"
+license_file: "LICENSE"
+source_available: false
+
+END OF YOUNGLION PROPRIETARY MOD / CONTENT LICENSE 1.0

@@ -119,7 +119,7 @@
 
 ### Licensing / distribution
 - Application license changed to `GPL-3.0-or-later`.
-- Added YoungLion closed-source mod-license placeholder without inventing legal text.
+- Adopted `LicenseRef-YoungLion-Mod-License-1.0` for eligible proprietary packages and the LeoMiniGames Plugin / Mod Exception v1.0 as a GPLv3 section 7 additional permission for qualifying independent public-interface packages. The canonical GPLv3 text remains unchanged.
 - Added F-Droid/source-build documentation and `LEOMINIGAMES_FDROID` CMake option.
 - Added manifest JSON Schema and a modern RCC v1 SDK example.
 ### Build hotfix 3

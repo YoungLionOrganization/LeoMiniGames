@@ -1,111 +1,37 @@
-# Developer and package licensing policy
+# Developer and package licensing
 
-## 1. Host application
+## Host
 
-LeoMiniGames itself is distributed under **GPL-3.0-or-later**. The file
-`LICENSE` is the unmodified GNU GPL v3 text. Project-specific notices belong in
-`COPYRIGHT`, `NOTICE` and this document, not inside the GNU license text.
+LeoMiniGames host code is **GPL-3.0-or-later**. `/LICENSE` is the canonical GNU GPLv3 text and remains unchanged. Project ownership/application information is in `/COPYRIGHT`, `/NOTICE` and `/LICENSING.md`.
 
-## 2. Package license and developer permission are different
+## Plugin / Mod Exception
 
-A game's/mod's/theme's copyright license answers **what recipients may do with
-the package**. Developer/account capability answers **what the LeoMiniGames
-service allows that publisher to do**. Do not merge the two. In particular:
+`/licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt` is the adopted GPLv3 section 7 additional permission for qualifying independently developed packages that interact only through designated public LeoMiniGames interfaces. It covers the documented RCC/QML/data boundary and, subject to its exact conditions, a designated public Native/L3 ABI. Private/internal headers, copied host implementation and proprietary core forks are outside the automatic permission.
 
-- `verified` is not Native/L3 permission;
-- Official/Verified status is backend-authoritative and cannot be self-declared;
-- Developer Mode or a scoped `lmg_...` key does not change copyright rights;
-- Native/L3 approval does not make a package open source;
-- an open-source license does not automatically grant Native/L3 approval.
+## Public SDK headers
 
-## 3. Open-source games, mods and themes
+Narrow public interface-only SDK headers may use `MIT OR GPL-3.0-or-later`. Host implementation remains GPL-3.0-or-later unless a file explicitly says otherwise.
 
-Use a recognized license and keep its official text intact. The manifest should
-use the canonical SPDX identifier where possible, ship a `LICENSE`/license file,
-and provide a source URL when source disclosure or project policy requires it.
+## Proprietary packages
 
-Selection guidance:
+Eligible proprietary packages may select `LicenseRef-YoungLion-Mod-License-1.0` and ship `/licenses/YOUNGLION_MOD_LICENSE_1.0.txt` (or an exact copy in the package). This package license is distinct from the host Plugin/Mod Exception.
 
-- **MIT / BSD-3-Clause** — permissive; downstream proprietary reuse is allowed.
-- **Apache-2.0** — permissive with an explicit patent grant and NOTICE duties.
-- **MPL-2.0** — file-level copyleft; useful when modified covered files should
-  stay open but larger combined works may use different terms.
-- **LGPL-3.0-or-later** — library-oriented weak copyleft; use only when the
-  package architecture actually fits LGPL linking/compliance requirements.
-- **GPL-3.0-or-later** — strong copyleft; suitable when redistributed derivatives
-  should remain GPL-compatible and corresponding source must be provided.
+## Open-source packages
 
-Do not invent a custom "open-source" license if an OSI/FSF-standard license
-already expresses the intended rights.
+Prefer standard licenses and SPDX identifiers. See `/docs/OPEN_SOURCE_LICENSE_POLICY.md`.
 
-## 4. Closed-source packages
+## Publisher/service terms
 
-The repository's `YOUNGLION_MOD_LICENSE.txt` is a placeholder, not final terms.
-The intended proprietary package license should be written and legally reviewed
-before use. At minimum it should define:
+Marketplace submission/distribution rights are governed separately by `/docs/YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md`. A publisher keeps ownership subject to those terms and the selected package license.
 
-- the licensor/publisher and covered package;
-- end-user install/run and reasonable personal backup rights;
-- redistribution, mirroring, resale and sublicensing rules;
-- modification/reverse-engineering restrictions only to the extent permitted by
-  mandatory law;
-- ownership of the package and third-party materials;
-- update/service termination rules;
-- warranty and liability limitations appropriate to applicable law;
-- governing-law/jurisdiction choices after legal review;
-- a limited license to YoungLion to host, copy, cache, validate, security-scan,
-  hash/sign, package, display metadata, distribute, update and enable redownload
-  of the submitted package through LeoMiniGames services.
+## Trust is not licensing
 
-That YoungLion service license should be non-exclusive and limited to operating,
-securing and distributing the submitted package; it should not silently transfer
-ownership of a developer's work.
+Official Publisher, Verified Publisher, Native/L3 capability, developer authentication and signing authority are backend-authoritative platform state. No manifest license field grants those statuses.
 
-## 5. GPL boundary / future Plugin & Mod Exception
+## Legacy packages
 
-A dedicated additional permission should be reviewed before promising that every
-closed-source native plugin can link against GPL-covered core code. The intended
-boundary is:
+Runtime compatibility is intentionally separate from submission policy. v0.5/v0.6 packages that omit modern license metadata remain loadable. New submissions can require modern license/source metadata without making old installed content unloadable.
 
-- independent RCC/QML/data packages use documented public host services;
-- package authors retain ownership and may select their package license;
-- a future exception may expressly allow separately distributed independent
-  packages to use designated public SDK interfaces without inheriting the host's
-  GPL solely from that interface use;
-- Native/L3 coverage, if desired, must be limited to a clearly designated public
-  ABI/API. Private/internal headers and copied core implementation code should not
-  receive an accidental proprietary exception;
-- distribution of the LeoMiniGames core itself remains subject to GPL obligations.
+## Legal review
 
-Have the final exception reviewed together with the proprietary mod license; the
-two documents solve different problems.
-
-## 6. Manifest policy
-
-Modern manifests should distinguish licensing metadata from trust/capability
-metadata. Recommended licensing concepts are:
-
-```json
-{
-  "license": "MIT",
-  "license_file": "LICENSE",
-  "source_available": true,
-  "source_url": "https://example.invalid/source"
-}
-```
-
-For a future YoungLion proprietary license, use its final canonical identifier
-only after the placeholder has been replaced. Do not use `source_available=false`
-as a permission flag; it is metadata only.
-
-## 7. Contribution licensing
-
-Contributors to the GPL host should understand the inbound contribution terms.
-Before accepting substantial third-party contributions, decide whether YoungLion
-will use GPL-only inbound terms, a contributor agreement, or another documented
-policy if relicensing/plugin-exception authority is important. Do not assume a
-GitHub pull request automatically assigns copyright to YoungLion.
-
-> This policy is project engineering guidance, not jurisdiction-specific legal
-> advice. Final proprietary licenses, trademark terms and GPL additional
-> permissions should be reviewed by qualified counsel before commercial reliance.
+The repository includes implementation-ready policy drafts, but jurisdiction-sensitive matters such as Native/L3 linking, consumer limitations, minors, paid marketplace operation and trademark enforcement should be reviewed by qualified counsel before commercial reliance.
