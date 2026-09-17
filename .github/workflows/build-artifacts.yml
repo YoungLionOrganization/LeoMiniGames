@@ -81,14 +81,9 @@ jobs:
           modules: qtmultimedia
           aqtversion: "==3.3.*"
           cache: true
-      - name: Install QtIFW 4.11
+      - name: Install Qt Installer Framework 4.11 x64
         shell: pwsh
-        run: |
-          python -m pip install "aqtinstall==3.3.0"
-          python -m aqt install-tool -O "$env:RUNNER_TEMP\QtTools" windows desktop tools_ifw qt.tools.ifw.411
-          $creator = Get-ChildItem "$env:RUNNER_TEMP\QtTools" -Filter binarycreator.exe -Recurse | Select-Object -First 1
-          if (-not $creator) { throw "binarycreator.exe not found" }
-          "QT_IFW_BIN=$($creator.DirectoryName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+        run: ./tools/install_qtifw_windows.ps1 -Architecture x64
       - run: |
           cmake -S . -B build -A x64 -DBUILD_TESTING=ON
           cmake --build build --config Release --parallel
@@ -118,14 +113,9 @@ jobs:
           modules: qtmultimedia
           aqtversion: "==3.3.*"
           cache: true
-      - name: Install QtIFW 4.11
+      - name: Install Qt Installer Framework 4.11 ARM64
         shell: pwsh
-        run: |
-          python -m pip install "aqtinstall==3.3.0"
-          python -m aqt install-tool -O "$env:RUNNER_TEMP\QtTools" windows desktop tools_ifw qt.tools.ifw.411
-          $creator = Get-ChildItem "$env:RUNNER_TEMP\QtTools" -Filter binarycreator.exe -Recurse | Select-Object -First 1
-          if (-not $creator) { throw "binarycreator.exe not found" }
-          "QT_IFW_BIN=$($creator.DirectoryName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+        run: ./tools/install_qtifw_windows.ps1 -Architecture arm64
       - run: |
           cmake -S . -B build -A ARM64 -DBUILD_TESTING=OFF
           cmake --build build --config Release --parallel
@@ -190,7 +180,7 @@ jobs:
       - name: Package
         env:
           LMG_PLATFORM_SUFFIX: ${{ matrix.label }}
-        run: ./tools/package/package_linux.sh build
+        run: bash tools/package/package_linux.sh build
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ inputs.version }}-${{ matrix.label }}
@@ -248,7 +238,7 @@ jobs:
       - name: Package native runtime
         env:
           LMG_PLATFORM_SUFFIX: ${{ matrix.label }}
-        run: ./tools/package/package_linux_native.sh build
+        run: bash tools/package/package_linux_native.sh build
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ inputs.version }}-${{ matrix.label }}-native
@@ -256,16 +246,21 @@ jobs:
           if-no-files-found: error
 
   macos:
-    name: macOS ${{ matrix.arch }} ZIP + DMG
+    name: macOS ${{ matrix.label }} ZIP + DMG
     needs: validate
     strategy:
       fail-fast: false
       matrix:
         include:
           - runner: macos-15
-            arch: arm64
+            label: arm64
+            cmake_arch: arm64
           - runner: macos-15-intel
-            arch: x86_64
+            label: x86_64
+            cmake_arch: x86_64
+          - runner: macos-15
+            label: universal
+            cmake_arch: "arm64;x86_64"
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
@@ -276,16 +271,16 @@ jobs:
           aqtversion: "==3.3.*"
           cache: true
       - run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} -DBUILD_TESTING=ON
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="${{ matrix.cmake_arch }}" -DBUILD_TESTING=ON
           cmake --build build --parallel
           ctest --test-dir build --output-on-failure
       - name: Package
         env:
-          LMG_PLATFORM_SUFFIX: ${{ matrix.arch }}
-        run: ./tools/package/package_macos.sh build
+          LMG_PLATFORM_SUFFIX: ${{ matrix.label }}
+        run: bash tools/package/package_macos.sh build
       - uses: actions/upload-artifact@v7
         with:
-          name: LeoMiniGames-${{ inputs.version }}-macos-${{ matrix.arch }}
+          name: LeoMiniGames-${{ inputs.version }}-macos-${{ matrix.label }}
           path: dist/macos/*
           if-no-files-found: error
 
@@ -366,7 +361,7 @@ jobs:
           LMG_ANDROID_ABI: ${{ matrix.abi }}
           LMG_BUILD_APK: "1"
           LMG_BUILD_AAB: "1"
-        run: ./tools/package/package_android.sh build-android
+        run: bash tools/package/package_android.sh build-android
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ inputs.version }}-android-${{ matrix.abi }}
@@ -396,15 +391,15 @@ jobs:
           sdkmanager "platform-tools" "platforms;${ANDROID_PLATFORM}" \
             "build-tools;${ANDROID_BUILD_TOOLS}" "ndk;${ANDROID_NDK_VERSION}"
           echo "ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
-      - name: Install desktop + all Android Qt ABIs
+      - name: Install all Android Qt ABIs
         shell: bash
         run: |
           python3 -m pip install "aqtinstall==3.3.0"
           QT_BASE="$RUNNER_TEMP/Qt"
-          python3 -m aqt install-qt linux desktop "$QT_CI_VERSION" linux_gcc_64 -m qtmultimedia -O "$QT_BASE"
-          python3 -m aqt install-qt all_os android "$QT_CI_VERSION" \
-            android_arm64_v8a android_armv7 android_x86_64 android_x86 \
-            -m qtmultimedia -O "$QT_BASE"
+          for qt_arch in android_arm64_v8a android_armv7 android_x86_64 android_x86; do
+            python3 -m aqt install-qt all_os android "$QT_CI_VERSION" "$qt_arch" \
+              --autodesktop -m qtmultimedia -O "$QT_BASE"
+          done
           echo "LMG_QT_BASE=$QT_BASE" >> "$GITHUB_ENV"
       - name: Prepare optional signing
         shell: bash
@@ -441,7 +436,7 @@ jobs:
           LMG_ANDROID_ABI: universal
           LMG_BUILD_APK: "1"
           LMG_BUILD_AAB: "1"
-        run: ./tools/package/package_android.sh build-android
+        run: bash tools/package/package_android.sh build-android
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ inputs.version }}-android-universal
@@ -456,15 +451,20 @@ jobs:
       matrix:
         include:
           - label: iOS-device-arm64
-            platform: iOS
             runner: macos-15
             sdk: iphoneos
             arch: arm64
             family: "1"
             package_platform: iOS
             package_sdk: device
+          - label: iOS-simulator-arm64
+            runner: macos-15
+            sdk: iphonesimulator
+            arch: arm64
+            family: "1"
+            package_platform: iOS
+            package_sdk: simulator
           - label: iOS-simulator-x86_64
-            platform: iOS
             runner: macos-15-intel
             sdk: iphonesimulator
             arch: x86_64
@@ -472,15 +472,20 @@ jobs:
             package_platform: iOS
             package_sdk: simulator
           - label: iPadOS-device-arm64
-            platform: iPadOS
             runner: macos-15
             sdk: iphoneos
             arch: arm64
             family: "2"
             package_platform: iPadOS
             package_sdk: device
+          - label: iPadOS-simulator-arm64
+            runner: macos-15
+            sdk: iphonesimulator
+            arch: arm64
+            family: "2"
+            package_platform: iPadOS
+            package_sdk: simulator
           - label: iPadOS-simulator-x86_64
-            platform: iPadOS
             runner: macos-15-intel
             sdk: iphonesimulator
             arch: x86_64
@@ -515,7 +520,7 @@ jobs:
           LMG_PLATFORM_SUFFIX: ${{ matrix.arch }}
           LMG_APPLE_PLATFORM: ${{ matrix.package_platform }}
           LMG_APPLE_SDK: ${{ matrix.package_sdk }}
-        run: ./tools/package/package_ios.sh build-apple
+        run: bash tools/package/package_ios.sh build-apple
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ inputs.version }}-${{ matrix.label }}-unsigned
