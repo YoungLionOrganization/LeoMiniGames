@@ -14,6 +14,8 @@ include(CTest)
 
 set(LEOMINIGAMES_ANDROID_VERSION_CODE 700)
 option(LEOMINIGAMES_FDROID "Build the tracker-free F-Droid variant" OFF)
+set(LEOMINIGAMES_APPLE_MOBILE_DEVICE_FAMILY "1,2" CACHE STRING
+    "Apple mobile device family: 1=iPhone/iOS, 2=iPad/iPadOS, 1,2=universal")
 
 file(GLOB LMG_CORE_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cpp"
@@ -88,7 +90,8 @@ if(ANDROID)
     )
 endif()
 
-if(APPLE)
+# macOS assets must never be injected into an iOS/iPadOS bundle.
+if(APPLE AND NOT IOS)
     set(LEOMINIGAMES_MAC_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/branding/leominigames.icns")
     set_source_files_properties("${LEOMINIGAMES_MAC_ICON}" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
     target_sources(LeoMiniGames PRIVATE "${LEOMINIGAMES_MAC_ICON}")
@@ -99,6 +102,23 @@ if(APPLE)
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
         MACOSX_BUNDLE_ICON_FILE "leominigames.icns"
     )
+endif()
+
+if(IOS)
+    set_target_properties(LeoMiniGames PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_GUI_IDENTIFIER "xyz.younglion.leominigames"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "${LEOMINIGAMES_APPLE_MOBILE_DEVICE_FAMILY}"
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "xyz.younglion.leominigames"
+    )
+
+    # Online Qt iOS Multimedia packages use static FFmpeg libraries. Newer Qt
+    # versions expose this helper to make those libraries part of the target.
+    if(TARGET Qt6::Multimedia AND COMMAND qt_add_ios_ffmpeg_libraries)
+        qt_add_ios_ffmpeg_libraries(LeoMiniGames)
+    endif()
 endif()
 
 if(WIN32)

@@ -1,5 +1,10 @@
-LeoMiniGames Plugin / Mod Exception compatibility pointer
+DEPRECATED COMPATIBILITY POINTER
 
-The adopted v1.0 additional permission is: LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt
+This draft filename is not the adopted LeoMiniGames Plugin/Mod Exception and
+must not be used as license terms.
 
-This legacy filename remains only for backward-compatible repository/tooling references. The old draft outline is superseded.
+Canonical adopted terms:
+    LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt
+
+This file is retained only so old documentation or tooling that references the
+historic draft name fails safely toward the versioned canonical document.

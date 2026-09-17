@@ -29,20 +29,18 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - name: Verify requested version matches source metadata
+      - name: Verify version
         env:
           REQUESTED_VERSION: ${{ inputs.version }}
         shell: bash
         run: |
           python3 - <<'PY'
           import os, re, pathlib
-          root=pathlib.Path('.')
-          requested=os.environ['REQUESTED_VERSION'].strip()
-          cmake=(root/'CMakeLists.txt').read_text(encoding='utf-8')
-          m=re.search(r'project\(LeoMiniGames\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)', cmake)
+          requested = os.environ["REQUESTED_VERSION"].strip()
+          cmake = pathlib.Path("CMakeLists.txt").read_text(encoding="utf-8")
+          m = re.search(r"project\(LeoMiniGames\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)", cmake)
           if not m or m.group(1) != requested:
               raise SystemExit(f"workflow version {requested!r} != project version {m.group(1) if m else 'missing'}")
-          print(f'Version contract OK: {requested}')
           PY
       - name: Validate
         run: |
@@ -61,8 +59,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - name: Package source
-        run: python3 tools/package/package_source.py "${GITHUB_WORKSPACE}/LeoMiniGames-v${LMG_VERSION}-Source.zip"
+      - run: python3 tools/package/package_source.py "${GITHUB_WORKSPACE}/LeoMiniGames-v${LMG_VERSION}-Source.zip"
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ inputs.version }}-source
@@ -70,7 +67,6 @@ jobs:
             LeoMiniGames-v${{ inputs.version }}-Source.zip
             LeoMiniGames-v${{ inputs.version }}-Source.zip.sha256
           if-no-files-found: error
-          retention-days: 30
 
   windows-x64:
     name: Windows x86_64 ZIP + Setup EXE
@@ -78,14 +74,14 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v7
-      - name: Install Qt
-        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+      - uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
         with:
           version: ${{ env.QT_CI_VERSION }}
           arch: win64_msvc2022_64
           modules: qtmultimedia
+          aqtversion: "==3.3.*"
           cache: true
-      - name: Install Qt Installer Framework 4.11
+      - name: Install QtIFW 4.11
         shell: pwsh
         run: |
           python -m pip install "aqtinstall==3.3.0"
@@ -93,8 +89,7 @@ jobs:
           $creator = Get-ChildItem "$env:RUNNER_TEMP\QtTools" -Filter binarycreator.exe -Recurse | Select-Object -First 1
           if (-not $creator) { throw "binarycreator.exe not found" }
           "QT_IFW_BIN=$($creator.DirectoryName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Configure/build/test
-        run: |
+      - run: |
           cmake -S . -B build -A x64 -DBUILD_TESTING=ON
           cmake --build build --config Release --parallel
           ctest --test-dir build -C Release --output-on-failure
@@ -106,26 +101,24 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ inputs.version }}-windows-x86_64
-          path: |
-            dist/windows/LeoMiniGames-v${{ inputs.version }}-Windows-x86_64.zip
-            dist/windows/LeoMiniGames-v${{ inputs.version }}-Windows-x86_64-Setup.exe
+          path: dist/windows/*
           if-no-files-found: error
-          retention-days: 30
 
   windows-arm64:
     name: Windows ARM64 ZIP + Setup EXE
     needs: validate
-    runs-on: windows-2022
+    runs-on: windows-11-arm
     steps:
       - uses: actions/checkout@v7
-      - name: Install Qt ARM64 cross kit
-        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+      - uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
         with:
           version: ${{ env.QT_CI_VERSION }}
-          arch: win64_msvc2022_arm64_cross_compiled
+          host: windows_arm64
+          arch: win64_msvc2022_arm64
           modules: qtmultimedia
+          aqtversion: "==3.3.*"
           cache: true
-      - name: Install Qt Installer Framework 4.11
+      - name: Install QtIFW 4.11
         shell: pwsh
         run: |
           python -m pip install "aqtinstall==3.3.0"
@@ -133,11 +126,10 @@ jobs:
           $creator = Get-ChildItem "$env:RUNNER_TEMP\QtTools" -Filter binarycreator.exe -Recurse | Select-Object -First 1
           if (-not $creator) { throw "binarycreator.exe not found" }
           "QT_IFW_BIN=$($creator.DirectoryName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Configure/build ARM64
-        run: |
+      - run: |
           cmake -S . -B build -A ARM64 -DBUILD_TESTING=OFF
           cmake --build build --config Release --parallel
-      - name: Package ARM64
+      - name: Package
         shell: pwsh
         env:
           LMG_PLATFORM_SUFFIX: ARM64
@@ -145,39 +137,41 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ inputs.version }}-windows-arm64
-          path: |
-            dist/windows/LeoMiniGames-v${{ inputs.version }}-Windows-ARM64.zip
-            dist/windows/LeoMiniGames-v${{ inputs.version }}-Windows-ARM64-Setup.exe
+          path: dist/windows/*
           if-no-files-found: error
-          retention-days: 30
 
-  linux:
-    name: Linux ${{ matrix.arch }} archive + AppImage
+  linux-portable:
+    name: ${{ matrix.label }} portable + AppImage
     needs: validate
     strategy:
       fail-fast: false
       matrix:
         include:
+          - runner: ubuntu-22.04
+            label: Ubuntu-22.04-x86_64
+            host: linux
+            qt_arch: linux_gcc_64
+            tool_arch: x86_64
           - runner: ubuntu-24.04
-            arch: x86_64
+            label: Ubuntu-24.04-x86_64
             host: linux
             qt_arch: linux_gcc_64
             tool_arch: x86_64
           - runner: ubuntu-24.04-arm
-            arch: arm64
+            label: Ubuntu-24.04-arm64
             host: linux_arm64
             qt_arch: linux_gcc_arm64
             tool_arch: aarch64
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
-      - name: Install Qt
-        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+      - uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
         with:
           version: ${{ env.QT_CI_VERSION }}
           host: ${{ matrix.host }}
           arch: ${{ matrix.qt_arch }}
           modules: qtmultimedia
+          aqtversion: "==3.3.*"
           cache: true
       - name: Install AppImage tooling
         shell: bash
@@ -189,23 +183,77 @@ jobs:
           echo "LINUXDEPLOY=$RUNNER_TEMP/linuxdeploy" >> "$GITHUB_ENV"
           echo "APPIMAGETOOL=$RUNNER_TEMP/appimagetool" >> "$GITHUB_ENV"
           echo "LINUXDEPLOY_PLUGIN_QT=$RUNNER_TEMP/linuxdeploy-plugin-qt" >> "$GITHUB_ENV"
-      - name: Configure/build/test
-        run: |
+      - run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
           cmake --build build --parallel
           ctest --test-dir build --output-on-failure
       - name: Package
         env:
-          LMG_PLATFORM_SUFFIX: ${{ matrix.arch }}
+          LMG_PLATFORM_SUFFIX: ${{ matrix.label }}
         run: ./tools/package/package_linux.sh build
       - uses: actions/upload-artifact@v7
         with:
-          name: LeoMiniGames-${{ inputs.version }}-linux-${{ matrix.arch }}
-          path: |
-            dist/linux/LeoMiniGames-v${{ inputs.version }}-Linux-${{ matrix.arch }}.tar.gz
-            dist/linux/LeoMiniGames-v${{ inputs.version }}-Linux-${{ matrix.arch }}.AppImage
+          name: LeoMiniGames-${{ inputs.version }}-${{ matrix.label }}
+          path: dist/linux/*
           if-no-files-found: error
-          retention-days: 30
+
+  linux-native:
+    name: Native ${{ matrix.label }}
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            image: debian:13-slim
+            distro: debian
+            label: Debian-13-x86_64
+          - runner: ubuntu-24.04-arm
+            image: debian:13-slim
+            distro: debian
+            label: Debian-13-arm64
+          - runner: ubuntu-24.04
+            image: archlinux:latest
+            distro: arch
+            label: Arch-x86_64
+          - runner: ubuntu-24.04-arm
+            image: archlinux:latest
+            distro: arch
+            label: Arch-arm64
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - name: Debian dependencies
+        if: matrix.distro == 'debian'
+        shell: bash
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates git python3 build-essential cmake ninja-build pkg-config tar gzip \
+            libgl-dev qt6-base-dev qt6-declarative-dev qt6-svg-dev qt6-multimedia-dev
+      - name: Arch dependencies
+        if: matrix.distro == 'arch'
+        shell: bash
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --needed --noconfirm \
+            git python base-devel cmake ninja pkgconf tar gzip \
+            qt6-base qt6-declarative qt6-svg qt6-multimedia
+      - uses: actions/checkout@v7
+      - run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          cmake --build build --parallel
+          ctest --test-dir build --output-on-failure
+      - name: Package native runtime
+        env:
+          LMG_PLATFORM_SUFFIX: ${{ matrix.label }}
+        run: ./tools/package/package_linux_native.sh build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: LeoMiniGames-${{ inputs.version }}-${{ matrix.label }}-native
+          path: dist/linux-native/*
+          if-no-files-found: error
 
   macos:
     name: macOS ${{ matrix.arch }} ZIP + DMG
@@ -221,14 +269,13 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
-      - name: Install Qt
-        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+      - uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
         with:
           version: ${{ env.QT_CI_VERSION }}
           modules: qtmultimedia
+          aqtversion: "==3.3.*"
           cache: true
-      - name: Configure/build/test
-        run: |
+      - run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} -DBUILD_TESTING=ON
           cmake --build build --parallel
           ctest --test-dir build --output-on-failure
@@ -239,14 +286,11 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ inputs.version }}-macos-${{ matrix.arch }}
-          path: |
-            dist/macos/LeoMiniGames-v${{ inputs.version }}-macOS-${{ matrix.arch }}.zip
-            dist/macos/LeoMiniGames-v${{ inputs.version }}-macOS-${{ matrix.arch }}.dmg
+          path: dist/macos/*
           if-no-files-found: error
-          retention-days: 30
 
-  android-apk:
-    name: Android signed APK (${{ matrix.abi }})
+  android:
+    name: Android ${{ matrix.abi }} APK + AAB
     needs: validate
     runs-on: ubuntu-24.04
     strategy:
@@ -272,58 +316,65 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
-      - name: Install Android SDK/NDK components
+      - uses: android-actions/setup-android@v4
+      - name: Android SDK/NDK
         shell: bash
         run: |
-          command -v sdkmanager >/dev/null
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}" "ndk;${ANDROID_NDK_VERSION}"
+          sdkmanager "platform-tools" "platforms;${ANDROID_PLATFORM}" \
+            "build-tools;${ANDROID_BUILD_TOOLS}" "ndk;${ANDROID_NDK_VERSION}"
           echo "ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
-      - name: Install Qt for Android
-        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+      - uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
         with:
           version: ${{ env.QT_CI_VERSION }}
+          host: all_os
           target: android
           arch: ${{ matrix.qt_arch }}
           modules: qtmultimedia
+          aqtversion: "==3.3.*"
           cache: true
-      - name: Prepare Android signing
+      - name: Prepare optional signing
         shell: bash
         run: |
-          for v in ANDROID_KEYSTORE_BASE64 ANDROID_KEY_ALIAS ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_PASSWORD; do
-            [[ -n "${!v:-}" ]] || { echo "Missing GitHub Actions secret: $v" >&2; exit 2; }
-          done
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/leominigames-upload.jks"
-          chmod 600 "$RUNNER_TEMP/leominigames-upload.jks"
-          echo "QT_ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/leominigames-upload.jks" >> "$GITHUB_ENV"
-          echo "QT_ANDROID_KEYSTORE_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "QT_ANDROID_KEYSTORE_STORE_PASS=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "QT_ANDROID_KEYSTORE_KEY_PASS=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
-      - name: Configure signed Android
+          if [[ -n "${ANDROID_KEYSTORE_BASE64:-}" && -n "${ANDROID_KEY_ALIAS:-}" && -n "${ANDROID_KEYSTORE_PASSWORD:-}" && -n "${ANDROID_KEY_PASSWORD:-}" ]]; then
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/leominigames-upload.jks"
+            chmod 600 "$RUNNER_TEMP/leominigames-upload.jks"
+            echo "QT_ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/leominigames-upload.jks" >> "$GITHUB_ENV"
+            echo "QT_ANDROID_KEYSTORE_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "QT_ANDROID_KEYSTORE_STORE_PASS=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "QT_ANDROID_KEYSTORE_KEY_PASS=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "LMG_ANDROID_SIGNING=1" >> "$GITHUB_ENV"
+          else
+            echo "LMG_ANDROID_SIGNING=0" >> "$GITHUB_ENV"
+            echo "Signing secrets absent: unsigned APK/AAB artifacts will still be produced."
+          fi
+      - name: Configure
         shell: bash
         run: |
+          sign_args=()
+          if [[ "$LMG_ANDROID_SIGNING" == "1" ]]; then
+            sign_args+=("-DQT_ANDROID_SIGN_APK=ON" "-DQT_ANDROID_SIGN_AAB=ON")
+          fi
           bash "$QT_ROOT_DIR/bin/qt-cmake" -S . -B build-android -G Ninja \
             -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
             -DANDROID_ABI="${{ matrix.abi }}" \
-            -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
-            -DQT_ANDROID_SIGN_APK=ON
-      - name: Build and package signed APK
+            -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" \
+            -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
+            "${sign_args[@]}"
+      - name: Package APK + AAB
         env:
           LMG_ANDROID_ABI: ${{ matrix.abi }}
           LMG_BUILD_APK: "1"
-          LMG_BUILD_AAB: "0"
+          LMG_BUILD_AAB: "1"
         run: ./tools/package/package_android.sh build-android
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ inputs.version }}-android-${{ matrix.abi }}
-          path: dist/android/LeoMiniGames-v${{ inputs.version }}-Android-${{ matrix.abi }}.apk
+          path: dist/android/*
           if-no-files-found: error
-          retention-days: 30
 
-  android-aab:
-    name: Android signed AAB (arm64-v8a)
+  android-universal:
+    name: Android universal multi-ABI APK + AAB
     needs: validate
     runs-on: ubuntu-24.04
     env:
@@ -337,90 +388,136 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
-      - name: Install Android SDK/NDK components
+      - uses: android-actions/setup-android@v4
+      - name: Android SDK/NDK
         shell: bash
         run: |
-          command -v sdkmanager >/dev/null
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;${ANDROID_PLATFORM}" "build-tools;${ANDROID_BUILD_TOOLS}" "ndk;${ANDROID_NDK_VERSION}"
+          sdkmanager "platform-tools" "platforms;${ANDROID_PLATFORM}" \
+            "build-tools;${ANDROID_BUILD_TOOLS}" "ndk;${ANDROID_NDK_VERSION}"
           echo "ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
-      - name: Install Qt for Android arm64-v8a
-        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
-        with:
-          version: ${{ env.QT_CI_VERSION }}
-          target: android
-          arch: android_arm64_v8a
-          modules: qtmultimedia
-          cache: true
-      - name: Prepare signing
+      - name: Install desktop + all Android Qt ABIs
         shell: bash
         run: |
-          for v in ANDROID_KEYSTORE_BASE64 ANDROID_KEY_ALIAS ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_PASSWORD; do [[ -n "${!v:-}" ]] || exit 2; done
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/leominigames-upload.jks"
-          chmod 600 "$RUNNER_TEMP/leominigames-upload.jks"
-          echo "QT_ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/leominigames-upload.jks" >> "$GITHUB_ENV"
-          echo "QT_ANDROID_KEYSTORE_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "QT_ANDROID_KEYSTORE_STORE_PASS=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "QT_ANDROID_KEYSTORE_KEY_PASS=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
-      - name: Configure signed AAB
+          python3 -m pip install "aqtinstall==3.3.0"
+          QT_BASE="$RUNNER_TEMP/Qt"
+          python3 -m aqt install-qt linux desktop "$QT_CI_VERSION" linux_gcc_64 -m qtmultimedia -O "$QT_BASE"
+          python3 -m aqt install-qt all_os android "$QT_CI_VERSION" \
+            android_arm64_v8a android_armv7 android_x86_64 android_x86 \
+            -m qtmultimedia -O "$QT_BASE"
+          echo "LMG_QT_BASE=$QT_BASE" >> "$GITHUB_ENV"
+      - name: Prepare optional signing
         shell: bash
         run: |
-          bash "$QT_ROOT_DIR/bin/qt-cmake" -S . -B build-android -G Ninja \
+          if [[ -n "${ANDROID_KEYSTORE_BASE64:-}" && -n "${ANDROID_KEY_ALIAS:-}" && -n "${ANDROID_KEYSTORE_PASSWORD:-}" && -n "${ANDROID_KEY_PASSWORD:-}" ]]; then
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/leominigames-upload.jks"
+            chmod 600 "$RUNNER_TEMP/leominigames-upload.jks"
+            echo "QT_ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/leominigames-upload.jks" >> "$GITHUB_ENV"
+            echo "QT_ANDROID_KEYSTORE_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "QT_ANDROID_KEYSTORE_STORE_PASS=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "QT_ANDROID_KEYSTORE_KEY_PASS=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "LMG_ANDROID_SIGNING=1" >> "$GITHUB_ENV"
+          else
+            echo "LMG_ANDROID_SIGNING=0" >> "$GITHUB_ENV"
+          fi
+      - name: Configure multi-ABI
+        shell: bash
+        run: |
+          sign_args=()
+          if [[ "$LMG_ANDROID_SIGNING" == "1" ]]; then
+            sign_args+=("-DQT_ANDROID_SIGN_APK=ON" "-DQT_ANDROID_SIGN_AAB=ON")
+          fi
+          bash "$LMG_QT_BASE/$QT_CI_VERSION/android_arm64_v8a/bin/qt-cmake" \
+            -S . -B build-android -G Ninja \
             -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
-            -DQT_ANDROID_SIGN_AAB=ON
-      - name: Build and package signed AAB
+            -DQT_HOST_PATH="$LMG_QT_BASE/$QT_CI_VERSION/gcc_64" \
+            -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" \
+            -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
+            -DQT_ANDROID_BUILD_ALL_ABIS=TRUE \
+            -DQT_ANDROID_ABIS="arm64-v8a;armeabi-v7a;x86_64;x86" \
+            "${sign_args[@]}"
+      - name: Package universal APK + AAB
         env:
-          LMG_ANDROID_ABI: arm64-v8a
-          LMG_BUILD_APK: "0"
+          LMG_ANDROID_ABI: universal
+          LMG_BUILD_APK: "1"
           LMG_BUILD_AAB: "1"
         run: ./tools/package/package_android.sh build-android
       - uses: actions/upload-artifact@v7
         with:
-          name: LeoMiniGames-${{ inputs.version }}-android-aab-arm64-v8a
-          path: dist/android/LeoMiniGames-v${{ inputs.version }}-Android-arm64-v8a.aab
+          name: LeoMiniGames-${{ inputs.version }}-android-universal
+          path: dist/android/*
           if-no-files-found: error
-          retention-days: 30
 
-  ios:
-    name: iOS simulator ${{ matrix.arch }} ZIP (unsigned)
+  apple-mobile:
+    name: ${{ matrix.label }} unsigned app
     needs: validate
     strategy:
       fail-fast: false
       matrix:
         include:
-          - runner: macos-15
+          - label: iOS-device-arm64
+            platform: iOS
+            runner: macos-15
+            sdk: iphoneos
             arch: arm64
-          - runner: macos-15-intel
+            family: "1"
+            package_platform: iOS
+            package_sdk: device
+          - label: iOS-simulator-x86_64
+            platform: iOS
+            runner: macos-15-intel
+            sdk: iphonesimulator
             arch: x86_64
+            family: "1"
+            package_platform: iOS
+            package_sdk: simulator
+          - label: iPadOS-device-arm64
+            platform: iPadOS
+            runner: macos-15
+            sdk: iphoneos
+            arch: arm64
+            family: "2"
+            package_platform: iPadOS
+            package_sdk: device
+          - label: iPadOS-simulator-x86_64
+            platform: iPadOS
+            runner: macos-15-intel
+            sdk: iphonesimulator
+            arch: x86_64
+            family: "2"
+            package_platform: iPadOS
+            package_sdk: simulator
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
-      - name: Install Qt for iOS
-        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+      - uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
         with:
           version: ${{ env.QT_CI_VERSION }}
+          host: mac
           target: ios
+          arch: ios
           modules: qtmultimedia
+          aqtversion: "==3.3.*"
           cache: true
-      - name: Configure/build
+      - name: Configure
         shell: bash
         run: |
-          bash "$QT_ROOT_DIR/bin/qt-cmake" -S . -B build-ios -G Xcode \
-            -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator \
+          bash "$QT_ROOT_DIR/bin/qt-cmake" -S . -B build-apple -G Xcode \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=${{ matrix.sdk }} \
             -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
-            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO -DBUILD_TESTING=OFF
-          cmake --build build-ios --config Release --parallel
-      - name: Package
+            -DLEOMINIGAMES_APPLE_MOBILE_DEVICE_FAMILY=${{ matrix.family }} \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
+            -DBUILD_TESTING=OFF
+      - run: cmake --build build-apple --config Release --parallel
+      - name: Package unsigned app bundle
         env:
           LMG_PLATFORM_SUFFIX: ${{ matrix.arch }}
-        run: ./tools/package/package_ios.sh build-ios
+          LMG_APPLE_PLATFORM: ${{ matrix.package_platform }}
+          LMG_APPLE_SDK: ${{ matrix.package_sdk }}
+        run: ./tools/package/package_ios.sh build-apple
       - uses: actions/upload-artifact@v7
         with:
-          name: LeoMiniGames-${{ inputs.version }}-ios-simulator-${{ matrix.arch }}
-          path: dist/ios/LeoMiniGames-v${{ inputs.version }}-iOS-simulator-${{ matrix.arch }}-unsigned.zip
+          name: LeoMiniGames-${{ inputs.version }}-${{ matrix.label }}-unsigned
+          path: dist/ios/*
           if-no-files-found: error
-          retention-days: 30

@@ -1,6 +1,11 @@
-YoungLion Mod License compatibility pointer
+DEPRECATED COMPATIBILITY POINTER
 
-The adopted v1.0 text is: YOUNGLION_MOD_LICENSE_1.0.txt
-Canonical identifier: LicenseRef-YoungLion-Mod-License-1.0
+Do not use this unversioned file as the license text.
 
-This file exists only so older documentation/tooling paths do not break. It does not replace the v1.0 license text.
+Canonical versioned terms:
+    YOUNGLION_MOD_LICENSE_1.0.txt
+
+SPDX-style identifier used by eligible packages:
+    LicenseRef-YoungLion-Mod-License-1.0
+
+This pointer is retained for backward-compatible documentation/tooling only.
