@@ -22,11 +22,13 @@ export QML_SOURCES_PATHS="$ROOT/qml"
 export APPIMAGE_EXTRACT_AND_RUN=1
 
 cp "$EXE" "$APPDIR/usr/bin/LeoMiniGames"
-cp -a "$ROOT/LICENSE" "$ROOT/LICENSE_APPLICATION.md" "$ROOT/NOTICE" \
-  "$ROOT/COPYRIGHT" "$ROOT/LICENSING.md" "$ROOT/README.md" "$APPDIR/"
+cp -a "$ROOT/LICENSE" "$ROOT/NOTICE" \
+  "$ROOT/COPYRIGHT" "$ROOT/LICENSING.md" "$ROOT/LICENSE_HISTORY.md" "$ROOT/LICENSE_METADATA.json" "$ROOT/README.md" "$APPDIR/"
 mkdir -p "$APPDIR/licenses"
-cp "$ROOT/licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt" \
-   "$ROOT/licenses/YOUNGLION_MOD_LICENSE_1.0.txt" "$APPDIR/licenses/"
+cp "$ROOT/licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt" \
+   "$ROOT/licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt" "$APPDIR/licenses/"
+mkdir -p "$APPDIR/Legal"
+cp "$ROOT/docs/THIRD_PARTY_NOTICES.md" "$ROOT/docs/QT_LGPL_COMPLIANCE.md" "$APPDIR/Legal/"
 cp "$ROOT/resources/branding/leominigames_icon_512.png" "$APPDIR/usr/share/icons/hicolor/512x512/apps/leominigames.png"
 cat > "$APPDIR/usr/share/applications/leominigames.desktop" <<'EOF'
 [Desktop Entry]

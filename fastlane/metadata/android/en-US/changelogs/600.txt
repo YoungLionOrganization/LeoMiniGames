@@ -1,1 +1,1 @@
-Unified GameRegistry, instant installed-mod library refresh, Explore/Installed mod management, CBOR atomic saves, lifecycle/input/audio/i18n/stats APIs, trusted-native architecture and F-Droid preparation.
+Unified GameRegistry, instant installed-mod library refresh, Explore/Installed mod management, CBOR atomic saves, lifecycle/input/audio/i18n/stats APIs, trusted-native architecture and tracker-free source-build preparation.

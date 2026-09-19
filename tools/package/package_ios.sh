@@ -16,10 +16,11 @@ APP="$(find "$BUILD_DIR" -type d -name 'LeoMiniGames.app' | head -n1)"
 [[ -n "$APP" ]] || { echo 'Unsigned LeoMiniGames.app not found' >&2; exit 2; }
 
 cp -R "$APP" "$STAGE/LeoMiniGames.app"
-cp "$ROOT/LICENSE" "$ROOT/LICENSE_APPLICATION.md" "$ROOT/NOTICE" \
-   "$ROOT/COPYRIGHT" "$ROOT/LICENSING.md" "$STAGE/Legal/"
-cp "$ROOT/licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt" \
-   "$ROOT/licenses/YOUNGLION_MOD_LICENSE_1.0.txt" "$STAGE/Legal/licenses/"
+cp "$ROOT/LICENSE" "$ROOT/NOTICE" \
+   "$ROOT/COPYRIGHT" "$ROOT/LICENSING.md" "$ROOT/LICENSE_HISTORY.md" "$ROOT/LICENSE_METADATA.json" "$STAGE/Legal/"
+cp "$ROOT/licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt" \
+   "$ROOT/licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt" "$STAGE/Legal/licenses/"
+cp "$ROOT/docs/THIRD_PARTY_NOTICES.md" "$ROOT/docs/QT_LGPL_COMPLIANCE.md" "$STAGE/Legal/"
 
 OUT="$DIST/LeoMiniGames-v${VERSION}-${PLATFORM}-${SDK_KIND}-${SUFFIX}-unsigned.zip"
 ditto -c -k --sequesterRsrc "$STAGE" "$OUT"

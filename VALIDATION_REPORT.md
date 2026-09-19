@@ -1,186 +1,116 @@
-# LeoMiniGames v0.7.0 Validation Report
+# LeoMiniGames v0.7.0 — Validation Report
 
-Final packaging audit: 2026-09-14
+Date: 2026-09-19
+Baseline reviewed/fixed: `7537efcc40750555121edf607d5fc862a9b50bc4`
 
-- `source_guard.py`: PASS
-- `validate_project.py`: PASS
-- `sanity_check.py`: PASS
-- `security_audit.py`: **16 PASS / 0 WARNING / 0 ERROR**
-- `validate_distribution.py`: **143 PASS / 1 expected F-Droid screenshot warning / 0 ERROR**
-- `audit_prebuilt_binaries.py`: PASS
-- `validate_v070.py`: **51 PASS / 0 WARNING / 0 ERROR**
-- Python tool compilation: PASS
-- shell syntax validation: PASS
-- source ZIP integrity: generated after all validators pass
+## Scope
 
-The root GNU GPLv3 text has the same SHA-256 as the pre-integration source (`3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986`); project-specific copyright/additional-permission text is kept outside the canonical GNU document.
+This report covers the source-available licensing migration supplied in
+`LeoMiniGames_Source_Available_Licensing_v1.zip` and the concrete failures from
+the latest GitHub Actions runs inspected for that baseline.
 
-See `BUILD_FIX_REPORT.md` for build/link/QML/Android/workflow/installer fixes.
+The licensing bundle's SHA-256 manifest was verified before application (22
+payload files matched). The baseline SHA recorded by the licensing bundle
+matches the GitHub `main` source used for this migration.
 
----
+## Licensing migration
 
-# LeoMiniGames v0.7.0 — Final Validation Report
+Current host/core license:
 
-Validation date: 2026-09-10
-Scope: LeoMiniGames application/source tree only. Backend, Account and Admin reference packages are not modified or bundled.
+- `LicenseRef-LMG-SAPEL-1.0`
+- `LICENSE` = LeoMiniGames Source-Available Publisher Ecosystem License 1.0
+- not OSI Open Source / not Free Software, as stated by the supplied license
 
-## Executive result
+Explicit SDK license:
 
-The source-level v0.7.0 validation suite is clean for the checks that can be executed in this environment.
+- `LicenseRef-YoungLion-LMG-SDK-1.0`
+- `src/sdk/IGamePlugin.h` carries this SPDX identifier
 
-- `tools/source_guard.py`: **PASS**
-- `tools/validate_project.py`: **PASS**
-- `tools/sanity_check.py`: **PASS**
-- `tools/security_audit.py`: **16 PASS / 0 WARNING / 0 ERROR**
-- `tools/audit_prebuilt_binaries.py`: **PASS**
-- `tools/validate_v070.py`: **51 PASS / 0 WARNING / 0 ERROR**
-- `tools/validate_distribution.py`: **82 PASS / 1 WARNING / 0 ERROR**
-- `tools/validate_i18n.py`: **0 ERROR / 22 coverage warnings**
-- Python validator/package scripts: **syntax PASS**
-- Shell scripts: **`bash -n` PASS**
-- Deterministic source ZIP reproduction check: **PASS (byte-identical)**
+Optional Publisher Package license:
 
-The warnings are deliberate release-readiness disclosures, not hidden failures:
+- `LicenseRef-YoungLion-Publisher-Package-1.0`
 
-1. Non-English host translations do not yet cover every one of the 188 current source strings. Runtime source-text fallback remains available, so missing locale keys do not make the UI fail to load.
-2. Real upstream F-Droid screenshots are not present. Placeholder/fake screenshots were intentionally not created.
+Applied/added legal material includes `LICENSE_HISTORY.md`,
+`CONTRIBUTOR_LICENSE_AGREEMENT.md`, `LICENSE_METADATA.json`,
+`MIGRATION_FROM_GPL.md`, `LEGAL_CHANGELOG.md`, Qt/LGPL and third-party notices,
+publisher terms, acceptance-evidence guidance and the Native/L3 addendum.
 
-## Backward compatibility
+Obsolete current-license artifacts were removed: the old GPL application file,
+Plugin Exception, old YoungLion Mod License files, old open-source licensing
+docs and the F-Droid submission scaffold. Historical prior grants remain
+explicitly documented in `LICENSE_HISTORY.md` and `MIGRATION_FROM_GPL.md`.
 
-The v0.7.0 validator confirms the compatibility contract for legacy content:
+Runtime/UI/package metadata was migrated too: built-in games report the new
+host license identifier, Settings shows the new host ID, QtIFW presents the new
+host license, and binary package legal payloads carry the new host/SDK/Publisher
+license material plus Qt/third-party notices.
 
-- manifests without `api_version` are treated as legacy content rather than rejected;
-- canonical RCC internal prefix `/` is supported;
-- legacy RCC prefix `/mods/<game_id>` is supported through the compatibility mount path;
-- a malicious legacy RCC that escapes its own namespace is rejected;
-- legacy `Settings`, `Lang`, `Audio`, `Lifecycle`, `App`, theme and game-service adapter surfaces remain available;
-- legacy settings support copy-on-read migration into the game-scoped namespace;
-- old `GameAudio` compatibility overloads remain present;
-- installed-mod indexes are processed once;
-- modern `required_capabilities` are enforced without retroactively converting legacy capability metadata into hard requirements.
+## GitHub Actions failures investigated
 
-Static compatibility fixtures validated:
+Latest inspected CI run: `35461903415`.
+Latest inspected Build Release Artifacts run: `35461967303`.
 
-- `v0_5_canonical`
-- `v0_5_legacy_prefix`
-- `v0_6_services`
-- `v0_7_modern`
-- `malicious_legacy_namespace` (expected reject case)
+The latest real runners had already proven Windows x64/ARM64 installer jobs,
+macOS x86_64/universal, all supported Android ABIs/universal, Apple device arm64
+and simulator x86_64 lanes, Arch x86_64, Ubuntu x86_64, and general Ubuntu
+ARM64 compilation/tests.
 
-A Qt/CTest target is included to compile these fixtures into real `.rcc` files and exercise `RccPackageInspector` when Qt is available.
+Remaining failures and fixes:
 
-## Security findings closed in the application
+1. **Debian 13 x86_64 + ARM64** — distro Qt 6.8.2 failed because
+   `QSortFilterProxyModel::beginFilterChange/endFilterChange` were called
+   unconditionally. Both proxy models now use the already-proven Qt 6.10 path
+   on Qt >= 6.10 and `invalidateRowsFilter()` on Qt 6.5-6.9.
+2. **Ubuntu 24.04 ARM64 AppImage** — `linuxdeploy-plugin-qt` failed after Qt
+   Multimedia dependency scanning with missing `libgstphotography-1.0.so.0`.
+   Artifact setup now installs both `libgstreamer-plugins-good1.0-0` and
+   `libgstreamer-plugins-bad1.0-0`.
+3. **macOS ARM64 artifact** — build + CTest succeeded; DMG creation failed with
+   `hdiutil: create failed - Resource busy`. DMG creation now uses a fresh
+   temporary destination, stale-volume detach, bounded three-attempt retry and
+   a non-empty output assertion.
 
-Source-level validation confirms the following hardening is present:
+## Validation results
 
-- external QML service exposure uses an allowlisted facade surface;
-- external games run through `ExternalGameRuntime` instead of receiving the main application context directly;
-- arbitrary local/file network access is not exposed through the external runtime network manager;
-- local Developer RCC packages require authenticated Developer Mode, are size-limited, validated, session-mounted and cannot self-grant native/L3 trust;
-- RCC legacy namespace escape/injection is rejected;
-- Developer API-key format, redirect policy and response size are bounded, and no obvious credential persistence is present;
-- publisher/native trust is not granted from arbitrary custom-catalog declarations;
-- logger facade does not expose file export/clear operations to external games;
-- legacy audio facade is game-scoped;
-- `GameSave` empty game IDs fail closed instead of producing root/current-directory paths;
-- `GameStats` and `Achievements` have bounded state handling and empty-ID guards;
-- lifecycle close/background/quit paths use force-save safety paths;
-- prebuilt executable/library artifacts are not committed into the source tree.
+Final local validation:
 
-## Distribution checks
+- `tools/source_guard.py`: PASS
+- `tools/validate_project.py`: PASS
+- `tools/sanity_check.py`: PASS
+- `tools/security_audit.py`: **16 PASS / 0 ERROR**
+- `tools/validate_i18n.py`: **0 ERROR**, 22 translation-coverage warnings with
+  source-English fallback; these warnings pre-existed and are not workflow
+  failures
+- `tools/validate_distribution.py`: **229 PASS / 0 ERROR**
+- `tools/audit_prebuilt_binaries.py`: PASS, including nested-archive guard
+- `tools/validate_v060.py`: PASS as the v0.6.x compatibility validator
+- `tools/validate_v070.py`: **51 PASS / 0 ERROR**
+- `tools/relicense_headers.py` dry-run: **0 files matched**
+- all `tools/*.py`: Python bytecode compilation PASS
+- CI/artifact workflow YAML parse: PASS, 10 jobs each
+- all `tools/*.sh`: `bash -n` PASS
 
-Static distribution validation confirms:
+Behavioral packaging smoke tests with controlled mock platform tools:
 
-- CI covers Ubuntu 22.04/24.04 x86_64, Ubuntu 24.04 ARM64, Windows MSVC/LLVM-MinGW x86_64, Windows ARM64 cross-build, macOS arm64/x86_64, all four Qt Android ABIs and unsigned iOS simulator arm64/x86_64 build paths;
-- Section 22 remains intentionally excluded: no tag-triggered GitHub Release automation is added;
-- QtIFW package metadata is v0.7.0 and marks the main application component forced/essential;
-- Windows packaging creates a portable ZIP and QtIFW installer path;
-- Linux packaging requires `linuxdeploy` and produces the portable archive from the deployed AppDir, plus AppImage;
-- macOS packaging uses `macdeployqt` and provides ZIP/DMG paths;
-- Android package script checks for actual APK/AAB output rather than claiming an artifact that does not exist;
-- iOS packaging explicitly labels its output unsigned/test when signing credentials are unavailable;
-- F-Droid scaffold now uses the real canonical public repository URLs; only the final immutable 40-character submission commit SHA and a tested fdroidserver Qt source-build stanza remain unresolved;
-- backend/account/admin reference material is excluded from the application source package.
+- macOS DMG retry: PASS; two simulated `Resource busy` failures followed by a
+  successful third attempt
+- Linux portable staging: PASS; new legal payload present in tar/AppDir
+- Linux native staging: PASS; new legal payload present
+- Android legal sidecar: PASS; new legal files present and old Plugin
+  Exception/Mod License/Application file absent
+- iOS unsigned-package flow: PASS
 
-## i18n coverage
+The stale nested `LeoMiniGames.zip` in the previous source artifact contained an
+older GPL/F-Droid/deployment tree. It and its `DELETE_FROM_REPOSITORY.txt`
+marker were removed. The source audit now rejects nested `.zip/.7z/.rar`
+delivery archives so this does not silently return.
 
-The host contains 188 unique current translatable source strings.
+## External execution limitation
 
-- English source fallback: 188/188 (100%)
-- Azerbaijani: 92/188 (48.9%)
-- Turkish: 92/188 (48.9%)
-- Other currently supplied host locale tables: typically 29/188 (15.4%)
+The connected GitHub integration can read runs and logs, but a write test still
+returns `403 Resource not accessible by integration` when creating a branch.
+Therefore this environment cannot push the fixed tree and obtain a post-fix
+GitHub-hosted runner result. Platform-specific CI remains the final authority
+once this source is pushed.
 
-Missing translation coverage is reported rather than filled with fake translations. Locale parsing, placeholder validation and runtime fallback remain enabled.
-
-## Tests not executed in this environment
-
-This environment does not contain a Qt 6 SDK, `qt-cmake`, `qmake6` or `qmllint`. Therefore the following are **NOT EXECUTED**, and are not represented as PASS:
-
-- native C++/Qt compilation;
-- `qmllint`/QML runtime loading;
-- CTest execution using real generated RCC binaries;
-- Windows QtIFW installer execution on a fresh VM;
-- Windows portable launch test;
-- Linux AppImage launch on a clean distribution;
-- Android APK/AAB device/emulator execution;
-- physical keyboard-layout testing (Azerbaijani/AZERTY/QWERTZ/Russian/Turkish);
-- Android/iOS lifecycle, safe-area, audio and haptics physical-device testing;
-- macOS signing/notarization and physical runtime testing;
-- iOS signing/App Store packaging.
-
-The repository contains CI/build/test paths for these checks, but configured CI is not the same as an executed physical-device test.
-
-## Remaining release-readiness limitations
-
-- Complete human-reviewed translations are still required for full multilingual parity.
-- Real application screenshots must be captured before an F-Droid submission that uses upstream screenshots.
-- The final immutable 40-character source commit SHA is required before generating the fdroiddata submission recipe.
-- Native browser-to-LeoMiniGames OAuth loopback/App-Link flow depends on backend/account support; the application retains a session-only scoped developer credential fallback and does not invent a nonexistent backend endpoint.
-
-## Final package policy
-
-`tools/package/package_source.py` runs the application validators before packaging, uses deterministic ZIP ordering/timestamps, excludes build output, IDE-user state and backend deployment material, and emits SHA-256 checksum files beside the final source archive.
-
-## Qt 6.11 build hotfix verification
-
-A user-side Qt 6.11.1 `qmlcachegen` build exposed an invalid semicolon between nested QML object declarations in `qml/DeveloperLabPage.qml`. The runtime-diagnostics actions were rewritten as normal multi-line `BronzeButton` declarations inside a responsive `Flow`. Repository-wide scanning found no second instance of this separator pattern. `tools/source_guard.py` now rejects this syntax class before packaging.
-
-## Qt 6.11 Windows compile hotfix — second pass
-
-A real Qt 6.11.1 LLVM-MinGW build supplied after the QML syntax hotfix exposed three additional source/build defects that source-only validation had not caught:
-
-- `qt_add_executable(LeoMiniGames)` was followed by an explicit `qt_finalize_executable(LeoMiniGames)`, causing Qt to finalize the target twice. The explicit finalizer was removed; automatic end-of-directory finalization is retained.
-- `GameAudio::activate()` passed a `QUrl` to `AudioManager::releasePrefix(const QString &)`. The call now passes the expected `QString` prefix.
-- `ExternalGameRuntime.cpp` included nonexistent `<QNetworkAccessManagerFactory>`. It now includes Qt's actual `<QQmlNetworkAccessManagerFactory>` header and owns the factory until the `QQmlEngine` is destroyed.
-
-The same user build also reported many `unqualified` warnings in `DeveloperLabPage.qml`. The page now uses `pragma ComponentBehavior: Bound`, receives Developer/GameLogger as required properties, and references them through the root object. The Repeater delegate already uses an explicit required `modelData` property, which is compatible with bound component behavior.
-
-`tools/source_guard.py` now rejects the three exact CMake/C++ regression patterns above and rejects direct unqualified Developer/GameLogger context access in `DeveloperLabPage.qml`.
-
-This environment still does not have a functioning local Qt SDK installation, so the patched source cannot be represented here as a locally compiled Qt binary. The reported Windows Qt 6.11 compiler diagnostics have nevertheless been addressed directly and the source-level validator suite has been rerun.
-## Build Hotfix 3 verification
-- `GameResources::GameResources(QObject*)` linker definition: PASS
-- Generic out-of-line QObject constructor definition guard: PASS
-- Source guard: PASS
-- v0.7 validator: 47 PASS / 0 WARNING / 0 ERROR
-- Security audit: 16 PASS / 0 WARNING / 0 ERROR
-
-
-## Publisher Trust Hotfix Validation
-
-- Root cause: historical admin-only Mod rows expose no v0.7 publisher trust fields; historical Theme rows can expose stale `publisher_verified=false`. The v0.7 client therefore downgraded admin-published official packages to Unverified.
-- Client fix: canonical YoungLion legacy catalog rows with no modern trust shape resolve to `Official Publisher`; modern explicit trust remains authoritative and third-party origins remain unverified.
-- CTest regression source: `tests/test_publisher_trust_resolver.cpp`.
-
-
-## GitHub Actions / F-Droid workflow hotfix verification
-
-- Current GitHub Android arm64 failure root cause addressed: the standalone `<QNativeInterface>` include was removed; Qt documents `QNativeInterface::QAndroidApplication` through the Core application header.
-- Current GitHub Android armeabi-v7a failure root cause addressed: target `qt-cmake` is invoked through `bash`, so a missing executable bit no longer prevents configuration.
-- Android CI now covers `arm64-v8a`, `armeabi-v7a`, `x86_64` and `x86`.
-- Desktop CI adds Linux ARM64, Windows ARM64 cross-build and a Windows LLVM-MinGW lane matching local development expectations.
-- Linux release packaging uses `linuxdeploy-plugin-qt` and the maintained `AppImage/appimagetool` project.
-- F-Droid SourceCode/Repo/IssueTracker/website/application/version identifiers are no longer placeholders.
-- F-Droid Qt source-build status is documented accurately: Qt 6 is feasible in fdroiddata, but LeoMiniGames still needs its own tested source-build stanza and final immutable commit.
-- README and RELEASES were expanded with architecture, artifact, compatibility, trust, signing, F-Droid and validation documentation.
+No physical-device QA is claimed by this report.

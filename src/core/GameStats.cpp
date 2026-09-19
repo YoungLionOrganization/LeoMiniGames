@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "GameStats.h"
 #include "AppPaths.h"
 #include <QCborValue>

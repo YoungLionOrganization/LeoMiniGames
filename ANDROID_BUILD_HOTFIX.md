@@ -8,7 +8,7 @@ This archive keeps the v0.6.2 project/version and applies Android-specific build
 - Reworked Android haptics to use `VibrationEffect.createOneShot()` (available because minSdk is 28) instead of deprecated `Vibrator.vibrate(long)`.
 - Replaced `QApplication` with `QGuiApplication` and removed the unused Qt Widgets dependency. The application is Qt Quick/QML-only, so Android no longer needs a Widgets module just to start the app.
 - Added the VIBRATE permission to the CMake Android permission list while retaining the manifest declaration for compatibility.
-- Made the `_3` Android OpenSSL suffix conditional on the bundled KDAB OpenSSL path. F-Droid/source-built OpenSSL builds no longer inherit a suffix intended for the prebuilt bundle.
+- Made the `_3` Android OpenSSL suffix conditional on the bundled KDAB OpenSSL path. privacy/source-built OpenSSL builds no longer inherit a suffix intended for the prebuilt bundle.
 - Removed the forced `arm64-v8a` target property. The selected Qt Android kit now controls the ABI by default, avoiding kit/ABI mismatches and allowing Qt 6.11 multi-ABI packaging.
 - Added an explicit `android/res/xml/qtprovider_paths.xml` matching the FileProvider declared by the Android manifest, so the custom Android package source is self-contained.
 

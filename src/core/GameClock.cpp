@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "GameClock.h"
 #include <QtGlobal>
 GameClock::GameClock(QObject *parent) : QObject(parent) { m_timer.start(); }

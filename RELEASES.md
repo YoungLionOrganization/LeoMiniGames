@@ -60,7 +60,6 @@ The v0.7.0 GitHub CI configuration covers:
 | Android | armeabi-v7a | APK |
 | Android | x86_64 | APK |
 | Android | x86 | APK |
-| iOS Simulator | arm64 | unsigned build |
 | iOS Simulator | x86_64 | unsigned build |
 
 These are configured CI lanes. A newly added lane is not labelled “physically verified” until its workflow and, where relevant, hardware QA have actually completed.
@@ -82,7 +81,6 @@ The manual Build Release Artifacts workflow is expected to produce:
 | Android armeabi-v7a | signed APK |
 | Android x86_64 | signed APK |
 | Android x86 | signed APK |
-| iOS Simulator arm64 | unsigned test ZIP |
 | iOS Simulator x86_64 | unsigned test ZIP |
 
 ### Windows installation
@@ -109,23 +107,13 @@ The current AAB lane is explicitly arm64-v8a. A future multi-ABI AAB should use 
 
 ### iOS status
 
-CI produces unsigned simulator archives for arm64 and x86_64. These are developer/test artifacts. Device IPA/App Store distribution requires Apple signing/provisioning and is not claimed by this workflow.
+CI produces unsigned arm64 device builds and x86_64 simulator archives for both iOS and iPadOS. These are developer/test artifacts. Device IPA/App Store distribution requires Apple signing/provisioning and is not claimed by this workflow.
 
-### F-Droid status
+### Source-available / F-Droid transition
 
-The canonical repository information is now known:
+Starting with the source-available licensing transition, the LeoMiniGames host uses `LicenseRef-LMG-SAPEL-1.0`. This license restricts redistribution and therefore current/future source-available editions must not be represented as eligible for the official F-Droid main repository.
 
-- application ID `xyz.younglion.leominigames`
-- source `https://github.com/YoungLionOrganization/LeoMiniGames`
-- git URL `https://github.com/YoungLionOrganization/LeoMiniGames.git`
-- version `0.7.0`
-- versionCode `700`
-- license `GPL-3.0-or-later`
-- NDK `27.2.12479018`
-
-Earlier release notes claiming the public repository URL was still unknown are obsolete. The remaining F-Droid work is the final immutable commit SHA, a tested fdroidserver Qt source-build stanza and real screenshots. F-Droid already has precedent for Qt 6 source builds through the historically named `Qt5` srclib; the project scaffold currently references `Qt5@v6.10.1` as that precedent.
-
-See `F_DROID_READINESS.md` rather than treating the metadata scaffold as an already accepted recipe.
+The previous F-Droid submission scaffold has been removed. The tracker-free build intent remains available as the neutral **privacy build** profile (`LEOMINIGAMES_PRIVACY_BUILD` / `tools/privacy_clean_build.sh`). A YoungLion-controlled Android repository can be operated separately subject to signing, Qt/LGPL and other third-party obligations. See `docs/F_DROID_TRANSITION.md`.
 
 ### Qt version policy
 
@@ -147,7 +135,7 @@ Existing legacy packages may remain unchanged while they are supported. New deve
 
 ### Known limitations
 
-Translation coverage is not yet 100% across every supported locale; source-English fallback remains intentional. Real F-Droid phone screenshots are not present yet. Full native browser-to-app Developer OAuth callback support remains a backend integration dependency. Apple public distribution signing/notarization is not automated. Newly added CI architecture lanes require their first successful GitHub run before being recorded as verified.
+Translation coverage is not yet 100% across every supported locale; source-English fallback remains intentional. Full native browser-to-app Developer OAuth callback support remains a backend integration dependency. Apple public distribution signing/notarization is not automated. Newly added CI architecture lanes require their first successful GitHub run before being recorded as verified.
 
 ## Manual release procedure
 

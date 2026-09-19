@@ -14,7 +14,7 @@ These settings are repository metadata/administration settings rather than sourc
 
 **Topics**
 
-`qt6`, `qml`, `cpp`, `minigames`, `gaming`, `modding`, `rcc`, `cross-platform`, `windows`, `linux`, `android`, `ios`, `macos`, `f-droid`, `open-source`
+`qt6`, `qml`, `cpp`, `minigames`, `gaming`, `modding`, `rcc`, `cross-platform`, `windows`, `linux`, `android`, `ios`, `macos`, `source-available`
 
 Use the LeoMiniGames square icon or logo as the repository social preview image.
 

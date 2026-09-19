@@ -1,0 +1,126 @@
+YOUNGLION PROPRIETARY PUBLISHER PACKAGE LICENSE
+Version 1.0 — 19 September 2026
+Short identifier: LicenseRef-YoungLion-Publisher-Package-1.0
+
+IMPORTANT: This is a proprietary end-user package license. It is not the
+LeoMiniGames host license and does not grant YoungLion Platform trust.
+
+Copyright (c) the applicable Publisher. All rights reserved except as expressly
+granted below or by mandatory law.
+
+1. DEFINITIONS
+
+"Package" means the independently developed LeoMiniGames game, mod, theme,
+asset, extension, or plugin that expressly selects this License.
+
+"Publisher" means the person or legal entity owning or legally authorized to
+license the Package.
+
+"User" means a person or entity that lawfully obtains the Package.
+
+"Platform" means the YoungLion/LeoMiniGames distribution and related services.
+
+"Mandatory Law" means non-waivable applicable rights or obligations.
+
+2. OWNERSHIP
+
+Publisher retains its rights in the Package. Submission to YoungLion does not
+assign ownership to YoungLion. Separately licensed third-party material remains
+under its own terms.
+
+3. USER LICENSE
+
+Publisher grants a lawful User a worldwide, non-exclusive license to:
+
+(a) download or receive the Package from an authorized source;
+
+(b) install it on compatible devices the User lawfully controls;
+
+(c) execute and use it for its intended functionality with LeoMiniGames; and
+
+(d) make reasonable personal backup/recovery copies.
+
+4. NO GENERAL REDISTRIBUTION
+
+Except where separately authorized or required by Mandatory Law, the User may
+not redistribute, mirror, rehost, sublicense, sell, rent, lease, bundle, or
+publish the Package.
+
+5. NO DERIVATIVE DISTRIBUTION
+
+Private configuration through intended settings is permitted.
+
+No general right is granted to distribute modified, translated, extracted,
+repacked, or derivative versions.
+
+6. ASSET EXTRACTION
+
+Protected code, graphics, audio, fonts, data, models, or other assets may not be
+extracted for unrelated reuse, resale, dataset publication, or incorporation
+into another product without separate permission or Mandatory Law.
+
+7. REVERSE ENGINEERING
+
+Except where the Publisher authorizes it or Mandatory Law protects the activity,
+no right is granted to reverse engineer, decompile, or disassemble closed-source
+portions.
+
+This clause does not override non-waivable interoperability, accessibility,
+debugging, or security-research rights.
+
+8. THIRD-PARTY SOFTWARE
+
+Third-party and open-source components retain their own licenses. This License
+does not narrow rights granted by those licenses.
+
+9. PLATFORM TRUST
+
+This License grants no Official, Verified, Native/L3, signing, developer,
+marketplace, or review status.
+
+10. TRADEMARKS
+
+No YoungLion/LeoMiniGames trademark or endorsement rights are granted.
+
+11. SECURITY
+
+No provision authorizes malware, credential theft, unauthorized surveillance,
+privacy invasion, destructive behavior, service disruption, or unauthorized
+access.
+
+12. UPDATES AND AVAILABILITY
+
+Unless separately promised, Publisher is not required to provide updates,
+support, maintenance, or compatibility.
+
+YoungLion may delist, quarantine, or block Platform distribution under separate
+Platform terms without transferring Package ownership.
+
+13. TERMINATION
+
+Rights terminate upon material breach, subject to Mandatory Law.
+
+14. WARRANTY
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE PACKAGE IS PROVIDED "AS IS" AND
+"AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND.
+
+15. LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, PUBLISHER AND YOUNGLION SHALL NOT BE
+LIABLE UNDER THIS LICENSE FOR INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL
+DAMAGES ARISING SOLELY FROM USE OF OR INABILITY TO USE THE PACKAGE.
+
+16. GOVERNING LAW
+
+Unless a separate binding agreement lawfully provides otherwise, this License
+is governed by the laws of the Republic of Azerbaijan, subject to non-waivable
+rights in the User's jurisdiction.
+
+17. ENTIRE PACKAGE LICENSE
+
+For Publisher-owned material expressly placed under this License, this document
+is the applicable end-user copyright license, subject to separately licensed
+components, separate permissions, and Mandatory Law.
+
+END OF YOUNGLION PROPRIETARY PUBLISHER PACKAGE LICENSE 1.0

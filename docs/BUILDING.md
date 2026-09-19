@@ -1,10 +1,10 @@
-# Building LeoMiniGames 0.6.0
+# Building LeoMiniGames 0.7.0
 
 ## Requirements
 
 - CMake 3.24+
 - C++20 compiler
-- Qt 6.8+ modules: Core, Gui, Qml, Quick, QuickControls2, QuickShapes, Svg, Network, Multimedia
+- Qt 6.5+ modules: Core, Gui, Qml, Quick, QuickControls2, QuickShapes, Svg, Network, Multimedia
 - Ninja is recommended
 
 ## Desktop
@@ -20,7 +20,7 @@ On Windows, select the Qt kit matching your compiler. The deployable target is t
 
 The target keeps package name `xyz.younglion.leominigames`, minimum SDK 28 and the Android package source under `android/`. The ABI is intentionally not hard-coded in the project; use the ABI from the selected Qt for Android kit (or Qt 6.11 multi-ABI options).
 
-The normal Android profile can fetch the pinned KDAB Android OpenSSL package used by v0.5.x for HTTPS. F-Droid builds disable that prebuilt-fetch path and must provide a source-built FLOSS OpenSSL runtime; see `FDROID.md`.
+The privacy build profile is a tracker-free/source-clean configuration and does not imply official F-Droid eligibility. Current source-available editions are not eligible for F-Droid main. Use `-DLEOMINIGAMES_PRIVACY_BUILD=ON` or `tools/privacy_clean_build.sh`; see `F_DROID_TRANSITION.md`.
 
 ## Validation
 

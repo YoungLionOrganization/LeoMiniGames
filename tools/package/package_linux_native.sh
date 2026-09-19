@@ -13,10 +13,12 @@ EXE="$(find "$BUILD_DIR" -type f -name LeoMiniGames -perm -111 | head -n1)"
 [[ -n "$EXE" ]] || { echo "LeoMiniGames executable not found" >&2; exit 2; }
 
 cp "$EXE" "$STAGE/LeoMiniGames"
-cp "$ROOT/LICENSE" "$ROOT/LICENSE_APPLICATION.md" "$ROOT/NOTICE" \
-   "$ROOT/COPYRIGHT" "$ROOT/LICENSING.md" "$STAGE/"
-cp "$ROOT/licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt" \
-   "$ROOT/licenses/YOUNGLION_MOD_LICENSE_1.0.txt" "$STAGE/licenses/"
+cp "$ROOT/LICENSE" "$ROOT/NOTICE" \
+   "$ROOT/COPYRIGHT" "$ROOT/LICENSING.md" "$ROOT/LICENSE_HISTORY.md" "$ROOT/LICENSE_METADATA.json" "$STAGE/"
+cp "$ROOT/licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt" \
+   "$ROOT/licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt" "$STAGE/licenses/"
+mkdir -p "$STAGE/Legal"
+cp "$ROOT/docs/THIRD_PARTY_NOTICES.md" "$ROOT/docs/QT_LGPL_COMPLIANCE.md" "$STAGE/Legal/"
 
 cat > "$STAGE/RUNTIME.txt" <<EOF
 LeoMiniGames $VERSION — native $SUFFIX build

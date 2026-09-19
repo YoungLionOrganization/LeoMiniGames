@@ -34,6 +34,14 @@ The Qt 6.10.2 online iOS kit used by CI supplies an arm64 **device** slice and a
 
 Qt 6.11.1 remains a supported local-development kit. CI uses 6.10.2 for Qt online-package lanes because that version is currently resolved reliably by the pinned installer action. The source-level minimum remains Qt 6.5.
 
+## Compatibility and packaging notes
+
+Debian 13 intentionally validates the documented Qt 6.5+ source floor with distro Qt 6.8.x. Filter refresh code therefore uses the Qt 6.10 filter-change API when available and `invalidateRowsFilter()` on Qt 6.5-6.9.
+
+Ubuntu AppImage packaging installs both GStreamer Good and Bad runtime plugin libraries before linuxdeploy scans Qt Multimedia, covering `libgstphotography` and `libgstplay` dependencies on supported Ubuntu runners.
+
+macOS DMG generation uses a fresh temporary image, stale-volume detach and bounded retry so a transient `hdiutil: Resource busy` does not discard an otherwise successful build/package stage.
+
 ## Real-device QA
 
 Windows/Linux desktop and Android/iOS/iPadOS/macOS hardware behavior must still be recorded separately. Audio backend behavior, haptics, lifecycle/background save, touch/safe-area handling, installer/signing/notarization and update signatures cannot be proven solely by static validation or cross-compilation.

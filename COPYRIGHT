@@ -1,7 +1,14 @@
 LeoMiniGames
-Copyright (c) 2026 Cavanşir Qurbanzadə
-Copyright (c) respective contributors for their contributions
+Copyright (c) 2026 Cavanşir Qurbanzadə (@Cavanshirpro)
 
-LeoMiniGames host contributions are accepted under GPL-3.0-or-later together with the adopted LeoMiniGames Plugin / Mod Exception v1.0 where the contributor has authority to grant that additional permission. Public interface-only SDK files may carry a separate permissive dual-license notice.
+Current project-owned LeoMiniGames host material is intended to be distributed under:
+LicenseRef-LMG-SAPEL-1.0
 
-See repository history for authorship information.
+Designated developer SDK/template material may carry:
+LicenseRef-YoungLion-LMG-SDK-1.0
+
+Third-party components and Publisher Packages retain their respective copyrights
+and licenses.
+
+Future contributor rights are governed by the contributor terms accepted for
+their contributions. Repository history should be used for authorship evidence.

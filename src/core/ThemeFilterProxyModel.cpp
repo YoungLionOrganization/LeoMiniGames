@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "ThemeFilterProxyModel.h"
 
 #include <QSet>
@@ -125,8 +125,13 @@ bool ThemeFilterProxyModel::lessThan(const QModelIndex &left, const QModelIndex 
 
 void ThemeFilterProxyModel::refilter()
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
     beginFilterChange();
     endFilterChange();
+#else
+    // Qt 6.5-6.9 compatibility: beginFilterChange/endFilterChange are newer APIs.
+    invalidateRowsFilter();
+#endif
     sort(0);
     emit countChanged();
 }

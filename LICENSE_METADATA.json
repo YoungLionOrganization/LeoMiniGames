@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "project": "LeoMiniGames",
+  "effective_date": "2026-09-19",
+  "current_host_license": {
+    "name": "LeoMiniGames Source-Available Publisher Ecosystem License",
+    "version": "1.0",
+    "id": "LicenseRef-LMG-SAPEL-1.0",
+    "file": "LICENSE",
+    "osi_open_source": false,
+    "free_software": false
+  },
+  "sdk_license": {
+    "id": "LicenseRef-YoungLion-LMG-SDK-1.0",
+    "file": "licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt"
+  },
+  "publisher_package_license": {
+    "id": "LicenseRef-YoungLion-Publisher-Package-1.0",
+    "file": "licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt"
+  },
+  "publisher_terms": {
+    "version": "1.0",
+    "file": "docs/YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md"
+  },
+  "native_l3_addendum": {
+    "version": "1.0",
+    "file": "docs/NATIVE_L3_PUBLISHER_ADDENDUM_1.0.md"
+  },
+  "historical_note": "Earlier public repository revisions contained GPL-3.0-or-later notices; prior valid grants are not retroactively revoked."
+}

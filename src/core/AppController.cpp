@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "AppController.h"
 #include "GameRegistry.h"
 AppController::AppController(GameRegistry *registry,QObject *parent):QObject(parent),m_registry(registry){}

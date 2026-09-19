@@ -10,7 +10,6 @@
     <Checkable>false</Checkable>
     <Script>installscript.qs</Script>
     <Licenses>
-        <License name="GNU GPL v3 or later" file="LICENSE.txt" />
-        <License name="LeoMiniGames Plugin / Mod Exception v1.0" file="PLUGIN_EXCEPTION.txt" />
+        <License name="LeoMiniGames Source-Available Publisher Ecosystem License 1.0" file="LICENSE.txt" />
     </Licenses>
 </Package>

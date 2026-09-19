@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 import QtQuick
 import QtQuick.Controls
 
@@ -232,7 +232,7 @@ Item {
                         Text { text: "LeoMiniGames"; color: Constants.text; font.pixelSize: Constants.u17; font.bold: true }
                         Text { text: "v" + Qt.application.version + " · YoungLion"; color: Constants.primaryHover; font.pixelSize: Constants.u11 }
                         Text { text: qsTr("%1 games available").arg(Games.totalCount); color: Constants.textMuted; font.pixelSize: Constants.u10 }
-                        Text { text: "GPL-3.0-or-later"; color: Constants.textMuted; font.pixelSize: Constants.u10 }
+                        Text { text: "LicenseRef-LMG-SAPEL-1.0"; color: Constants.textMuted; font.pixelSize: Constants.u10 }
                         Text { text: qsTr("Plugin API 0.7 · legacy 0.5/0.6 · RCC v1 compatible"); color: Constants.textMuted; font.pixelSize: Constants.u10 }
                     }
                 }

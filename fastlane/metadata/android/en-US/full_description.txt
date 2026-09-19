@@ -1,1 +1,1 @@
-LeoMiniGames is an open-source Qt 6 mini-game collection with built-in games and a backwards-compatible RCC plugin system. It is designed to remain usable on lower-resource Android devices and does not require proprietary analytics or advertising SDKs.
+LeoMiniGames is a source-available Qt 6 mini-game collection with built-in games and a backwards-compatible RCC plugin system. It is designed to remain usable on lower-resource Android devices and does not require proprietary analytics or advertising SDKs.

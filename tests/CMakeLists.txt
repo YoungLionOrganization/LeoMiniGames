@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 add_executable(test_catalog_compat
     test_catalog_compat.cpp
     ${CMAKE_SOURCE_DIR}/src/CatalogCompat.cpp

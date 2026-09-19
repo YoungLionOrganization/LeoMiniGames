@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "GameRegistry.h"
 #include "ModManager.h"
 #include "PluginManager.h"
@@ -109,7 +109,7 @@ void GameRegistry::refresh()
             entry.verified = true;
             entry.pluginLevel = entry.builtIn ? 2 : 3;
             entry.native = !entry.builtIn;
-            entry.license = entry.builtIn ? QStringLiteral("GPL-3.0-or-later") : QString{};
+            entry.license = entry.builtIn ? QStringLiteral("LicenseRef-LMG-SAPEL-1.0") : QString{};
             m_all.push_back(std::move(entry));
         }
     }

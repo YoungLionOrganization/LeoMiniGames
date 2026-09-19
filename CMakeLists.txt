@@ -13,7 +13,7 @@ qt_standard_project_setup(REQUIRES 6.5)
 include(CTest)
 
 set(LEOMINIGAMES_ANDROID_VERSION_CODE 700)
-option(LEOMINIGAMES_FDROID "Build the tracker-free F-Droid variant" OFF)
+option(LEOMINIGAMES_PRIVACY_BUILD "Build the tracker-free/privacy-focused variant" OFF)
 set(LEOMINIGAMES_APPLE_MOBILE_DEVICE_FAMILY "1,2" CACHE STRING
     "Apple mobile device family: 1=iPhone/iOS, 2=iPad/iPadOS, 1,2=universal")
 
@@ -51,8 +51,8 @@ else()
     message(STATUS "Qt Multimedia not found: audio services will use a silent capability fallback")
 endif()
 
-if(LEOMINIGAMES_FDROID)
-    target_compile_definitions(LeoMiniGames PRIVATE LMG_FDROID_BUILD=1)
+if(LEOMINIGAMES_PRIVACY_BUILD)
+    target_compile_definitions(LeoMiniGames PRIVATE LMG_PRIVACY_BUILD=1)
 endif()
 
 add_subdirectory(plugins/builtin/Xox)

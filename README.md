@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml/badge.svg)](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml)
 [![Qt](https://img.shields.io/badge/Qt-6.5%2B-41CD52?logo=qt&logoColor=white)](https://www.qt.io/)
-[![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-Source--Available%20SAPEL--1.0-orange)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.7.0-B8860B)](RELEASES.md)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20iOS%20%7C%20macOS-informational)](#platform-and-architecture-matrix)
 
@@ -33,7 +33,7 @@ The v0.7.0 line is a **compatibility-first security and SDK upgrade**. A major d
 - [Release artifacts](#release-artifacts)
 - [GitHub Actions](#github-actions)
 - [Android signing](#android-signing-in-github-actions)
-- [F-Droid](#f-droid)
+- [Source-available distribution](#source-available-distribution)
 - [Validation and QA](#validation-and-qa)
 - [Repository layout](#repository-layout)
 - [Contributing and licensing](#contributing-and-licensing)
@@ -349,22 +349,13 @@ The workflow decodes the keystore into the runner's temporary directory with res
 
 Keep the same upload/distribution key when application update compatibility requires signature continuity.
 
-## F-Droid
+## Source-available distribution
 
-The canonical upstream information is no longer unknown:
+LeoMiniGames host/core is licensed under **`LicenseRef-LMG-SAPEL-1.0`**, the LeoMiniGames Source-Available Publisher Ecosystem License 1.0 in [`LICENSE`](LICENSE). It is source-available, but it is **not** OSI Open Source or Free Software. Redistribution, mirrors, rebranded builds and unofficial releases are restricted by the license.
 
-```text
-App ID:       xyz.younglion.leominigames
-Version:      0.7.0
-Version code: 700
-Source:       https://github.com/YoungLionOrganization/LeoMiniGames
-Git:          https://github.com/YoungLionOrganization/LeoMiniGames.git
-License:      GPL-3.0-or-later
-```
+The repository retains a tracker-free/privacy-oriented Android build profile, but that profile is not an official F-Droid build. Current source-available editions are not eligible for the official F-Droid main repository. See [`docs/F_DROID_TRANSITION.md`](docs/F_DROID_TRANSITION.md).
 
-Qt itself is not a categorical F-Droid blocker. fdroiddata already contains Qt 6 applications that build Qt from source through the historically named `Qt5` srclib; the current GCompris recipe demonstrates `Qt5@v6.10.1`. LeoMiniGames still needs its own tested, minimized source-build stanza and a final immutable commit SHA before submission.
-
-See [`F_DROID_READINESS.md`](F_DROID_READINESS.md).
+Earlier public copies that were validly distributed under GPL terms retain the rights already granted for those copies; the new license does not retroactively revoke them. See [`LICENSE_HISTORY.md`](LICENSE_HISTORY.md) and [`MIGRATION_FROM_GPL.md`](MIGRATION_FROM_GPL.md).
 
 ## Validation and QA
 
@@ -389,10 +380,9 @@ Qt-enabled CTest adds compiled/runtime-oriented checks including RCC compatibili
 .github/              Actions, issue/PR templates, CODEOWNERS
 android/              Android package template/resources
 docs/                 architecture/build/SDK documentation
-fastlane/             Android/F-Droid metadata and graphics
-fdroid/                fdroiddata scaffold and notes
+fastlane/             Android store metadata and graphics
 installer/             Qt Installer Framework configuration
-licenses/              mod/plugin licensing material
+licenses/              SDK and Publisher Package licensing material
 mod-sdk/               RCC mod/game examples and SDK resources
 plugins/builtin/       built-in native games
 qml/                   application and reusable QML components
@@ -406,11 +396,11 @@ tools/                 validators and packaging helpers
 
 ## Contributing and licensing
 
-LeoMiniGames host source is licensed under **GPL-3.0-or-later**. The standard GPL text is kept verbatim in [`LICENSE`](LICENSE). Project-specific copyright/licensing context is documented separately in [`COPYRIGHT`](COPYRIGHT), [`NOTICE`](NOTICE), [`docs/DEVELOPER_LICENSING.md`](docs/DEVELOPER_LICENSING.md) and [`licenses/README.md`](licenses/README.md).
+LeoMiniGames host/core uses **`LicenseRef-LMG-SAPEL-1.0`**. Only files explicitly marked **`LicenseRef-YoungLion-LMG-SDK-1.0`** receive the separate developer SDK grant. Eligible independent Publisher Packages can use their own accepted license, a recognized open-source license, or **`LicenseRef-YoungLion-Publisher-Package-1.0`** where applicable.
 
-Content copyright licenses, publisher verification and Native/L3 permission are different concepts. A package cannot grant itself Official/Verified status through its license or manifest.
+Publisher trust, Official/Verified status and Native/L3 permission are separate from copyright licensing and remain backend-authoritative; package metadata cannot self-grant them. Publishing through YoungLion is additionally governed by [`docs/YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md`](docs/YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md), and Native/L3 uses the separate addendum.
 
-Contributions should follow [`CONTRIBUTING.md`](CONTRIBUTING.md). Security-sensitive issues should follow [`SECURITY.md`](SECURITY.md).
+Contributions should follow [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CONTRIBUTOR_LICENSE_AGREEMENT.md`](CONTRIBUTOR_LICENSE_AGREEMENT.md). Third-party/Qt obligations remain separate; see [`docs/THIRD_PARTY_NOTICES.md`](docs/THIRD_PARTY_NOTICES.md) and [`docs/QT_LGPL_COMPLIANCE.md`](docs/QT_LGPL_COMPLIANCE.md). Security-sensitive issues should follow [`SECURITY.md`](SECURITY.md).
 
 ## Project links
 
@@ -427,4 +417,11 @@ LeoMiniGames aims to be more than a launcher that merely builds: the target is a
 
 ## Licensing architecture
 
-The host is **GPL-3.0-or-later**. `LICENSE` is the canonical GPLv3 text; project-specific application, copyright and additional permissions live in `LICENSING.md`, `COPYRIGHT`, `NOTICE` and `licenses/`. LeoMiniGames Plugin / Mod Exception v1.0 is a GPLv3 section 7 additional permission for qualifying independent packages using designated public interfaces. Eligible proprietary content can separately select `LicenseRef-YoungLion-Mod-License-1.0`. Publisher trust, Official/Verified badges and Native/L3 capability are not copyright licenses and remain backend-authoritative.
+- **Host/core:** `LicenseRef-LMG-SAPEL-1.0` (`LICENSE`)
+- **Explicit SDK files:** `LicenseRef-YoungLion-LMG-SDK-1.0`
+- **Optional proprietary Publisher Package license:** `LicenseRef-YoungLion-Publisher-Package-1.0`
+- **Publisher service terms:** `docs/YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md`
+- **Native/L3:** `docs/NATIVE_L3_PUBLISHER_ADDENDUM_1.0.md`
+- **Historical grants:** documented in `LICENSE_HISTORY.md`; prior valid GPL grants are not retroactively revoked.
+
+Qt and other third-party components remain governed by their own licenses.

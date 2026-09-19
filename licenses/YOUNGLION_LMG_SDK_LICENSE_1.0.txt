@@ -1,0 +1,83 @@
+YOUNGLION LEOMINIGAMES SDK & TEMPLATE LICENSE
+Version 1.0 — 19 September 2026
+Short identifier: LicenseRef-YoungLion-LMG-SDK-1.0
+
+Copyright (c) 2026 Cavanşir Qurbanzadə (@Cavanshirpro).
+
+1. SCOPE
+
+This License applies only to LeoMiniGames files expressly marked with the short
+identifier above ("SDK Material"). It does not apply to the LeoMiniGames host
+merely because a file is technically accessible or located near SDK Material.
+
+2. PURPOSE
+
+SDK Material is provided to enable independent developers to build games, mods,
+themes, extensions, and plugins compatible with LeoMiniGames.
+
+3. GRANT
+
+Subject to this License, you may:
+
+(a) use and copy SDK Material to develop a compatible Publisher Package;
+
+(b) modify SDK Material as reasonably necessary for that Package;
+
+(c) compile, link, or incorporate SDK Material into a Publisher Package;
+
+(d) distribute SDK Material, including modified portions, only as part of the
+    source or binary distribution of that compatible Publisher Package; and
+
+(e) use SDK Material in commercial or non-commercial Publisher Packages.
+
+4. CONDITIONS
+
+Any distributed source copy of SDK Material must retain its copyright and
+license notice.
+
+If SDK Material is modified and redistributed in source form, the modification
+must be identified as modified and must not be represented as an official SDK
+update.
+
+5. RESTRICTIONS
+
+You may not, without written permission:
+
+(a) distribute the SDK Material as a standalone competing SDK;
+
+(b) use SDK Material to build or distribute a competing or rebranded host
+    derived from LeoMiniGames;
+
+(c) claim Official/Verified/Native-L3 status;
+
+(d) use YoungLion/LeoMiniGames logos as independent product branding; or
+
+(e) remove required notices.
+
+6. PACKAGE LICENSE INDEPENDENCE
+
+A Publisher Package does not become covered by this License solely because it
+uses SDK Material. The Publisher may choose a separate license for its own
+original Package code and assets.
+
+7. NO PLATFORM ENTITLEMENT
+
+This License does not grant market listing, Native/L3 authorization, signing,
+review bypass, developer credentials, or other Platform privileges.
+
+8. THIRD-PARTY COMPONENTS
+
+Third-party material remains governed by its own license.
+
+9. WARRANTY AND LIABILITY
+
+SDK Material is provided "AS IS", without warranty, to the maximum extent
+permitted by law. The Licensor is not liable for indirect or consequential
+damages to the maximum extent permitted by law.
+
+10. TERMINATION
+
+Rights terminate upon material breach. Rights under separate third-party
+licenses are unaffected.
+
+END OF YOUNGLION LEOMINIGAMES SDK & TEMPLATE LICENSE 1.0

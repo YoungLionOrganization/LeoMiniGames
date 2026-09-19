@@ -17,12 +17,15 @@ root = Path(sys.argv[1])
 out = Path(sys.argv[2])
 files = [
     "LICENSE",
-    "LICENSE_APPLICATION.md",
     "NOTICE",
     "COPYRIGHT",
     "LICENSING.md",
-    "licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt",
-    "licenses/YOUNGLION_MOD_LICENSE_1.0.txt",
+    "LICENSE_HISTORY.md",
+    "LICENSE_METADATA.json",
+    "licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt",
+    "licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt",
+    "docs/THIRD_PARTY_NOTICES.md",
+    "docs/QT_LGPL_COMPLIANCE.md",
 ]
 with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
     for rel in files:

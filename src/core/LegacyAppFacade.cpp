@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "LegacyAppFacade.h"
 #include "AppController.h"
 LegacyAppFacade::LegacyAppFacade(AppController *controller,QObject *parent):QObject(parent),m_controller(controller)

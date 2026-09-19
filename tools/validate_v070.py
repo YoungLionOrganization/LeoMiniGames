@@ -120,7 +120,7 @@ if len(list(i18n.glob('*.json')))>=20: ok('20+ host locale resources')
 else: warn('fewer than 20 host locale resources')
 
 # Required SDK/audit outputs.
-required_docs=['docs/sdk/OVERVIEW.md','docs/sdk/MANIFEST.md','docs/sdk/RESOURCES.md','docs/sdk/THEME_API.md','docs/sdk/I18N_API.md','docs/sdk/SAVE_API.md','docs/sdk/AUDIO_API.md','docs/sdk/INPUT_API.md','docs/sdk/LIFECYCLE_API.md','docs/sdk/DEVELOPER_MODE.md','docs/sdk/COMPATIBILITY.md','docs/sdk/MIGRATION_0.6_TO_0.7.md','COMPATIBILITY_REPORT.md','BUG_HUNTER_AUDIT.md','GAMER_AUDIT.md','F_DROID_READINESS.md','BUILD_MATRIX.md']
+required_docs=['docs/sdk/OVERVIEW.md','docs/sdk/MANIFEST.md','docs/sdk/RESOURCES.md','docs/sdk/THEME_API.md','docs/sdk/I18N_API.md','docs/sdk/SAVE_API.md','docs/sdk/AUDIO_API.md','docs/sdk/INPUT_API.md','docs/sdk/LIFECYCLE_API.md','docs/sdk/DEVELOPER_MODE.md','docs/sdk/COMPATIBILITY.md','docs/sdk/MIGRATION_0.6_TO_0.7.md','COMPATIBILITY_REPORT.md','BUG_HUNTER_AUDIT.md','GAMER_AUDIT.md','docs/F_DROID_TRANSITION.md','BUILD_MATRIX.md']
 for rel in required_docs:
     if (ROOT/rel).is_file(): ok(f'doc {rel}')
     else: err(f'missing required document {rel}')

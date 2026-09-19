@@ -15,11 +15,14 @@ New-Item $Stage -ItemType Directory -Force | Out-Null
 $Exe = Get-ChildItem $BuildDir -Filter LeoMiniGames.exe -Recurse | Select-Object -First 1
 if (-not $Exe) { throw 'LeoMiniGames.exe not found in build directory.' }
 Copy-Item $Exe.FullName $Stage
-$LegalFiles = @('LICENSE','LICENSE_APPLICATION.md','NOTICE','COPYRIGHT','LICENSING.md')
+$LegalFiles = @('LICENSE','NOTICE','COPYRIGHT','LICENSING.md','LICENSE_HISTORY.md','LICENSE_METADATA.json')
 foreach ($Legal in $LegalFiles) { Copy-Item (Join-Path $Root $Legal) $Stage }
 New-Item (Join-Path $Stage 'licenses') -ItemType Directory -Force | Out-Null
-Copy-Item (Join-Path $Root 'licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt') (Join-Path $Stage 'licenses')
-Copy-Item (Join-Path $Root 'licenses/YOUNGLION_MOD_LICENSE_1.0.txt') (Join-Path $Stage 'licenses')
+Copy-Item (Join-Path $Root 'licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt') (Join-Path $Stage 'licenses')
+Copy-Item (Join-Path $Root 'licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt') (Join-Path $Stage 'licenses')
+New-Item (Join-Path $Stage 'Legal') -ItemType Directory -Force | Out-Null
+Copy-Item (Join-Path $Root 'docs/THIRD_PARTY_NOTICES.md') (Join-Path $Stage 'Legal')
+Copy-Item (Join-Path $Root 'docs/QT_LGPL_COMPLIANCE.md') (Join-Path $Stage 'Legal')
 $Deploy = if ($QtBin) { Join-Path $QtBin 'windeployqt.exe' } else { (Get-Command windeployqt.exe -ErrorAction Stop).Source }
 & $Deploy --release --qmldir (Join-Path $Root 'qml') (Join-Path $Stage 'LeoMiniGames.exe')
 if ($LASTEXITCODE -ne 0) { throw "windeployqt failed: $LASTEXITCODE" }

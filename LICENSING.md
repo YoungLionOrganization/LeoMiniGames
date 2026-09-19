@@ -1,44 +1,81 @@
-# LeoMiniGames licensing application
+# LeoMiniGames Licensing Architecture
 
-The LeoMiniGames host application is licensed under **GNU GPL version 3 or, at
-your option, any later version (`GPL-3.0-or-later`)**.
+## 1. Host
 
-The repository deliberately separates the canonical GPL text from the
-project-specific application statement:
+LeoMiniGames host/core is source-available under:
 
-- `/LICENSE` — canonical GNU GPLv3 text, kept verbatim.
-- `/LICENSE_APPLICATION.md` — the actual LeoMiniGames program/copyright/license
-  application statement and distribution checklist.
-- `/COPYRIGHT` — project copyright holder/contributor notice.
-- `/NOTICE` — concise distribution notice and cross-references.
+`LicenseRef-LMG-SAPEL-1.0`
 
-The `<year>` and `<name of author>` text near the end of `/LICENSE` is part of
-GNU's own “How to Apply” example. It is not an unfinished LeoMiniGames field and
-must not be replaced inside the canonical GPL text.
+Canonical text: `/LICENSE`.
 
-## Plugin / Mod Exception
+It is not OSI Open Source and not Free Software.
 
-LeoMiniGames grants the separate GPLv3 section 7 permission in
-`/licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt` to packages that satisfy that
-document's definition of an Independent Package and use only designated public
-LeoMiniGames interfaces. The exception does not turn internal/private host APIs
-into a proprietary SDK and does not grant Official/Verified/Native/L3,
-trademark, signing, marketplace, or platform rights.
+The license permits inspection, private builds/modifications, contribution
+forks, normal use of Official Releases, and independent Publisher Packages via
+designated public interfaces. It prohibits unauthorized host redistribution,
+alternative builds, rebranded distributions, mirrors, and unofficial releases.
 
-## Package licensing
+## 2. SDK / Templates
 
-Eligible proprietary packages can separately select
-`LicenseRef-YoungLion-Mod-License-1.0`; the complete terms are in
-`/licenses/YOUNGLION_MOD_LICENSE_1.0.txt`.
+Only files explicitly carrying:
 
-Open-source packages should normally use standard SPDX licenses under
-`/docs/OPEN_SOURCE_LICENSE_POLICY.md`.
+`LicenseRef-YoungLion-LMG-SDK-1.0`
 
-Publisher distribution-service terms and trademark policy are separate from
-copyright licensing. See
-`/docs/YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md` and
-`/docs/TRADEMARK_POLICY.md`.
+receive the developer-oriented SDK grant.
 
-Official release packaging must carry the legal files listed by
-`/LICENSE_APPLICATION.md`; CI validation treats omission of those files as a
-distribution defect.
+Directory location alone is not enough.
+
+The SDK license permits Publisher developers to incorporate designated SDK
+material into their own compatible Packages.
+
+## 3. Publisher Packages
+
+A Publisher owns its own original Package material.
+
+Publishers may choose a recognized open-source license, their own legally valid
+license accepted by Platform policy, or:
+
+`LicenseRef-YoungLion-Publisher-Package-1.0`
+
+for eligible proprietary Packages.
+
+## 4. Publisher ↔ YoungLion
+
+Publishing through YoungLion/LeoMiniGames is not governed solely by copyright
+license metadata.
+
+The service relationship is governed by:
+
+`docs/YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md`
+
+Native/L3 requires:
+
+`docs/NATIVE_L3_PUBLISHER_ADDENDUM_1.0.md`
+
+## 5. Trust is not licensing
+
+Official, Verified, Native/L3, signing, review, and privileged capability state
+is backend-authoritative. A manifest cannot self-grant it.
+
+## 6. Third-party software
+
+Qt and other dependencies remain under their original terms.
+
+LeoMiniGames' source-available license must never be represented as restricting
+LGPL rights in Qt libraries.
+
+## 7. Historical GPL state
+
+Earlier public repository revisions contained GPL notices. The transition to
+the source-available license does not retroactively revoke rights already
+validly granted to recipients of earlier copies.
+
+See `LICENSE_HISTORY.md`.
+
+## 8. F-Droid
+
+The new host license is not FLOSS. Therefore current/future source-available
+LeoMiniGames versions are not eligible for the official F-Droid main repository.
+
+A YoungLion-controlled Android repository may be operated separately if desired,
+subject to all third-party licensing and package-signing requirements.

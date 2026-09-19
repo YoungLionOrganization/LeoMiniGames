@@ -1,26 +1,29 @@
 LeoMiniGames
 
-LeoMiniGames host code is free software licensed under GPL-3.0-or-later.
+LeoMiniGames is SOURCE-AVAILABLE software.
 
-The canonical GNU GPL version 3 text is /LICENSE and is intentionally kept
-verbatim. The `<year>` and `<name of author>` strings near the end of that
-document are part of GNU's own “How to Apply” example, not unfinished
-LeoMiniGames fields.
+Main host license:
+  LicenseRef-LMG-SAPEL-1.0
+  /LICENSE
 
-The actual project application statement is /LICENSE_APPLICATION.md.
-Project copyright information is /COPYRIGHT. The detailed licensing map is
-/LICENSING.md.
+This is not an OSI-approved open-source license and not a free-software license.
 
-Qualifying independently developed packages that interact with LeoMiniGames
-solely through designated public interfaces may use the separate GPLv3
-section 7 additional permission in
-/licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt.
+Designated developer SDK/template material may be governed by:
+  LicenseRef-YoungLion-LMG-SDK-1.0
+  /licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt
 
-Eligible proprietary packages may use
-LicenseRef-YoungLion-Mod-License-1.0 under
-/licenses/YOUNGLION_MOD_LICENSE_1.0.txt. Third-party packages otherwise retain
-their own licenses and obligations.
+Eligible proprietary Publisher Packages may choose:
+  LicenseRef-YoungLion-Publisher-Package-1.0
+  /licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt
 
-Publisher distribution-service terms are in
-/docs/YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md. YoungLion/LeoMiniGames names,
-logos and trust badges are governed separately; see /docs/TRADEMARK_POLICY.md.
+Publisher submission/distribution is governed separately by:
+  /docs/YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md
+
+Native/L3 publication additionally requires:
+  /docs/NATIVE_L3_PUBLISHER_ADDENDUM_1.0.md
+
+YoungLion/LeoMiniGames names, logos, badges, and trust marks are governed
+separately by /docs/TRADEMARK_POLICY.md.
+
+Third-party components retain their own licenses. In particular, Qt and other
+LGPL components are not relicensed by the LeoMiniGames license.

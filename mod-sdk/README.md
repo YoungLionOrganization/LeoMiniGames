@@ -12,6 +12,8 @@ Do not import the private `LeoMiniGames` QML module. Use QtQuick/QtQuick.Control
 
 ## Licensing
 
-Package licensing is independent from developer trust/capability. See `../docs/DEVELOPER_LICENSING.md` before choosing an open-source or proprietary package license. Eligible proprietary packages may use `LicenseRef-YoungLion-Mod-License-1.0`; the adopted text is `../licenses/YOUNGLION_MOD_LICENSE_1.0.txt`. Qualifying independent packages using only designated public interfaces may rely on the separate GPLv3 section 7 permission in `../licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt` subject to its exact conditions.
+Package licensing is separate from developer trust/capability. The LeoMiniGames host/core is source-available under `LicenseRef-LMG-SAPEL-1.0`; this does not automatically license independent Publisher Package code.
 
-SDK example packages are MIT-licensed so developers may copy/adapt the example code into packages under compatible or proprietary terms. This does not change the GPL license of the LeoMiniGames host. Native/L3 proprietary interoperability is permitted only when the package satisfies the adopted Exception and uses the expressly designated public ABI; private/internal coupling remains outside that permission.
+Files explicitly carrying `LicenseRef-YoungLion-LMG-SDK-1.0` may be used under the dedicated SDK terms in `../licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt`. Eligible proprietary Publisher Packages may use `LicenseRef-YoungLion-Publisher-Package-1.0` (`../licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt`) or another package license accepted by Platform policy.
+
+Publishing through YoungLion is governed separately by `../docs/YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md`. Native/L3 access additionally requires `../docs/NATIVE_L3_PUBLISHER_ADDENDUM_1.0.md`; a manifest or copyright license cannot self-grant Official/Verified/Native status.

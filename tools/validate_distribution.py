@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 from pathlib import Path
+import json
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -259,32 +260,32 @@ package_files = [
 for rel in package_files: require(rel)
 
 linux_pack = read('tools/package/package_linux.sh')
-if all(x in linux_pack for x in ['linuxdeploy','AppRun','LMG_PLATFORM_SUFFIX','NOTICE','COPYRIGHT','LICENSE_APPLICATION.md']):
+if all(x in linux_pack for x in ['linuxdeploy','AppRun','LMG_PLATFORM_SUFFIX','NOTICE','COPYRIGHT','LICENSE_HISTORY.md','LICENSE_METADATA.json','YOUNGLION_LMG_SDK_LICENSE_1.0.txt','YOUNGLION_PACKAGE_LICENSE_1.0.txt']):
     ok('Linux packaging is deployed, architecture-aware, and carries legal notices')
 else: err('Linux portable packaging contract incomplete')
 
 native_pack = read('tools/package/package_linux_native.sh')
-if all(x in native_pack for x in ['LMG_PLATFORM_SUFFIX','NOTICE','COPYRIGHT','LICENSE_APPLICATION.md']):
+if all(x in native_pack for x in ['LMG_PLATFORM_SUFFIX','NOTICE','COPYRIGHT','LICENSE_HISTORY.md','LICENSE_METADATA.json','YOUNGLION_LMG_SDK_LICENSE_1.0.txt','YOUNGLION_PACKAGE_LICENSE_1.0.txt']):
     ok('Linux native packaging carries legal notices')
 else: err('Linux native packaging contract incomplete')
 
 win_pack = read('tools/package/package_windows.ps1')
-if all(x in win_pack for x in ['windeployqt','binarycreator','LMG_PLATFORM_SUFFIX','NOTICE','COPYRIGHT','LICENSE_APPLICATION.md']):
+if all(x in win_pack for x in ['windeployqt','binarycreator','LMG_PLATFORM_SUFFIX','NOTICE','COPYRIGHT','LICENSE_HISTORY.md','LICENSE_METADATA.json','YOUNGLION_LMG_SDK_LICENSE_1.0.txt','YOUNGLION_PACKAGE_LICENSE_1.0.txt']):
     ok('Windows portable/installer packaging is architecture-aware and carries legal notices')
 else: err('Windows deployment/installer tooling incomplete')
 
 mac_pack = read('tools/package/package_macos.sh')
-if all(x in mac_pack for x in ['macdeployqt','LMG_PLATFORM_SUFFIX','NOTICE','COPYRIGHT','LICENSE_APPLICATION.md']):
+if all(x in mac_pack for x in ['macdeployqt','LMG_PLATFORM_SUFFIX','NOTICE','COPYRIGHT','LICENSE_HISTORY.md','LICENSE_METADATA.json','YOUNGLION_LMG_SDK_LICENSE_1.0.txt','YOUNGLION_PACKAGE_LICENSE_1.0.txt','for attempt in 1 2 3']):
     ok('macOS packaging carries legal notices')
 else: err('macOS packaging contract incomplete')
 
 android_pack = read('tools/package/package_android.sh')
-if all(x in android_pack for x in ['LMG_ANDROID_ABI','LMG_BUILD_AAB','Android-Legal.zip','LICENSE_APPLICATION.md']):
+if all(x in android_pack for x in ['LMG_ANDROID_ABI','LMG_BUILD_AAB','Android-Legal.zip','LICENSE_HISTORY.md','LICENSE_METADATA.json','YOUNGLION_LMG_SDK_LICENSE_1.0.txt','YOUNGLION_PACKAGE_LICENSE_1.0.txt']):
     ok('Android packaging is ABI-aware and emits legal sidecar')
 else: err('Android packaging contract incomplete')
 
 ios_pack = read('tools/package/package_ios.sh')
-if all(x in ios_pack for x in ['LMG_PLATFORM_SUFFIX','LMG_APPLE_PLATFORM','LMG_APPLE_SDK','LICENSE_APPLICATION.md']):
+if all(x in ios_pack for x in ['LMG_PLATFORM_SUFFIX','LMG_APPLE_PLATFORM','LMG_APPLE_SDK','LICENSE_HISTORY.md','LICENSE_METADATA.json','YOUNGLION_LMG_SDK_LICENSE_1.0.txt','YOUNGLION_PACKAGE_LICENSE_1.0.txt']):
     ok('Apple mobile packaging is platform/SDK-aware and carries legal notices')
 else: err('Apple mobile packaging contract incomplete')
 
@@ -301,65 +302,111 @@ else:
 
 # Licensing -----------------------------------------------------------------
 license_required = [
-    'LICENSE','LICENSE_APPLICATION.md','NOTICE','COPYRIGHT',
-    'licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt',
-    'licenses/YOUNGLION_MOD_LICENSE_1.0.txt',
-    'licenses/README.md',
-    'docs/OPEN_SOURCE_LICENSE_POLICY.md',
-    'docs/TRADEMARK_POLICY.md',
+    'LICENSE','NOTICE','COPYRIGHT','LICENSING.md','CONTRIBUTING.md',
+    'LICENSE_HISTORY.md','CONTRIBUTOR_LICENSE_AGREEMENT.md','LICENSE_METADATA.json',
+    'MIGRATION_FROM_GPL.md','LEGAL_CHANGELOG.md',
+    'licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt',
+    'licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt','licenses/README.md',
+    'docs/F_DROID_TRANSITION.md','docs/QT_LGPL_COMPLIANCE.md',
+    'docs/THIRD_PARTY_NOTICES.md','docs/TRADEMARK_POLICY.md',
     'docs/YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md',
-    'docs/LICENSING_ANALYSIS_REPORT.md',
-    'docs/LICENSING_IMPLEMENTATION_GUIDE.md',
+    'docs/NATIVE_L3_PUBLISHER_ADDENDUM_1.0.md',
+    'docs/PUBLISHER_ACCEPTANCE_EVIDENCE.md',
 ]
 for rel in license_required: require(rel)
+
 lic = read('LICENSE')
-if 'GNU GENERAL PUBLIC LICENSE' in lic and 'Version 3, 29 June 2007' in lic and 'LEOMINIGAMES_PLUGIN_EXCEPTION' not in lic:
-    ok('Canonical GPLv3 LICENSE remains unmodified by project-specific exception text')
+for token in ['LEOMINIGAMES SOURCE-AVAILABLE PUBLISHER ECOSYSTEM LICENSE',
+              'LicenseRef-LMG-SAPEL-1.0','SOURCE-AVAILABLE','NO REDISTRIBUTION']:
+    (ok if token in lic else err)(f'Current host license semantic {token}')
+if 'GNU GENERAL PUBLIC LICENSE' in lic:
+    err('Root LICENSE still presents GNU GPL as the current host license')
 else:
-    err('Root LICENSE no longer looks like an unmodified canonical GPLv3 text')
+    ok('Root LICENSE no longer presents GPL as the current host license')
 
-application = read('LICENSE_APPLICATION.md')
-for token in ['LeoMiniGames','Copyright (c) 2026 Cavanşir Qurbanzadə',
-              'GPL-3.0-or-later','LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt']:
-    (ok if token in application else err)(f'LICENSE_APPLICATION semantic {token}')
+try:
+    metadata = json.loads(read('LICENSE_METADATA.json'))
+    current = metadata.get('current_host_license', {})
+    if current.get('id') == 'LicenseRef-LMG-SAPEL-1.0' and current.get('osi_open_source') is False and current.get('free_software') is False:
+        ok('License metadata identifies the source-available host correctly')
+    else:
+        err('License metadata current-host contract mismatch')
+except Exception as ex:
+    err(f'LICENSE_METADATA.json invalid: {ex}')
 
-notice = read('NOTICE')
-for token in ['GPL-3.0-or-later','LICENSE_APPLICATION.md',
-              'LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt',
-              'LicenseRef-YoungLion-Mod-License-1.0','TRADEMARK_POLICY.md']:
-    (ok if token in notice else err)(f'NOTICE licensing semantic {token}')
+licensing = read('LICENSING.md')
+for token in ['LicenseRef-LMG-SAPEL-1.0','LicenseRef-YoungLion-LMG-SDK-1.0',
+              'LicenseRef-YoungLion-Publisher-Package-1.0','not OSI Open Source']:
+    (ok if token in licensing else err)(f'LICENSING architecture semantic {token}')
 
-copyright_text = read('COPYRIGHT')
-for token in ['Copyright (c) 2026 Cavanşir Qurbanzadə','respective contributors']:
-    (ok if token in copyright_text else err)(f'COPYRIGHT semantic {token}')
-
-plugin_exception = read('licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt')
-if ('GNU GPLv3' in plugin_exception or 'GNU GPL version 3' in plugin_exception) and ('Section 7' in plugin_exception or 'section 7' in plugin_exception):
-    ok('Plugin/Mod Exception is expressed as GPLv3 section 7 additional permission')
+if read('src/sdk/IGamePlugin.h').startswith('// SPDX-License-Identifier: LicenseRef-YoungLion-LMG-SDK-1.0'):
+    ok('IGamePlugin.h uses the designated SDK license')
 else:
-    err('Plugin/Mod Exception section-7 framing missing')
-
-if read('src/sdk/IGamePlugin.h').startswith('// SPDX-License-Identifier: MIT OR GPL-3.0-or-later'):
-    ok('Public SDK header has intended permissive-or-GPL SPDX expression')
+    err('IGamePlugin.h SDK SPDX policy mismatch')
+if read('src/sdk/GameLocalStats.h').startswith('// SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0'):
+    ok('GameLocalStats.h remains host-licensed')
 else:
-    err('IGamePlugin.h SPDX policy mismatch')
+    err('GameLocalStats.h host SPDX policy mismatch')
 
-# F-Droid -------------------------------------------------------------------
-fd = require('fdroid/metadata/xyz.younglion.leominigames.yml.example')
-if fd.is_file():
-    data = fd.read_text(encoding='utf-8')
-    checks = {
-        'version 0.7.0/700': 'versionName: 0.7.0' in data and 'versionCode: 700' in data,
-        'canonical SourceCode URL': 'SourceCode: https://github.com/YoungLionOrganization/LeoMiniGames' in data,
-        'canonical Git URL': 'Repo: https://github.com/YoungLionOrganization/LeoMiniGames.git' in data,
-        'canonical issue tracker': 'IssueTracker: https://github.com/YoungLionOrganization/LeoMiniGames/issues' in data,
-        'exact SHA placeholder only': 'FULL_COMMIT_SHA' in data and 'REPO_URL' not in data,
-        'Qt source srclib precedent': 'Qt5@v6.10.1' in data,
-        'NDK r27c': 'ndk: 27.2.12479018' in data,
-    }
-    for label, val in checks.items(): (ok if val else err)(f'F-Droid {label}')
+for base in [ROOT/'src', ROOT/'plugins/builtin', ROOT/'qml']:
+    for p in base.rglob('*'):
+        if not p.is_file() or p.suffix not in {'.cpp','.h','.qml'}:
+            continue
+        rel = p.relative_to(ROOT).as_posix()
+        expected = ('SPDX-License-Identifier: LicenseRef-YoungLion-LMG-SDK-1.0'
+                    if rel == 'src/sdk/IGamePlugin.h'
+                    else 'SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0')
+        head = '\n'.join(p.read_text(encoding='utf-8').splitlines()[:3])
+        if expected not in head:
+            err(f'Current SPDX mismatch: {rel}')
+if not any(x.startswith('Current SPDX mismatch:') for x in ERR):
+    ok('Host and explicit SDK source headers match the new license map')
 
-require('tools/prepare_fdroid_metadata.py')
+obsolete = [
+    'LICENSE_APPLICATION.md','F_DROID_READINESS.md','fdroid','docs/FDROID.md',
+    'docs/DEVELOPER_LICENSING.md','docs/LICENSING_ANALYSIS_REPORT.md',
+    'docs/LICENSING_IMPLEMENTATION_GUIDE.md','docs/OPEN_SOURCE_LICENSE_POLICY.md',
+    'licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt','licenses/LEOMINIGAMES_PLUGIN_EXCEPTION_DRAFT.txt',
+    'licenses/YOUNGLION_MOD_LICENSE.txt','licenses/YOUNGLION_MOD_LICENSE_1.0.txt',
+    'tools/fdroid_clean_build.sh','tools/prepare_fdroid_metadata.py',
+    'installer/packages/xyz.younglion.leominigames/meta/PLUGIN_EXCEPTION.txt',
+]
+for rel in obsolete:
+    if (ROOT/rel).exists(): err(f'Obsolete licensing/F-Droid artifact remains: {rel}')
+else:
+    pass
+if not any(x.startswith('Obsolete licensing/F-Droid artifact remains:') for x in ERR):
+    ok('Obsolete current-license and F-Droid submission artifacts are removed')
+
+cmake_license = read('CMakeLists.txt')
+if 'LEOMINIGAMES_PRIVACY_BUILD' in cmake_license and 'LEOMINIGAMES_FDROID' not in cmake_license and 'LMG_FDROID_BUILD' not in cmake_license:
+    ok('Tracker-free build is neutrally named as a privacy build')
+else:
+    err('Privacy build naming migration incomplete')
+require('tools/privacy_clean_build.sh')
+
+for rel in package_files:
+    ptext = read(rel)
+    for token in ['YOUNGLION_LMG_SDK_LICENSE_1.0.txt','YOUNGLION_PACKAGE_LICENSE_1.0.txt']:
+        if token not in ptext: err(f'{rel} missing new legal payload {token}')
+    for stale in ['LEOMINIGAMES_PLUGIN_EXCEPTION','YOUNGLION_MOD_LICENSE','LICENSE_APPLICATION.md']:
+        if stale in ptext: err(f'{rel} still packages obsolete legal payload {stale}')
+
+installer_pkg = read('installer/packages/xyz.younglion.leominigames/meta/package.xml')
+if 'LeoMiniGames Source-Available Publisher Ecosystem License 1.0' in installer_pkg and 'GNU GPL' not in installer_pkg and 'PLUGIN_EXCEPTION' not in installer_pkg:
+    ok('QtIFW presents only the current host license')
+else:
+    err('QtIFW current license presentation mismatch')
+
+readme = read('README.md')
+if 'LicenseRef-LMG-SAPEL-1.0' in readme and 'OSI Open Source' in readme and 'official F-Droid main' in readme:
+    ok('README communicates current source-available/F-Droid status')
+else:
+    err('README licensing/distribution status is incomplete')
+
+# F-Droid submission metadata is intentionally removed, while Android store metadata remains.
+if (ROOT/'fdroid').exists(): err('fdroid submission directory must not exist for source-available editions')
+else: ok('Official F-Droid submission scaffold is absent')
 for rel in [
     'fastlane/metadata/android/en-US/title.txt',
     'fastlane/metadata/android/en-US/short_description.txt',
@@ -368,21 +415,32 @@ for rel in [
     'fastlane/metadata/android/en-US/images/icon.png'
 ]:
     require(rel)
-
 for short in sorted((ROOT/'fastlane/metadata/android').glob('*/short_description.txt')):
     value = short.read_text(encoding='utf-8').strip()
     if not value or len(value) >= 80 or value.endswith(('.', '。')):
         err(f'{short.relative_to(ROOT)} short description contract')
     else: ok(f'{short.relative_to(ROOT)} short-description contract')
 
-ss = ROOT/'fastlane/metadata/android/en-US/images/phoneScreenshots'
-if not ss.exists() or not any(ss.glob('*')): warn('No real upstream F-Droid screenshots yet; intentionally not faked')
-else: ok('Upstream F-Droid screenshots present')
-
-for rel in ['README.md','RELEASES.md','F_DROID_READINESS.md','fdroid/README.md']:
+# Qt 6.5-6.9 source compatibility: QSortFilterProxyModel directional APIs arrived later.
+for rel in ['src/core/ModFilterProxyModel.cpp','src/core/ThemeFilterProxyModel.cpp']:
     text = read(rel)
-    if 'canonical public repository' in text and 'unknown' in text.lower(): err(f'{rel} has stale repository wording')
-    else: ok(f'{rel} F-Droid repository status not stale')
+    for token in ['QT_VERSION_CHECK(6, 10, 0)','invalidateRowsFilter()',
+                  'endFilterChange()']:
+        (ok if token in text else err)(f'{rel} Qt compatibility semantic {token}')
+
+# Packaging regressions observed on real runners.
+if 'libgstreamer-plugins-good1.0-0 libgstreamer-plugins-bad1.0-0' in arts:
+    ok('Artifact workflow installs complete GStreamer good+bad runtime set for Qt Multimedia deployment')
+else:
+    err('Artifact workflow GStreamer packaging runtime set incomplete')
+if all(x in read('tools/package/package_macos.sh') for x in ['for attempt in 1 2 3','hdiutil detach','TMP_DMG_DIR','[[ -s "$DMG" ]]']):
+    ok('macOS DMG packaging has stale-volume cleanup and bounded retry')
+else:
+    err('macOS DMG retry/cleanup contract incomplete')
+
+for rel in ['LeoMiniGames.zip','DELETE_FROM_REPOSITORY.txt']:
+    if (ROOT/rel).exists(): err(f'stale delivery artifact bundled in source tree: {rel}')
+if not any((ROOT/r).exists() for r in ['LeoMiniGames.zip','DELETE_FROM_REPOSITORY.txt']): ok('stale nested delivery artifacts excluded')
 
 for rel in ['backend_ref','admin_ref','account_ref']:
     if (ROOT/rel).exists(): err(f'reference-only site tree bundled: {rel}')
