@@ -362,7 +362,7 @@ for base in [ROOT/'src', ROOT/'plugins/builtin', ROOT/'qml']:
 if not any(x.startswith('Current SPDX mismatch:') for x in ERR):
     ok('Host and explicit SDK source headers match the new license map')
 
-obsolete = [
+legacy_paths = [
     'LICENSE_APPLICATION.md','F_DROID_READINESS.md','fdroid','docs/FDROID.md',
     'docs/DEVELOPER_LICENSING.md','docs/LICENSING_ANALYSIS_REPORT.md',
     'docs/LICENSING_IMPLEMENTATION_GUIDE.md','docs/OPEN_SOURCE_LICENSE_POLICY.md',
@@ -371,12 +371,30 @@ obsolete = [
     'tools/fdroid_clean_build.sh','tools/prepare_fdroid_metadata.py',
     'installer/packages/xyz.younglion.leominigames/meta/PLUGIN_EXCEPTION.txt',
 ]
-for rel in obsolete:
-    if (ROOT/rel).exists(): err(f'Obsolete licensing/F-Droid artifact remains: {rel}')
-else:
-    pass
-if not any(x.startswith('Obsolete licensing/F-Droid artifact remains:') for x in ERR):
-    ok('Obsolete current-license and F-Droid submission artifacts are removed')
+LEGACY_TOMBSTONE = 'LMG_LEGACY_TOMBSTONE'
+
+def legacy_path_safe(rel):
+    p = ROOT / rel
+    if not p.exists():
+        return True
+    candidates = sorted(p.rglob('*')) if p.is_dir() else [p]
+    files = [x for x in candidates if x.is_file()]
+    if not files:
+        return False
+    for item in files:
+        try:
+            body = item.read_text(encoding='utf-8')
+        except (UnicodeDecodeError, OSError):
+            return False
+        if LEGACY_TOMBSTONE not in body:
+            return False
+    return True
+
+for rel in legacy_paths:
+    if legacy_path_safe(rel):
+        ok(f'Legacy path absent or safely tombstoned: {rel}')
+    else:
+        err(f'Legacy path still contains active/conflicting content: {rel}')
 
 cmake_license = read('CMakeLists.txt')
 if 'LEOMINIGAMES_PRIVACY_BUILD' in cmake_license and 'LEOMINIGAMES_FDROID' not in cmake_license and 'LMG_FDROID_BUILD' not in cmake_license:
@@ -404,9 +422,11 @@ if 'LicenseRef-LMG-SAPEL-1.0' in readme and 'OSI Open Source' in readme and 'off
 else:
     err('README licensing/distribution status is incomplete')
 
-# F-Droid submission metadata is intentionally removed, while Android store metadata remains.
-if (ROOT/'fdroid').exists(): err('fdroid submission directory must not exist for source-available editions')
-else: ok('Official F-Droid submission scaffold is absent')
+# F-Droid submission metadata must be absent or neutralized by migration tombstones.
+if legacy_path_safe('fdroid'):
+    ok('Official F-Droid submission scaffold is absent or safely disabled')
+else:
+    err('Active F-Droid submission metadata remains in source-available edition')
 for rel in [
     'fastlane/metadata/android/en-US/title.txt',
     'fastlane/metadata/android/en-US/short_description.txt',
@@ -438,9 +458,14 @@ if all(x in read('tools/package/package_macos.sh') for x in ['for attempt in 1 2
 else:
     err('macOS DMG retry/cleanup contract incomplete')
 
-for rel in ['LeoMiniGames.zip','DELETE_FROM_REPOSITORY.txt']:
-    if (ROOT/rel).exists(): err(f'stale delivery artifact bundled in source tree: {rel}')
-if not any((ROOT/r).exists() for r in ['LeoMiniGames.zip','DELETE_FROM_REPOSITORY.txt']): ok('stale nested delivery artifacts excluded')
+if (ROOT/'LeoMiniGames.zip').exists():
+    err('stale delivery artifact bundled in source tree: LeoMiniGames.zip')
+else:
+    ok('stale nested LeoMiniGames.zip delivery artifact excluded')
+if legacy_path_safe('DELETE_FROM_REPOSITORY.txt'):
+    ok('legacy migration marker absent or safely tombstoned')
+else:
+    err('DELETE_FROM_REPOSITORY.txt contains stale active migration instructions')
 
 for rel in ['backend_ref','admin_ref','account_ref']:
     if (ROOT/rel).exists(): err(f'reference-only site tree bundled: {rel}')

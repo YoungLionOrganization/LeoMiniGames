@@ -1,5 +1,10 @@
-# F-Droid packaging
+# Disabled legacy F-Droid submission directory
 
-See [`../F_DROID_READINESS.md`](../F_DROID_READINESS.md) for the authoritative status.
+LMG_LEGACY_TOMBSTONE
 
-The metadata scaffold already contains the real YoungLionOrganization repository URLs and v0.7.0/700 identifiers. Only `FULL_COMMIT_SHA` is intentionally unresolved until the final submission commit exists. The final fdroiddata recipe must build Qt from source (the current fdroiddata precedent is the `Qt5@v6.10.1` srclib used for Qt 6 projects), then call `tools/fdroid_clean_build.sh`. Do not commit/download an opaque Qt Online Installer SDK to make the recipe pass.
+This legacy path is retained only to make archive-overwrite migrations safe.
+It is **not** a current license, distribution grant, F-Droid submission recipe, or developer policy.
+
+Current authoritative material: `docs/F_DROID_TRANSITION.md`.
+
+Do not rely on historical text formerly stored at this path for current LeoMiniGames releases.

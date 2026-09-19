@@ -15,7 +15,7 @@ EXCLUDE_TOP={'deployment'}  # backend/server material is intentionally maintaine
 validators=[
     'tools/source_guard.py','tools/validate_project.py','tools/sanity_check.py',
     'tools/security_audit.py','tools/validate_i18n.py','tools/validate_distribution.py',
-    'tools/audit_prebuilt_binaries.py','tools/validate_v070.py'
+    'tools/audit_prebuilt_binaries.py','tools/validate_v060.py','tools/validate_v070.py'
 ]
 for rel in validators:
     cp=subprocess.run([sys.executable,str(ROOT/rel)],cwd=ROOT)

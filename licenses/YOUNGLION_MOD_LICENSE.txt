@@ -1,11 +1,10 @@
-DEPRECATED COMPATIBILITY POINTER
+# Legacy YoungLion mod license path
 
-Do not use this unversioned file as the license text.
+LMG_LEGACY_TOMBSTONE
 
-Canonical versioned terms:
-    YOUNGLION_MOD_LICENSE_1.0.txt
+This legacy path is retained only to make archive-overwrite migrations safe.
+It is **not** a current license, distribution grant, F-Droid submission recipe, or developer policy.
 
-SPDX-style identifier used by eligible packages:
-    LicenseRef-YoungLion-Mod-License-1.0
+Current authoritative material: `licenses/README.md`.
 
-This pointer is retained for backward-compatible documentation/tooling only.
+Do not rely on historical text formerly stored at this path for current LeoMiniGames releases.

@@ -4,7 +4,7 @@ Baseline: GitHub `main` commit `7537efcc40750555121edf607d5fc862a9b50bc4`, match
 
 ## Licensing
 
-Applied `LeoMiniGames_Source_Available_Licensing_v1` as the current licensing architecture. The host/core now uses `LicenseRef-LMG-SAPEL-1.0`; `IGamePlugin.h` uses the designated SDK license; the Publisher Package license and Publisher/Native-L3 terms are installed. Obsolete current GPL/plugin-exception/F-Droid submission artifacts were removed from the current tree, while historical grants remain documented by `LICENSE_HISTORY.md` and `MIGRATION_FROM_GPL.md`.
+Applied `LeoMiniGames_Source_Available_Licensing_v1` as the current licensing architecture. The host/core now uses `LicenseRef-LMG-SAPEL-1.0`; `IGamePlugin.h` uses the designated SDK license; the Publisher Package license and Publisher/Native-L3 terms are installed. Obsolete current GPL/plugin-exception/F-Droid submission material is neutralized. Legacy paths that may remain tracked after an archive-overwrite migration are replaced with explicit `LMG_LEGACY_TOMBSTONE` redirect stubs, so they cannot continue presenting the old terms as current. Historical grants remain documented by `LICENSE_HISTORY.md` and `MIGRATION_FROM_GPL.md`.
 
 Qt and third-party rights remain separate. The repository now carries `docs/QT_LGPL_COMPLIANCE.md` and `docs/THIRD_PARTY_NOTICES.md`.
 
@@ -17,3 +17,9 @@ Qt and third-party rights remain separate. The repository now carries `docs/QT_L
 ## Verification scope
 
 Repository validators, YAML parsing, Python compilation and shell syntax were run after this migration and passed. Controlled packaging smoke tests also exercised the Linux legal staging, Android legal sidecar, iOS packaging path and macOS three-attempt DMG retry. GitHub-hosted post-fix CI could not be started because the connected integration still receives `403 Resource not accessible by integration` on repository writes. Physical-device QA remains separate.
+
+## Overlay-migration regression found after the first delivery
+
+GitHub CI run `35465901365` and artifact run `35465945026` did not show widespread platform build failures. Their static validation job failed first, and every matrix job depending on it was skipped. The reason was archive overlay semantics: copying the prior ZIP over an existing Git checkout added/replaced files but did not delete 17 previously tracked GPL/F-Droid paths.
+
+This revision makes that migration idempotent: all known legacy tracked paths are present as non-authoritative tombstone/redirect stubs, `validate_distribution.py` accepts only absent-or-tombstoned legacy paths, and active legacy/F-Droid content still fails validation. `APPLY_TO_EXISTING_REPO.ps1` and `.sh` are included for safer application to an existing checkout.

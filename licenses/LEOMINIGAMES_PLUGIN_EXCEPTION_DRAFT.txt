@@ -1,10 +1,10 @@
-DEPRECATED COMPATIBILITY POINTER
+# Legacy plugin exception draft path
 
-This draft filename is not the adopted LeoMiniGames Plugin/Mod Exception and
-must not be used as license terms.
+LMG_LEGACY_TOMBSTONE
 
-Canonical adopted terms:
-    LEOMINIGAMES_PLUGIN_EXCEPTION_1.0.txt
+This legacy path is retained only to make archive-overwrite migrations safe.
+It is **not** a current license, distribution grant, F-Droid submission recipe, or developer policy.
 
-This file is retained only so old documentation or tooling that references the
-historic draft name fails safely toward the versioned canonical document.
+Current authoritative material: `licenses/README.md`.
+
+Do not rely on historical text formerly stored at this path for current LeoMiniGames releases.

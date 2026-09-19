@@ -1,17 +1,2 @@
-Categories:
-  - Games
-License: GPL-3.0-or-later
-# SourceCode and IssueTracker must be filled with the canonical public repository
-# when the project is published. They are intentionally omitted here.
-AutoName: LeoMiniGames
-
-Builds:
-  - versionName: 0.6.0
-    versionCode: 600
-    commit: v0.6.0
-    subdir: .
-    cmake:
-      - -DLEOMINIGAMES_FDROID=ON
-
-AutoUpdateMode: None
-UpdateCheckMode: Tags
+# LMG_LEGACY_TOMBSTONE
+# Disabled legacy F-Droid recipe. See docs/F_DROID_TRANSITION.md.
