@@ -72,8 +72,9 @@ if ci:
 
     distro = job(ci, 'linux-distro')
     distro_labels = matrix_values(distro, 'label')
-    for label in {'Debian-13-x86_64','Debian-13-arm64','Arch-x86_64','Arch-arm64'}:
+    for label in {'Debian-13-x86_64','Debian-13-arm64','Arch-x86_64'}:
         (ok if label in distro_labels else err)(f'CI Linux distro target {label}')
+    (err if 'Arch-arm64' in distro_labels else ok)('CI does not claim unsupported official Arch ARM64 container')
 
     macos = job(ci, 'macos')
     for label in {'arm64','x86_64','universal'}:
@@ -87,10 +88,12 @@ if ci:
     apple = job(ci, 'apple-mobile')
     apple_labels = matrix_values(apple, 'label')
     for label in {
-        'iOS-device-arm64','iOS-simulator-arm64','iOS-simulator-x86_64',
-        'iPadOS-device-arm64','iPadOS-simulator-arm64','iPadOS-simulator-x86_64'
+        'iOS-device-arm64','iOS-simulator-x86_64',
+        'iPadOS-device-arm64','iPadOS-simulator-x86_64'
     }:
         (ok if label in apple_labels else err)(f'CI Apple-mobile target {label}')
+    for unsupported in {'iOS-simulator-arm64','iPadOS-simulator-arm64'}:
+        (err if unsupported in apple_labels else ok)(f'CI omits unsupported Qt online-kit target {unsupported}')
 
     required_semantics = [
         'win64_msvc2022_64','win64_llvm_mingw','win64_msvc2022_arm64',
@@ -100,6 +103,7 @@ if ci:
         'for qt_arch in android_arm64_v8a android_armv7 android_x86_64 android_x86',
         '--autodesktop','iPadOS-device-arm64','target: ios','arch: ios',
         'actions/setup-java@v5','bash "$QT_ROOT_DIR/bin/qt-cmake"',
+        'qt6-declarative-private-dev',
     ]
     for token in required_semantics:
         (ok if token in cis else err)(f'CI semantic {token}')
@@ -137,8 +141,9 @@ if art:
         (ok if label in matrix_values(linux, 'label') else err)(f'Artifact Linux portable target {label}')
 
     native = job(art, 'linux-native')
-    for label in {'Debian-13-x86_64','Debian-13-arm64','Arch-x86_64','Arch-arm64'}:
+    for label in {'Debian-13-x86_64','Debian-13-arm64','Arch-x86_64'}:
         (ok if label in matrix_values(native, 'label') else err)(f'Artifact Linux native target {label}')
+    (err if 'Arch-arm64' in matrix_values(native, 'label') else ok)('Artifact workflow does not claim unsupported official Arch ARM64 container')
 
     macos = job(art, 'macos')
     for label in {'arm64','x86_64','universal'}:
@@ -150,10 +155,12 @@ if art:
 
     apple = job(art, 'apple-mobile')
     for label in {
-        'iOS-device-arm64','iOS-simulator-arm64','iOS-simulator-x86_64',
-        'iPadOS-device-arm64','iPadOS-simulator-arm64','iPadOS-simulator-x86_64'
+        'iOS-device-arm64','iOS-simulator-x86_64',
+        'iPadOS-device-arm64','iPadOS-simulator-x86_64'
     }:
         (ok if label in matrix_values(apple, 'label') else err)(f'Artifact Apple-mobile target {label}')
+    for unsupported in {'iOS-simulator-arm64','iPadOS-simulator-arm64'}:
+        (err if unsupported in matrix_values(apple, 'label') else ok)(f'Artifact workflow omits unsupported Qt online-kit target {unsupported}')
 
     for token in [
         'package_windows.ps1','package_linux.sh','package_linux_native.sh',
@@ -170,6 +177,7 @@ if art:
         'bash tools/package/package_macos.sh build',
         'bash tools/package/package_android.sh build-android',
         'bash tools/package/package_ios.sh build-apple',
+        'qt6-declarative-private-dev','libgstreamer-plugins-bad1.0-0',
     ]:
         (ok if token in arts else err)(f'Artifact semantic {token}')
 
@@ -205,6 +213,10 @@ try:
         ok('QtIFW application component cannot degrade to maintainer-only install')
     else:
         err('QtIFW application component selection contract incomplete')
+    if pkg.find('Default') is None or pkg.find('Checkable') is None:
+        ok('QtIFW package avoids mutually-exclusive Default + Checkable metadata')
+    else:
+        err('QtIFW package must not contain both Default and Checkable')
     expected = {
         'InstallerApplicationIcon':'leominigames_installer',
         'InstallerWindowIcon':'installer_window_icon.png',

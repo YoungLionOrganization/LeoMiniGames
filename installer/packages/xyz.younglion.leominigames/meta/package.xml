@@ -5,7 +5,6 @@
     <Version>0.7.0</Version>
     <ReleaseDate>2026-09-10</ReleaseDate>
     <Name>xyz.younglion.leominigames</Name>
-    <Default>true</Default>
     <ForcedInstallation>true</ForcedInstallation>
     <Essential>true</Essential>
     <Checkable>false</Checkable>

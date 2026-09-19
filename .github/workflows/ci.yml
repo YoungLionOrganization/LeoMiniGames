@@ -95,10 +95,6 @@ jobs:
             image: archlinux:latest
             distro: arch
             label: Arch-x86_64
-          - runner: ubuntu-24.04-arm
-            image: archlinux:latest
-            distro: arch
-            label: Arch-arm64
     runs-on: ${{ matrix.runner }}
     container:
       image: ${{ matrix.image }}
@@ -110,7 +106,7 @@ jobs:
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             ca-certificates git python3 build-essential cmake ninja-build pkg-config \
-            libgl-dev qt6-base-dev qt6-declarative-dev qt6-svg-dev qt6-multimedia-dev
+            libgl-dev qt6-base-dev qt6-declarative-dev qt6-declarative-private-dev qt6-svg-dev qt6-multimedia-dev
       - name: Install Arch build dependencies
         if: matrix.distro == 'arch'
         shell: bash
@@ -316,11 +312,6 @@ jobs:
             sdk: iphoneos
             arch: arm64
             family: "1"
-          - label: iOS-simulator-arm64
-            runner: macos-15
-            sdk: iphonesimulator
-            arch: arm64
-            family: "1"
           - label: iOS-simulator-x86_64
             runner: macos-15-intel
             sdk: iphonesimulator
@@ -329,11 +320,6 @@ jobs:
           - label: iPadOS-device-arm64
             runner: macos-15
             sdk: iphoneos
-            arch: arm64
-            family: "2"
-          - label: iPadOS-simulator-arm64
-            runner: macos-15
-            sdk: iphonesimulator
             arch: arm64
             family: "2"
           - label: iPadOS-simulator-x86_64

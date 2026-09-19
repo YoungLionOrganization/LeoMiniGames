@@ -163,6 +163,11 @@ jobs:
           modules: qtmultimedia
           aqtversion: "==3.3.*"
           cache: true
+      - name: Install Linux multimedia packaging runtime
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgstreamer-plugins-bad1.0-0
       - name: Install AppImage tooling
         shell: bash
         run: |
@@ -206,10 +211,6 @@ jobs:
             image: archlinux:latest
             distro: arch
             label: Arch-x86_64
-          - runner: ubuntu-24.04-arm
-            image: archlinux:latest
-            distro: arch
-            label: Arch-arm64
     runs-on: ${{ matrix.runner }}
     container:
       image: ${{ matrix.image }}
@@ -221,7 +222,7 @@ jobs:
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             ca-certificates git python3 build-essential cmake ninja-build pkg-config tar gzip \
-            libgl-dev qt6-base-dev qt6-declarative-dev qt6-svg-dev qt6-multimedia-dev
+            libgl-dev qt6-base-dev qt6-declarative-dev qt6-declarative-private-dev qt6-svg-dev qt6-multimedia-dev
       - name: Arch dependencies
         if: matrix.distro == 'arch'
         shell: bash
@@ -457,13 +458,6 @@ jobs:
             family: "1"
             package_platform: iOS
             package_sdk: device
-          - label: iOS-simulator-arm64
-            runner: macos-15
-            sdk: iphonesimulator
-            arch: arm64
-            family: "1"
-            package_platform: iOS
-            package_sdk: simulator
           - label: iOS-simulator-x86_64
             runner: macos-15-intel
             sdk: iphonesimulator
@@ -478,13 +472,6 @@ jobs:
             family: "2"
             package_platform: iPadOS
             package_sdk: device
-          - label: iPadOS-simulator-arm64
-            runner: macos-15
-            sdk: iphonesimulator
-            arch: arm64
-            family: "2"
-            package_platform: iPadOS
-            package_sdk: simulator
           - label: iPadOS-simulator-x86_64
             runner: macos-15-intel
             sdk: iphonesimulator
