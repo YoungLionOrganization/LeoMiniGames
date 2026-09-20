@@ -2,7 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BUILD_DIR="${1:?usage: package_android.sh <build-dir>}"
-VERSION="${LMG_VERSION:-0.7.0}"
+VERSION="${LMG_VERSION:-0.7.1}"
 ABI="${LMG_ANDROID_ABI:-arm64-v8a}"
 BUILD_APK="${LMG_BUILD_APK:-1}"
 BUILD_AAB="${LMG_BUILD_AAB:-1}"

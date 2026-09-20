@@ -2,8 +2,8 @@
 <Package>
     <DisplayName>LeoMiniGames</DisplayName>
     <Description>LeoMiniGames application and runtime.</Description>
-    <Version>0.7.0</Version>
-    <ReleaseDate>2026-09-10</ReleaseDate>
+    <Version>0.7.1</Version>
+    <ReleaseDate>2026-09-20</ReleaseDate>
     <Name>xyz.younglion.leominigames</Name>
     <ForcedInstallation>true</ForcedInstallation>
     <Essential>true</Essential>

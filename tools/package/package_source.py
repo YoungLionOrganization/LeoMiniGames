@@ -2,10 +2,17 @@
 # SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 from __future__ import annotations
 from pathlib import Path
-import hashlib, os, subprocess, sys, zipfile
+import hashlib, os, re, subprocess, sys, zipfile
 
 ROOT=Path(__file__).resolve().parents[2]
-VERSION=os.environ.get('LMG_VERSION','0.7.0').strip() or '0.7.0'
+cmake_text=(ROOT/'CMakeLists.txt').read_text(encoding='utf-8')
+match=re.search(r'project\(LeoMiniGames\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)', cmake_text)
+if not match:
+    raise SystemExit('could not determine LeoMiniGames version from CMakeLists.txt')
+VERSION=match.group(1)
+requested=os.environ.get('LMG_VERSION','').strip()
+if requested and requested != VERSION:
+    raise SystemExit(f'LMG_VERSION {requested!r} does not match project version {VERSION!r}')
 OUT=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT.parent/f'LeoMiniGames-v{VERSION}-Source.zip'
 PREFIX=f'LeoMiniGames-v{VERSION}-Source'
 EXCLUDE_DIRS={'.git','.qtcreator','dist','__pycache__','.pytest_cache','.mypy_cache','.idea','.vscode'}
@@ -15,7 +22,7 @@ EXCLUDE_TOP={'deployment'}  # backend/server material is intentionally maintaine
 validators=[
     'tools/source_guard.py','tools/validate_project.py','tools/sanity_check.py',
     'tools/security_audit.py','tools/validate_i18n.py','tools/validate_distribution.py',
-    'tools/audit_prebuilt_binaries.py','tools/validate_v060.py','tools/validate_v070.py'
+    'tools/audit_prebuilt_binaries.py','tools/validate_v071.py'
 ]
 for rel in validators:
     cp=subprocess.run([sys.executable,str(ROOT/rel)],cwd=ROOT)
@@ -42,7 +49,7 @@ files.sort(key=lambda x:x[0].as_posix())
 
 OUT.parent.mkdir(parents=True,exist_ok=True)
 if OUT.exists(): OUT.unlink()
-fixed=(2026,9,10,0,0,0)
+fixed=(2026,9,20,0,0,0)
 with zipfile.ZipFile(OUT,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:
     for rel,p in files:
         data=p.read_bytes()

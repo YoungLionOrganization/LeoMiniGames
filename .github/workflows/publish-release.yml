@@ -1,0 +1,289 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Validate release gates or publish after approval"
+        required: true
+        default: validate
+        type: choice
+        options:
+          - validate
+          - publish
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: leominigames-release-publish
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Release preflight
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      title: ${{ steps.meta.outputs.title }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      notes: ${{ steps.meta.outputs.notes }}
+      update_track: ${{ steps.meta.outputs.update_track }}
+      build_run_id: ${{ steps.gates.outputs.build_run_id }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Read canonical release metadata
+        id: meta
+        shell: bash
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          data = json.loads(Path("release/release.json").read_text(encoding="utf-8"))
+          required = ("version", "tag", "title", "target_branch", "release_notes_path", "update_track")
+          missing = [key for key in required if not data.get(key)]
+          if missing:
+              raise SystemExit(f"release/release.json missing: {missing}")
+          print(f"version={data['version']}")
+          print(f"tag={data['tag']}")
+          print(f"title={data['title']}")
+          print(f"prerelease={'true' if data.get('prerelease') else 'false'}")
+          print(f"notes={data['release_notes_path']}")
+          print(f"update_track={data['update_track']}")
+          PY
+
+      - name: Validate source and release policy
+        run: |
+          python3 tools/source_guard.py
+          python3 tools/validate_project.py
+          python3 tools/sanity_check.py
+          python3 tools/security_audit.py
+          python3 tools/validate_i18n.py
+          python3 tools/validate_distribution.py
+          python3 tools/audit_prebuilt_binaries.py
+          python3 tools/validate_v071.py
+
+      - name: Verify branch, exact SHA, publisher and required workflows
+        id: gates
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODE: ${{ inputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main" || { echo "Publish workflow must run from main." >&2; exit 10; }
+
+          MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')"
+          test "$MAIN_SHA" = "$GITHUB_SHA" || {
+            echo "Current workflow SHA $GITHUB_SHA is not main HEAD $MAIN_SHA" >&2
+            exit 11
+          }
+
+          if [[ "$MODE" == "publish" ]]; then
+            ACTOR="$GITHUB_ACTOR" python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          allowed = json.loads(Path("release/authorized_publishers.json").read_text(encoding="utf-8"))["publishers"]
+          if os.environ["ACTOR"] not in allowed:
+              raise SystemExit(f"actor {os.environ['ACTOR']!r} is not an authorized release publisher")
+          PY
+          fi
+
+          mapfile -t REQUIRED < <(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for workflow in json.loads(Path("release/release.json").read_text(encoding="utf-8"))["required_workflows"]:
+              print(workflow)
+          PY
+          )
+
+          BUILD_RUN=""
+          for workflow in "${REQUIRED[@]}"; do
+            selector="$(basename "$workflow")"
+            json="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$selector" --commit "$GITHUB_SHA" --status success --limit 20 --json databaseId,headSha,conclusion,createdAt)"
+            run_id="$(RUNS_JSON="$json" EXACT_SHA="$GITHUB_SHA" python3 - <<'PY'
+          import json, os
+          rows = [r for r in json.loads(os.environ["RUNS_JSON"]) if r.get("headSha") == os.environ["EXACT_SHA"] and r.get("conclusion") == "success"]
+          rows.sort(key=lambda r: r.get("createdAt", ""))
+          print(rows[-1]["databaseId"] if rows else "")
+          PY
+          )"
+            test -n "$run_id" || { echo "No successful exact-SHA run for $workflow at $GITHUB_SHA" >&2; exit 12; }
+            echo "Validated $workflow run $run_id at exact SHA $GITHUB_SHA"
+            if [[ "$workflow" == ".github/workflows/build-artifacts.yml" ]]; then
+              BUILD_RUN="$run_id"
+            fi
+          done
+          test -n "$BUILD_RUN" || { echo "Build Release Artifacts is not listed/available." >&2; exit 13; }
+          echo "build_run_id=$BUILD_RUN" >> "$GITHUB_OUTPUT"
+
+          TAG="${{ steps.meta.outputs.tag }}"
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag already exists: $TAG" >&2
+            exit 14
+          fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release already exists: $TAG" >&2
+            exit 15
+          fi
+
+      - name: Download exact-build public assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN_ID: ${{ steps.gates.outputs.build_run_id }}
+        run: |
+          mkdir -p _release-assets _update-repositories
+          gh run download "$BUILD_RUN_ID" --repo "$GITHUB_REPOSITORY" --name release-assets --dir _release-assets
+          gh run download "$BUILD_RUN_ID" --repo "$GITHUB_REPOSITORY" --name update-repositories --dir _update-repositories
+          python3 tools/release/validate_release_assets.py _release-assets
+          test -s _update-repositories/windows/x86_64/Updates.xml
+          test -s _update-repositories/windows/ARM64/Updates.xml
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: validated-release-assets
+          path: _release-assets/*
+          if-no-files-found: error
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: validated-update-repositories
+          path: _update-repositories/**
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish approved release
+    if: ${{ inputs.mode == 'publish' }}
+    needs: preflight
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: validated-release-assets
+          path: _release-assets
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: validated-update-repositories
+          path: _update-repositories
+
+      - name: Re-run destructive-operation guards
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')"
+          test "$MAIN_SHA" = "$GITHUB_SHA" || { echo "main advanced after preflight" >&2; exit 20; }
+          ACTOR="$GITHUB_ACTOR" python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          allowed = json.loads(Path("release/authorized_publishers.json").read_text(encoding="utf-8"))["publishers"]
+          if os.environ["ACTOR"] not in allowed:
+              raise SystemExit(f"actor {os.environ['ACTOR']!r} is not authorized")
+          PY
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/${{ needs.preflight.outputs.tag }}" >/dev/null 2>&1; then
+            echo "tag appeared after preflight" >&2; exit 21
+          fi
+          if gh release view "${{ needs.preflight.outputs.tag }}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release appeared after preflight" >&2; exit 22
+          fi
+          python3 tools/release/validate_release_assets.py _release-assets
+
+      - name: Create draft and upload exact asset set
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+          TITLE: ${{ needs.preflight.outputs.title }}
+          NOTES: ${{ needs.preflight.outputs.notes }}
+          PRERELEASE: ${{ needs.preflight.outputs.prerelease }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          extra=()
+          [[ "$PRERELEASE" == "true" ]] && extra+=(--prerelease)
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "$TITLE" --notes-file "$NOTES" --draft "${extra[@]}"
+          gh release upload "$TAG" _release-assets/* --repo "$GITHUB_REPOSITORY"
+
+          local_names="$(find _release-assets -maxdepth 1 -type f -printf '%f\n' | sort)"
+          remote_names="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.assets[].name' | sort)"
+          if [[ "$local_names" != "$remote_names" ]]; then
+            echo "Uploaded GitHub Release assets do not equal validated local assets." >&2
+            diff -u <(printf '%s\n' "$local_names") <(printf '%s\n' "$remote_names") || true
+            exit 23
+          fi
+
+      - name: Publish QtIFW repository then make draft public
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+          TRACK: ${{ needs.preflight.outputs.update_track }}
+          PRERELEASE: ${{ needs.preflight.outputs.prerelease }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          OLD_UPDATES_SHA="$(git ls-remote origin refs/heads/updates | awk '{print $1}')"
+          WORKTREE="$RUNNER_TEMP/leominigames-updates"
+          rm -rf "$WORKTREE"
+          if [[ -n "$OLD_UPDATES_SHA" ]]; then
+            git fetch origin refs/heads/updates:refs/remotes/origin/updates
+            git worktree add --detach "$WORKTREE" refs/remotes/origin/updates
+          else
+            git worktree add --detach "$WORKTREE" "$GITHUB_SHA"
+            (
+              cd "$WORKTREE"
+              git switch --orphan updates
+              git rm -rf . >/dev/null 2>&1 || true
+            )
+          fi
+
+          rm -rf "$WORKTREE/$TRACK/windows"
+          mkdir -p "$WORKTREE/$TRACK"
+          cp -a "$GITHUB_WORKSPACE/_update-repositories/windows" "$WORKTREE/$TRACK/windows"
+          (
+            cd "$WORKTREE"
+            git add "$TRACK/windows"
+            if ! git diff --cached --quiet; then
+              git commit -m "updates: publish $TAG QtIFW repository"
+            fi
+            NEW_UPDATES_SHA="$(git rev-parse HEAD)"
+            git push origin HEAD:refs/heads/updates
+            echo "$NEW_UPDATES_SHA" > "$RUNNER_TEMP/new-updates-sha"
+          )
+
+          RELEASE_ID="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.id')"
+          if ! gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
+              -F draft=false -F prerelease="$PRERELEASE" >/dev/null; then
+            echo "Failed to publish draft; attempting update-repository rollback." >&2
+            NEW_UPDATES_SHA="$(cat "$RUNNER_TEMP/new-updates-sha")"
+            CURRENT_UPDATES_SHA="$(git ls-remote origin refs/heads/updates | awk '{print $1}')"
+            if [[ "$CURRENT_UPDATES_SHA" == "$NEW_UPDATES_SHA" ]]; then
+              if [[ -n "$OLD_UPDATES_SHA" ]]; then
+                git push --force-with-lease="refs/heads/updates:$NEW_UPDATES_SHA" origin "$OLD_UPDATES_SHA:refs/heads/updates" || true
+              else
+                git push --delete origin updates || true
+              fi
+            fi
+            exit 24
+          fi
+
+          echo "Published $TAG and $TRACK QtIFW update repository."

@@ -7,6 +7,7 @@
 #include <QQmlContext>
 #include <QQuickStyle>
 #include <QSslSocket>
+#include <QTimer>
 #include <QtPlugin>
 
 #include "core/Achievements.h"
@@ -47,6 +48,7 @@
 #include "core/ThemeManager.h"
 #include "core/ThemeCatalogManager.h"
 #include "core/ThemeInstalledModel.h"
+#include "core/UpdateService.h"
 #include "core/ThemeFilterProxyModel.h"
 
 Q_IMPORT_PLUGIN(XoxPlugin)
@@ -65,13 +67,14 @@ int main(int argc, char *argv[])
     app.setOrganizationName(QStringLiteral("YoungLion"));
     app.setOrganizationDomain(QStringLiteral("xyz.younglion.leominigames"));
     app.setApplicationName(QStringLiteral("LeoMiniGames"));
-    app.setApplicationVersion(QStringLiteral("0.7.0"));
+    app.setApplicationVersion(QStringLiteral("0.7.1"));
     app.setApplicationDisplayName(QStringLiteral("LeoMiniGames"));
     app.setWindowIcon(QIcon(QStringLiteral(":/branding/leominigames_icon.png")));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
 
     AppPaths paths;
     SettingsManager settings;
+    UpdateService updates(&settings);
     ThemeManager theme(&paths);
     ThemeCatalogManager themeCatalog(&paths, &settings, &theme);
     ThemeInstalledModel themeInstalledModel(&theme, &themeCatalog);
@@ -230,6 +233,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("App"), &controller);
     engine.rootContext()->setContextProperty(QStringLiteral("Paths"), &paths);
     engine.rootContext()->setContextProperty(QStringLiteral("Settings"), &settings);
+    engine.rootContext()->setContextProperty(QStringLiteral("Updates"), &updates);
     engine.rootContext()->setContextProperty(QStringLiteral("ThemeRuntime"), &theme);
     engine.rootContext()->setContextProperty(QStringLiteral("ThemeCatalog"), &themeCatalog);
     engine.rootContext()->setContextProperty(QStringLiteral("ThemesExplore"), &themeExplore);
@@ -266,5 +270,8 @@ int main(int argc, char *argv[])
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
                      &app, [] { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
     engine.loadFromModule(QStringLiteral("LeoMiniGames"), QStringLiteral("Main"));
+#if !defined(LMG_PRIVACY_BUILD)
+    QTimer::singleShot(1500, &updates, &UpdateService::checkForUpdatesAutomatically);
+#endif
     return app.exec();
 }

@@ -217,6 +217,96 @@ Item {
                 }
             }
 
+
+            SectionCard {
+                width: parent.width - Constants.u32
+                anchors.horizontalCenter: parent.horizontalCenter
+                title: qsTr("Updates")
+                subtitle: qsTr("Check GitHub for LeoMiniGames application updates.")
+
+                Column {
+                    width: parent.width
+                    spacing: Constants.u8
+
+                    Column {
+                        width: parent.width
+                        spacing: Constants.u6
+                        Text {
+                            width: parent.width
+                            text: qsTr("Update channel")
+                            color: Constants.text
+                            font.bold: true
+                            wrapMode: Text.WordWrap
+                        }
+                        ComboBox {
+                            id: channelBox
+                            width: Math.min(parent.width, Constants.u180)
+                            model: [qsTr("Stable"), qsTr("Preview")]
+                            currentIndex: Updates.channel === "preview" ? 1 : 0
+                            onActivated: function(index) {
+                                Updates.channel = index === 1 ? "preview" : "stable"
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        visible: Updates.channel === "preview"
+                        text: qsTr("Preview includes alpha, beta and release-candidate builds.")
+                        color: Constants.accent
+                        font.pixelSize: Constants.u10
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: {
+                            if (Updates.checking)
+                                return qsTr("Checking for updates…")
+                            if (Updates.status === "available")
+                                return qsTr("Update available: %1").arg(Updates.latestVersion)
+                            if (Updates.status === "up-to-date")
+                                return qsTr("LeoMiniGames is up to date.")
+                            if (Updates.status === "error")
+                                return qsTr("Update check failed: %1").arg(Updates.errorString)
+                            return qsTr("Current version: %1").arg(Updates.currentVersion)
+                        }
+                        color: Updates.status === "available" ? Constants.success : Constants.textMuted
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: Updates.maintenanceAvailable
+                              ? qsTr("Installed build · updates are applied by LeoMiniGames Maintenance.")
+                              : qsTr("Portable build · updates open the matching GitHub release package.")
+                        color: Constants.textMuted
+                        font.pixelSize: Constants.u10
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Flow {
+                        width: parent.width
+                        spacing: Constants.u8
+                        BronzeButton {
+                            text: Updates.checking ? qsTr("Checking…") : qsTr("Check for updates")
+                            enabled: !Updates.checking
+                            onClicked: Updates.checkForUpdates()
+                        }
+                        BronzeButton {
+                            visible: Updates.updateAvailable
+                            text: Updates.maintenanceAvailable ? qsTr("Open updater") : qsTr("Download update")
+                            onClicked: Updates.openUpdate()
+                        }
+                        BronzeButton {
+                            visible: Updates.releaseUrl.toString().length > 0
+                            text: qsTr("Release notes")
+                            onClicked: Updates.openReleasePage()
+                        }
+                    }
+                }
+            }
+
             SectionCard {
                 width: parent.width - Constants.u32
                 anchors.horizontalCenter: parent.horizontalCenter

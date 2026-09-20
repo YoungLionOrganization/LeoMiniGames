@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(LeoMiniGames VERSION 0.7.0 LANGUAGES CXX)
+project(LeoMiniGames VERSION 0.7.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,7 +12,7 @@ find_package(Qt6 6.5 QUIET COMPONENTS Multimedia)
 qt_standard_project_setup(REQUIRES 6.5)
 include(CTest)
 
-set(LEOMINIGAMES_ANDROID_VERSION_CODE 700)
+set(LEOMINIGAMES_ANDROID_VERSION_CODE 701)
 option(LEOMINIGAMES_PRIVACY_BUILD "Build the tracker-free/privacy-focused variant" OFF)
 set(LEOMINIGAMES_APPLE_MOBILE_DEVICE_FAMILY "1,2" CACHE STRING
     "Apple mobile device family: 1=iPhone/iOS, 2=iPad/iPadOS, 1,2=universal")

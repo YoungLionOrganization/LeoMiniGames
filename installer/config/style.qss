@@ -1,12 +1,10 @@
 QWizard {
     background: #15110d;
-}
-QWidget {
     color: #f4eadc;
-    font-size: 10pt;
 }
 QLabel {
     color: #f4eadc;
+    font-size: 10pt;
 }
 QLabel#titleLabel, QLabel#subTitleLabel {
     color: #f4c77d;
@@ -20,29 +18,25 @@ QLineEdit, QComboBox, QListView, QTreeView, QTextEdit, QPlainTextEdit {
     selection-background-color: #a56b2b;
     selection-color: #ffffff;
 }
+QLineEdit:focus, QComboBox:focus, QListView:focus, QTreeView:focus,
+QTextEdit:focus, QPlainTextEdit:focus {
+    border: 2px solid #d59b50;
+}
 QPushButton {
     min-height: 28px;
+    min-width: 72px;
     padding: 5px 14px;
     border-radius: 6px;
     border: 1px solid #805b31;
     background: #2b2118;
     color: #f7e7cf;
 }
-QPushButton:hover {
-    background: #3a2a1c;
-    border-color: #c58b43;
-}
-QPushButton:pressed {
-    background: #1d1712;
-}
-QPushButton:disabled {
-    color: #8c8176;
-    border-color: #40372f;
-    background: #1b1815;
-}
-QCheckBox, QRadioButton {
-    spacing: 7px;
-}
+QPushButton:hover { background: #3a2a1c; border-color: #c58b43; }
+QPushButton:focus { border: 2px solid #e2ab62; }
+QPushButton:pressed { background: #1d1712; }
+QPushButton:disabled { color: #8c8176; border-color: #40372f; background: #1b1815; }
+QCheckBox, QRadioButton { spacing: 7px; color: #f4eadc; }
+QCheckBox:focus, QRadioButton:focus { color: #f4c77d; }
 QProgressBar {
     min-height: 18px;
     border: 1px solid #5d4630;
@@ -51,10 +45,5 @@ QProgressBar {
     color: #f7efe5;
     text-align: center;
 }
-QProgressBar::chunk {
-    border-radius: 4px;
-    background: #c58b43;
-}
-QFrame[frameShape="4"], QFrame[frameShape="5"] {
-    color: #49392b;
-}
+QProgressBar::chunk { border-radius: 4px; background: #c58b43; }
+QFrame[frameShape="4"], QFrame[frameShape="5"] { color: #49392b; }

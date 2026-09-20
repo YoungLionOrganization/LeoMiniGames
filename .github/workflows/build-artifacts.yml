@@ -2,12 +2,6 @@ name: Build Release Artifacts
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Artifact version (must match project/package metadata)"
-        required: true
-        default: "0.7.0"
-        type: string
 
 permissions:
   contents: read
@@ -18,7 +12,7 @@ concurrency:
 
 env:
   QT_CI_VERSION: "6.10.2"
-  LMG_VERSION: ${{ inputs.version }}
+  LMG_VERSION: "0.7.1"
   ANDROID_NDK_VERSION: "27.2.12479018"
   ANDROID_PLATFORM: "android-36"
   ANDROID_BUILD_TOOLS: "36.0.0"
@@ -29,18 +23,21 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - name: Verify version
-        env:
-          REQUESTED_VERSION: ${{ inputs.version }}
+      - name: Verify canonical version
         shell: bash
         run: |
           python3 - <<'PY'
-          import os, re, pathlib
-          requested = os.environ["REQUESTED_VERSION"].strip()
+          import json, os, re, pathlib
+          release = json.loads(pathlib.Path("release/release.json").read_text(encoding="utf-8"))
+          requested = os.environ["LMG_VERSION"].strip()
           cmake = pathlib.Path("CMakeLists.txt").read_text(encoding="utf-8")
           m = re.search(r"project\(LeoMiniGames\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)", cmake)
-          if not m or m.group(1) != requested:
-              raise SystemExit(f"workflow version {requested!r} != project version {m.group(1) if m else 'missing'}")
+          versions = {"workflow": requested, "release": release.get("version"), "cmake": m.group(1) if m else None}
+          if len(set(versions.values())) != 1:
+              raise SystemExit(f"version mismatch: {versions}")
+          expected_tag = f"v{requested}"
+          if release.get("tag") != expected_tag:
+              raise SystemExit(f"release tag {release.get('tag')!r} != {expected_tag!r}")
           PY
       - name: Validate
         run: |
@@ -51,7 +48,7 @@ jobs:
           python3 tools/validate_i18n.py
           python3 tools/validate_distribution.py
           python3 tools/audit_prebuilt_binaries.py
-          python3 tools/validate_v070.py
+          python3 tools/validate_v071.py
 
   source:
     name: Source ZIP
@@ -62,10 +59,10 @@ jobs:
       - run: python3 tools/package/package_source.py "${GITHUB_WORKSPACE}/LeoMiniGames-v${LMG_VERSION}-Source.zip"
       - uses: actions/upload-artifact@v7
         with:
-          name: LeoMiniGames-${{ inputs.version }}-source
+          name: LeoMiniGames-${{ env.LMG_VERSION }}-source
           path: |
-            LeoMiniGames-v${{ inputs.version }}-Source.zip
-            LeoMiniGames-v${{ inputs.version }}-Source.zip.sha256
+            LeoMiniGames-v${{ env.LMG_VERSION }}-Source.zip
+            LeoMiniGames-v${{ env.LMG_VERSION }}-Source.zip.sha256
           if-no-files-found: error
 
   windows-x64:
@@ -95,7 +92,7 @@ jobs:
         run: ./tools/package/package_windows.ps1 -BuildDir build
       - uses: actions/upload-artifact@v7
         with:
-          name: LeoMiniGames-${{ inputs.version }}-windows-x86_64
+          name: LeoMiniGames-${{ env.LMG_VERSION }}-windows-x86_64
           path: dist/windows/*
           if-no-files-found: error
 
@@ -126,7 +123,7 @@ jobs:
         run: ./tools/package/package_windows.ps1 -BuildDir build
       - uses: actions/upload-artifact@v7
         with:
-          name: LeoMiniGames-${{ inputs.version }}-windows-arm64
+          name: LeoMiniGames-${{ env.LMG_VERSION }}-windows-arm64
           path: dist/windows/*
           if-no-files-found: error
 
@@ -188,7 +185,7 @@ jobs:
         run: bash tools/package/package_linux.sh build
       - uses: actions/upload-artifact@v7
         with:
-          name: LeoMiniGames-${{ inputs.version }}-${{ matrix.label }}
+          name: LeoMiniGames-${{ env.LMG_VERSION }}-${{ matrix.label }}
           path: dist/linux/*
           if-no-files-found: error
 
@@ -242,7 +239,7 @@ jobs:
         run: bash tools/package/package_linux_native.sh build
       - uses: actions/upload-artifact@v7
         with:
-          name: LeoMiniGames-${{ inputs.version }}-${{ matrix.label }}-native
+          name: LeoMiniGames-${{ env.LMG_VERSION }}-${{ matrix.label }}-native
           path: dist/linux-native/*
           if-no-files-found: error
 
@@ -281,7 +278,7 @@ jobs:
         run: bash tools/package/package_macos.sh build
       - uses: actions/upload-artifact@v7
         with:
-          name: LeoMiniGames-${{ inputs.version }}-macos-${{ matrix.label }}
+          name: LeoMiniGames-${{ env.LMG_VERSION }}-macos-${{ matrix.label }}
           path: dist/macos/*
           if-no-files-found: error
 
@@ -365,7 +362,7 @@ jobs:
         run: bash tools/package/package_android.sh build-android
       - uses: actions/upload-artifact@v7
         with:
-          name: LeoMiniGames-${{ inputs.version }}-android-${{ matrix.abi }}
+          name: LeoMiniGames-${{ env.LMG_VERSION }}-android-${{ matrix.abi }}
           path: dist/android/*
           if-no-files-found: error
 
@@ -440,7 +437,7 @@ jobs:
         run: bash tools/package/package_android.sh build-android
       - uses: actions/upload-artifact@v7
         with:
-          name: LeoMiniGames-${{ inputs.version }}-android-universal
+          name: LeoMiniGames-${{ env.LMG_VERSION }}-android-universal
           path: dist/android/*
           if-no-files-found: error
 
@@ -510,6 +507,42 @@ jobs:
         run: bash tools/package/package_ios.sh build-apple
       - uses: actions/upload-artifact@v7
         with:
-          name: LeoMiniGames-${{ inputs.version }}-${{ matrix.label }}-unsigned
+          name: LeoMiniGames-${{ env.LMG_VERSION }}-${{ matrix.label }}-unsigned
           path: dist/ios/*
+          if-no-files-found: error
+
+  release-assets:
+    name: Aggregate public release assets
+    needs:
+      - source
+      - windows-x64
+      - windows-arm64
+      - linux-portable
+      - linux-native
+      - macos
+      - android
+      - android-universal
+      - apple-mobile
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          path: _artifacts
+      - name: Collect strict public asset set and QtIFW repositories
+        run: |
+          python3 tools/release/collect_release_assets.py \
+            --artifact-root _artifacts \
+            --public-output _release-assets \
+            --update-output _update-repositories
+          python3 tools/release/validate_release_assets.py _release-assets
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-assets
+          path: _release-assets/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: update-repositories
+          path: _update-repositories/**
           if-no-files-found: error

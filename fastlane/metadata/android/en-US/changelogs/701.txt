@@ -1,0 +1,6 @@
+LeoMiniGames 0.7.1
+
+- Adds automated release asset aggregation and guarded manual GitHub Release publishing.
+- Adds QtIFW Maintenance-based updates for installed Windows builds.
+- Adds in-app Stable/Preview update checks backed by GitHub Releases.
+- Improves installer maintenance UX and release validation.

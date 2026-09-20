@@ -34,7 +34,7 @@ jobs:
           python3 tools/validate_i18n.py
           python3 tools/validate_distribution.py
           python3 tools/audit_prebuilt_binaries.py
-          python3 tools/validate_v070.py
+          python3 tools/validate_v071.py
           python3 -m py_compile tools/*.py
           find tools -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
 

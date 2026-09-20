@@ -208,8 +208,12 @@ for rel in installer_required: require(rel)
 try:
     config = ET.parse(ROOT/'installer/config/config.xml').getroot()
     pkg = ET.parse(ROOT/'installer/packages/xyz.younglion.leominigames/meta/package.xml').getroot()
-    if config.findtext('Version') == '0.7.0' and pkg.findtext('Version') == '0.7.0': ok('QtIFW version 0.7.0')
-    else: err('QtIFW version mismatch')
+    version_match = re.search(r'project\(LeoMiniGames\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)', read('CMakeLists.txt'))
+    expected_version = version_match.group(1) if version_match else None
+    if expected_version and config.findtext('Version') == expected_version and pkg.findtext('Version') == expected_version:
+        ok(f'QtIFW version {expected_version}')
+    else:
+        err('QtIFW version mismatch')
     if pkg.findtext('ForcedInstallation') == 'true' and pkg.findtext('Essential') == 'true' and pkg.findtext('Checkable') == 'false':
         ok('QtIFW application component cannot degrade to maintainer-only install')
     else:
@@ -432,6 +436,7 @@ for rel in [
     'fastlane/metadata/android/en-US/short_description.txt',
     'fastlane/metadata/android/en-US/full_description.txt',
     'fastlane/metadata/android/en-US/changelogs/700.txt',
+    'fastlane/metadata/android/en-US/changelogs/701.txt',
     'fastlane/metadata/android/en-US/images/icon.png'
 ]:
     require(rel)

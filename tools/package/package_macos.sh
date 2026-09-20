@@ -2,7 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BUILD_DIR="${1:?usage: package_macos.sh <build-dir>}"
-VERSION="${LMG_VERSION:-0.7.0}"
+VERSION="${LMG_VERSION:-0.7.1}"
 SUFFIX="${LMG_PLATFORM_SUFFIX:-$(uname -m)}"
 DIST="$ROOT/dist/macos"
 rm -rf "$DIST"; mkdir -p "$DIST"

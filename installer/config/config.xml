@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Installer>
     <Name>LeoMiniGames</Name>
-    <Version>0.7.0</Version>
-    <Title>LeoMiniGames 0.7.0 Setup</Title>
+    <Version>0.7.1</Version>
+    <Title>LeoMiniGames 0.7.1 Setup</Title>
     <Publisher>YoungLion</Publisher>
     <ProductUrl>https://leominigames.younglion.xyz</ProductUrl>
 
@@ -15,14 +15,24 @@
     <WizardShowPageList>true</WizardShowPageList>
     <WizardDefaultWidth>920</WizardDefaultWidth>
     <WizardDefaultHeight>620</WizardDefaultHeight>
-    <WizardMinimumWidth>820</WizardMinimumWidth>
-    <WizardMinimumHeight>560</WizardMinimumHeight>
+    <WizardMinimumWidth>760</WizardMinimumWidth>
+    <WizardMinimumHeight>520</WizardMinimumHeight>
 
     <StartMenuDir>LeoMiniGames</StartMenuDir>
     <TargetDir>@ApplicationsDir@/LeoMiniGames</TargetDir>
     <MaintenanceToolName>LeoMiniGamesMaintenance</MaintenanceToolName>
     <MaintenanceToolIniFile>LeoMiniGamesMaintenance.ini</MaintenanceToolIniFile>
+    <RepositorySettingsPageVisible>false</RepositorySettingsPageVisible>
+    <SupportsModify>true</SupportsModify>
     <AllowNonAsciiCharacters>true</AllowNonAsciiCharacters>
+
+    <RemoteRepositories>
+        <Repository>
+            <Url>@LMG_UPDATE_REPOSITORY_URL@</Url>
+            <Enabled>1</Enabled>
+            <DisplayName>LeoMiniGames GitHub Updates</DisplayName>
+        </Repository>
+    </RemoteRepositories>
 
     <RunProgram>@TargetDir@/LeoMiniGames.exe</RunProgram>
     <RunProgramDescription>Launch LeoMiniGames</RunProgramDescription>

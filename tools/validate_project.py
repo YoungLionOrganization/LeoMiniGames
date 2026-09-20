@@ -68,16 +68,28 @@ manifest = (root / "android/AndroidManifest.xml").read_text(encoding="utf-8")
 for token in ('%%INSERT_VERSION_NAME%%', '%%INSERT_VERSION_CODE%%', '%%INSERT_APP_NAME%%', 'android:appCategory="game"', 'android.intent.category.GAME'):
     if token not in manifest:
         errors.append(f"Android manifest missing expected token: {token}")
-for token in ('QT_ANDROID_PACKAGE_NAME "xyz.younglion.leominigames"', 'QT_ANDROID_VERSION_NAME "${PROJECT_VERSION}"', 'set(LEOMINIGAMES_ANDROID_VERSION_CODE 700)'):
+version_match = re.search(r"project\(LeoMiniGames\s+VERSION\s+(\d+)\.(\d+)\.(\d+)", top_cmake)
+if not version_match:
+    errors.append("CMake project version is missing")
+    expected_android_code = None
+else:
+    major, minor, patch = map(int, version_match.groups())
+    expected_android_code = major * 10000 + minor * 100 + patch
+
+for token in ('QT_ANDROID_PACKAGE_NAME "xyz.younglion.leominigames"', 'QT_ANDROID_VERSION_NAME "${PROJECT_VERSION}"'):
     if token not in top_cmake:
         errors.append(f"CMake Android metadata missing expected token: {token}")
+if expected_android_code is not None:
+    code_match = re.search(r"set\(LEOMINIGAMES_ANDROID_VERSION_CODE\s+(\d+)(?:\s+[^)]*)?\)", top_cmake)
+    if not code_match or int(code_match.group(1)) != expected_android_code:
+        errors.append(f"CMake Android version code does not match project SemVer: expected {expected_android_code}")
 
 for qml in root.rglob("*.qml"):
     text = qml.read_text(encoding="utf-8")
     if re.search(r"^\s*import\s+LeoMiniGames\b", text, flags=re.MULTILINE):
         errors.append(f"Deprecated self QML import remains: {qml.relative_to(root)}")
 
-if 'QT_ANDROID_VERSION_CODE ${LEOMINIGAMES_ANDROID_VERSION_CODE}' not in top_cmake:
+if not re.search(r'QT_ANDROID_VERSION_CODE\s+\"?\$\{LEOMINIGAMES_ANDROID_VERSION_CODE\}\"?', top_cmake):
     errors.append("CMake Android version code is not wired to the release constant")
 
 if errors:

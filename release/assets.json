@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "version": "0.7.1",
+  "assets": [
+    {"id":"source","pattern":"LeoMiniGames-v{version}-Source.zip","required":true,"min_count":1,"max_count":1},
+    {"id":"windows-x64-portable","pattern":"LeoMiniGames-v{version}-Windows-x86_64.zip","required":true,"min_count":1,"max_count":1},
+    {"id":"windows-x64-setup","pattern":"LeoMiniGames-v{version}-Windows-x86_64-Setup.exe","required":true,"min_count":1,"max_count":1},
+    {"id":"windows-arm64-portable","pattern":"LeoMiniGames-v{version}-Windows-ARM64.zip","required":true,"min_count":1,"max_count":1},
+    {"id":"windows-arm64-setup","pattern":"LeoMiniGames-v{version}-Windows-ARM64-Setup.exe","required":true,"min_count":1,"max_count":1},
+    {"id":"linux-portable","pattern":"LeoMiniGames-v{version}-Linux-*.tar.gz","required":true,"min_count":3,"max_count":3},
+    {"id":"linux-appimage","pattern":"LeoMiniGames-v{version}-Linux-*.AppImage","required":true,"min_count":3,"max_count":3},
+    {"id":"linux-native","pattern":"LeoMiniGames-v{version}-*-native.tar.gz","required":true,"min_count":3,"max_count":3},
+    {"id":"macos-zip","pattern":"LeoMiniGames-v{version}-macOS-*.zip","required":true,"min_count":3,"max_count":3},
+    {"id":"macos-dmg","pattern":"LeoMiniGames-v{version}-macOS-*.dmg","required":true,"min_count":3,"max_count":3},
+    {"id":"android-apk","pattern":"LeoMiniGames-v{version}-Android-*.apk","required":true,"min_count":5,"max_count":5}
+  ],
+  "forbidden_public_patterns": [
+    "*.sha256",
+    "*-Legal.zip",
+    "*.aab",
+    "*-unsigned.zip",
+    "Updates.xml",
+    "*.7z",
+    "*.sha1",
+    "repository-info.json"
+  ]
+}

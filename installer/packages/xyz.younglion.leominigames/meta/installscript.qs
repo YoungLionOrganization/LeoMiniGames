@@ -17,5 +17,12 @@ Component.prototype.createOperations = function() {
             "iconPath=@TargetDir@/LeoMiniGames.exe",
             "iconId=0",
             "description=Launch LeoMiniGames");
+        component.addOperation("CreateShortcut",
+            "@TargetDir@/LeoMiniGamesMaintenance.exe",
+            "@StartMenuDir@/LeoMiniGames Maintenance.lnk",
+            "workingDirectory=@TargetDir@",
+            "iconPath=@TargetDir@/LeoMiniGames.exe",
+            "iconId=0",
+            "description=Update, repair, modify or uninstall LeoMiniGames");
     }
 }
