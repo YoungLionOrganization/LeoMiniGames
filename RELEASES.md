@@ -4,9 +4,48 @@ This document is the canonical release/upgrade guide for LeoMiniGames. It is int
 
 ## Release policy
 
-LeoMiniGames uses semantic-style `MAJOR.MINOR.PATCH` versions for the application/runtime contract. Package/API compatibility is handled separately through manifest negotiation so an application release does not automatically invalidate older RCC content.
+LeoMiniGames uses `MAJOR.MINOR.PATCH` application versions. Patch releases may contain bug fixes, release/packaging infrastructure, installer servicing and updater hardening while preserving the public game/mod compatibility contract. New public host/game capabilities are reserved for a compatible minor-development line.
 
-The GitHub repository does **not** automatically create Releases from tags. `.github/workflows/build-artifacts.yml` is a manual artifact builder; generated files are intended to be reviewed and then attached to a GitHub Release by the maintainer.
+Releases are not created merely by pushing a tag. `build-artifacts.yml` manually builds and aggregates artifacts; `publish-release.yml` is a separate guarded manual workflow. Its default `validate` mode performs release preflight only. Actual publication requires `mode=publish`, an authorized publisher and any configured approval on the protected GitHub `release` Environment.
+
+## v0.7.1 — release, maintenance and update infrastructure
+
+### Scope
+
+v0.7.1 is a servicing patch. It does not introduce a required new game/mod API. Its purpose is to make releases repeatable, installable and updateable without forcing the v0.8.0 feature set into a patch release.
+
+### Release pipeline
+
+The release pipeline now has three distinct stages: normal CI, manual artifact generation, and guarded publication. `release/release.json` is the canonical release descriptor. `release/assets.json` defines the exact public asset allowlist. Build Release Artifacts creates both the public `release-assets` aggregate and the internal QtIFW `update-repositories` artifact.
+
+`Publish Release` validates that the workflow is running from the current `main` HEAD and that the same exact SHA has successful required CI and Build Release Artifacts runs. Publish mode also checks the authorized publisher list, refuses an existing tag/release, requires the protected `release` Environment, creates a draft, uploads and verifies the complete asset set, publishes the Windows update repository, and only then makes the GitHub Release public.
+
+A validation-only run intentionally skips the `Publish approved release` job. To publish, start a new run with `mode=publish`.
+
+### Windows maintenance and updates
+
+Windows x86_64 and ARM64 Setup EXEs are Qt Installer Framework hybrid installers. The installed `LeoMiniGamesMaintenance` tool owns update/repair/modify/uninstall operations. The release workflow publishes QtIFW repositories to the `updates` branch under stable/preview tracks.
+
+The application-level `UpdateService` checks GitHub Releases and supports Stable/Preview channels. Installed Windows builds hand servicing to Maintenance Tool; portable and other distributions open the matching public asset or release page instead of attempting unsafe in-place executable replacement.
+
+### Public release asset policy
+
+For v0.7.1 the validated public set contains 25 files. Source, Windows installers/portable archives, Linux archives/AppImages/native packages, macOS ZIP/DMG files and Android APKs are public release candidates. AABs, unsigned Apple test bundles, checksum/legal sidecars and QtIFW repository internals remain workflow artifacts rather than public GitHub Release assets.
+
+### Compatibility
+
+The v0.5/v0.6/v0.7 RCC compatibility model from v0.7.0 remains in force. Save Transfer and portable `.lmgsave` exchange work are not part of v0.7.1 and remain planned for v0.8.0.
+
+### Release operator quick path
+
+1. Make sure current `main` is final and CI is green.
+2. Run **Build Release Artifacts** from `main` and wait for success.
+3. Run **Publish Release** with `mode=validate`; `Publish approved release` being skipped is expected.
+4. Run **Publish Release** again with `mode=publish`.
+5. If the publish job waits on the `release` Environment, use **Review deployments → release → Approve and deploy**.
+6. Do not push a new `main` commit while an approved release is waiting; exact-SHA guards intentionally fail if `main` advances.
+
+See `docs/GITHUB_RELEASES.md` for the full operator procedure and troubleshooting.
 
 ## v0.7.0 — compatibility/security/SDK upgrade
 
@@ -137,15 +176,18 @@ Existing legacy packages may remain unchanged while they are supported. New deve
 
 Translation coverage is not yet 100% across every supported locale; source-English fallback remains intentional. Full native browser-to-app Developer OAuth callback support remains a backend integration dependency. Apple public distribution signing/notarization is not automated. Newly added CI architecture lanes require their first successful GitHub run before being recorded as verified.
 
-## Manual release procedure
+## Release procedure
 
-1. Ensure `CMakeLists.txt`, Android versionName/versionCode, installer metadata, changelog and release documentation agree.
-2. Run CI and resolve all required job failures.
-3. Run **Build Release Artifacts** manually with the exact version.
-4. Download and inspect the produced artifacts; verify checksums/signatures where applicable.
-5. Perform platform smoke tests on the release binaries, especially Windows and Android.
-6. Create the GitHub Release manually and attach the reviewed artifacts.
-7. Record known limitations rather than hiding skipped signing/device tests.
+Use the guarded workflow rather than manually creating a GitHub Release or manually uploading dozens of files:
+
+1. `main` CI succeeds for the final exact SHA.
+2. **Build Release Artifacts** succeeds for the same SHA.
+3. **Publish Release** / `mode=validate` succeeds.
+4. **Publish Release** / `mode=publish` is started.
+5. The `release` Environment is approved if required.
+6. The workflow creates the draft, uploads/verifies assets, publishes the QtIFW repository and makes the release public.
+
+Manual GitHub Release creation is no longer the normal v0.7.1 procedure.
 
 ## Rollback principle
 
@@ -155,6 +197,3 @@ If a v0.7 runtime/security change breaks a legitimate v0.5/v0.6 package, prefer 
 
 Historical notes remain in `V0.5.0_CHANGES.md`, `V0.5.1_CHANGES.md`, `V0.5.2_CHANGES.md`, `V0.6.1_CHANGES.md` and `V0.6.2_CHANGES.md`.
 
-## Section 22 exclusion
-
-The repository intentionally contains **no tag-triggered automatic GitHub Release creation**. Manual artifact generation and manual release publication remain separate operations unless that policy is explicitly changed in a future task.

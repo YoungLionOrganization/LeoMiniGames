@@ -37,3 +37,17 @@ A stable installed client normally uses the stable repository stored by the inst
 The release is created as a draft, assets are uploaded and verified, the QtIFW repository is published, and only then is the draft made public.
 
 Configure **Settings → Environments → release** in GitHub with the intended Required Reviewer(s). If the same maintainer must approve their own deployment, GitHub's `Prevent self-review` setting must not conflict with that policy.
+
+## Release operator sequence
+
+The updater repository becomes live only during **Publish Release** in `publish` mode. A validation-mode run verifies the repository artifacts but does not push them to the `updates` branch.
+
+Recommended sequence:
+
+1. successful `ci.yml` for current `main`;
+2. successful **Build Release Artifacts** for the same SHA;
+3. **Publish Release** with `mode=validate`;
+4. **Publish Release** with `mode=publish`;
+5. approve the protected `release` Environment when requested.
+
+If **Publish approved release** shows `Skipped`, the run was validation-only. If it shows `Waiting`, GitHub is waiting for the `release` Environment approval. See `docs/GITHUB_RELEASES.md` for the exact UI flow and failure recovery.

@@ -3,18 +3,19 @@
 [![CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml/badge.svg)](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml)
 [![Qt](https://img.shields.io/badge/Qt-6.5%2B-41CD52?logo=qt&logoColor=white)](https://www.qt.io/)
 [![License](https://img.shields.io/badge/license-Source--Available%20SAPEL--1.0-orange)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.7.0-B8860B)](RELEASES.md)
+[![Version](https://img.shields.io/badge/version-0.7.1-B8860B)](RELEASES.md)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20iOS%20%7C%20macOS-informational)](#platform-and-architecture-matrix)
 
 **LeoMiniGames** is a modular, cross-platform Qt 6 / Qt Quick mini-game launcher, runtime and content ecosystem. Games, mods and themes are designed to remain as independent from the host application as practical while reusing a common service layer for theme, save, localization, audio, haptics, input, lifecycle, statistics, achievements, package management and developer tooling.
 
-The v0.7.0 line is a **compatibility-first security and SDK upgrade**. A major design requirement is that supported v0.5/v0.6 RCC games continue to run through compatibility adapters instead of being rejected merely because they predate the new API negotiation model.
+**v0.7.1** is a servicing release focused on reliable release automation, Windows maintenance/update delivery and an in-app update checker. It keeps the v0.7.0 compatibility/security contract: supported v0.5/v0.6 RCC games continue to run through compatibility adapters rather than being rejected merely because they predate the current API negotiation model.
 
 > **Project rule:** reliability and backward compatibility take priority over forcing old content to migrate. New security boundaries are introduced through scoped adapters, validation and trust provenance rather than by deleting legacy public APIs.
 
 ## Contents
 
-- [Highlights](#v070-highlights)
+- [v0.7.1 highlights](#v071-highlights)
+- [v0.7.0 compatibility baseline](#v070-compatibility-baseline)
 - [Built-in games](#built-in-games)
 - [Architecture](#architecture)
 - [Runtime/content types](#runtime-and-content-types)
@@ -38,7 +39,29 @@ The v0.7.0 line is a **compatibility-first security and SDK upgrade**. A major d
 - [Repository layout](#repository-layout)
 - [Contributing and licensing](#contributing-and-licensing)
 
-## v0.7.0 highlights
+## v0.7.1 highlights
+
+### Release engineering
+
+- `Build Release Artifacts` builds the complete cross-platform artifact set for the exact current `main` commit.
+- A validated `release-assets` aggregation step creates the public GitHub Release payload from an explicit allowlist.
+- `Publish Release` is manual-only and has separate `validate` and `publish` modes. Publish mode requires exact-SHA successful CI/build runs, an authorized publisher, no existing tag/release, and the protected `release` Environment.
+- Publication is transactional: create draft → upload and verify the exact asset set → publish the QtIFW update repository → make the GitHub Release public.
+
+### Installer and application updates
+
+- Windows QtIFW packages use `LeoMiniGamesMaintenance` for update, repair/modify and uninstall operations.
+- Installed Windows builds use the QtIFW repository published to the `updates` branch; portable/other builds use the GitHub Release checker.
+- Stable and Preview channels are SemVer-aware, including `alpha`, `beta` and `rc` prereleases.
+- Update metadata is HTTPS-only, bounded and restricted to approved GitHub hosts.
+
+### Compatibility
+
+- No new game/mod API is required by v0.7.1.
+- v0.5/v0.6/v0.7 RCC compatibility remains part of the release contract.
+- Save Transfer / portable `.lmgsave` work remains intentionally deferred to the v0.8.0 line.
+
+## v0.7.0 compatibility baseline
 
 ### Runtime and compatibility
 
@@ -309,30 +332,28 @@ Platform-specific details are documented in [`BUILDING.md`](BUILDING.md), [`docs
 
 ## Release artifacts
 
-The manual **Build Release Artifacts** workflow creates assets for manual GitHub Releases. It deliberately does not create a release/tag automatically.
+**Build Release Artifacts** is a manual build workflow. It does not publish a GitHub Release by itself; instead it produces platform artifacts plus two internal aggregation artifacts:
 
-| Target | Artifact |
-| --- | --- |
-| Source | deterministic source ZIP + SHA-256 |
-| Windows x86_64 | portable ZIP + QtIFW Setup EXE |
-| Windows ARM64 | portable ZIP + QtIFW Setup EXE |
-| Linux x86_64 | runtime tar.gz + AppImage |
-| Linux ARM64 | runtime tar.gz + AppImage |
-| macOS arm64 | ZIP + DMG |
-| macOS x86_64 | ZIP + DMG |
-| Android 4 ABIs | signed per-ABI APKs |
-| Android arm64 | signed AAB lane |
-| iOS simulators | unsigned arm64/x86_64 ZIPs |
+- `release-assets` — the validated public Release payload;
+- `update-repositories` — the Windows QtIFW repositories used by Maintenance Tool.
 
-Windows packaging runs `windeployqt` before creating the portable archive. The QtIFW application component is `ForcedInstallation` and `Essential` to prevent a maintenance-tool-only install.
+The public asset allowlist for v0.7.1 contains 25 files: the source ZIP; Windows x86_64/ARM64 portable ZIPs and Setup EXEs; three Linux portable tarballs, three AppImages and three native tarballs; three macOS ZIPs and three DMGs; and five Android APKs. AABs, unsigned Apple test bundles, checksum sidecars, legal sidecars and QtIFW repository internals are intentionally excluded from the public GitHub Release asset set.
+
+Windows packaging runs `windeployqt` before creating the portable archive. QtIFW produces hybrid installers so the installed Maintenance Tool can later consume the published update repository.
 
 ## GitHub Actions
 
-`ci.yml` is push/PR validation. It runs static validators first, then expands across desktop/mobile operating systems and architectures.
+Three workflows form the release pipeline:
 
-`build-artifacts.yml` is manual (`workflow_dispatch`) release asset generation. It requires the requested version to match source metadata. **There is no tag-triggered automatic GitHub Release creation.**
+1. `ci.yml` — automatic push/PR validation and cross-platform build/test coverage.
+2. `build-artifacts.yml` — manual exact-source artifact generation; its version is checked against CMake and `release/release.json`.
+3. `publish-release.yml` — manual release gate with `validate` and `publish` modes.
 
-Recent CI fixes include invoking Android target `qt-cmake` through `bash` because some Android Qt archives can lose the executable permission bit, and removing an unnecessary `<QNativeInterface>` include from Android haptics—the Android application native interface is exposed through the Qt Core application header.
+The safe operator flow is: get `main` green → run **Build Release Artifacts** from `main` → run **Publish Release** once with `mode=validate` → run it again with `mode=publish` → approve the `release` Environment deployment if GitHub asks for approval. A `validate` run intentionally shows **Publish approved release** as **Skipped**; that is expected and does not mean the workflow is stuck.
+
+If `main` changes after preflight but before environment approval, publish fails closed and must be restarted against the new exact SHA.
+
+Full instructions and troubleshooting are in [`docs/GITHUB_RELEASES.md`](docs/GITHUB_RELEASES.md). Update architecture is documented in [`docs/UPDATES.md`](docs/UPDATES.md).
 
 ## Android signing in GitHub Actions
 
@@ -369,7 +390,7 @@ python3 tools/security_audit.py
 python3 tools/validate_i18n.py
 python3 tools/validate_distribution.py
 python3 tools/audit_prebuilt_binaries.py
-python3 tools/validate_v070.py
+python3 tools/validate_v071.py
 ```
 
 Qt-enabled CTest adds compiled/runtime-oriented checks including RCC compatibility fixtures. Static PASS is not presented as physical-device verification. Gamer/QA reports explicitly distinguish code review, CI configuration and actual hardware testing.

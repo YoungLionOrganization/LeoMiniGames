@@ -1,4 +1,4 @@
-# Android build — LeoMiniGames 0.7.0
+# Android build — LeoMiniGames 0.7.1
 
 LeoMiniGames' Android target uses Qt's Android `qt-cmake` wrapper and Ninja. The supported project contract is Android SDK Platform 36, Build Tools 36.0.0 and NDK r27c (`27.2.12479018`). Qt 6.10 uses JDK 17+; the supported Qt 6.11 configuration uses JDK 21.
 

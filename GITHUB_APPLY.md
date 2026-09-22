@@ -1,24 +1,44 @@
-# Apply this GitHub patch
+# Applying LeoMiniGames source updates
 
-Overlay this directory on the LeoMiniGames repository root.
+This file describes how to apply a prepared LeoMiniGames source package or patch without reviving obsolete files from older releases.
 
-Recommended flow:
+## Recommended Git flow
 
 ```bash
 git switch main
 git pull --ff-only
-git switch -c github/release-tooling-v070
-# copy this patch directory's contents into the repository root
-git rm --ignore-unmatch LeoMiniGames.zip
-git add .github .gitattributes .gitignore COPYRIGHT NOTICE README.md CONTRIBUTING.md CHANGELOG.md docs licenses mod-sdk tools/package tools/validate_distribution.py
-git commit -m "Fix CI and add release artifact tooling"
-git push -u origin github/release-tooling-v070
+git switch -c maintenance/v0.7.1-docs
+# overlay the prepared files, or apply the supplied patch
+git add -A
+git status
+git diff --cached
+git commit -m "docs: finalize v0.7.1 release guidance"
+git push -u origin maintenance/v0.7.1-docs
 ```
 
-Then open a PR and merge only after CI passes.
+Merge only after CI passes. If the change affects release metadata or build outputs, rerun **Build Release Artifacts** for the new exact `main` SHA before publishing.
 
-`LICENSE` must remain the verbatim GNU GPL v3 text. Project-specific legal text is intentionally stored in separate files.
+## License state
 
-The historical root `LeoMiniGames.zip` should be removed from Git tracking. Generated source/build archives belong in Actions/Release assets.
+The current LeoMiniGames host/core license is `LicenseRef-LMG-SAPEL-1.0` in `LICENSE`. Do **not** restore the historical GPL application license, Plugin Exception or old F-Droid submission material as current policy. Historical valid grants remain documented in `LICENSE_HISTORY.md` and `MIGRATION_FROM_GPL.md`.
 
-The ChatGPT GitHub connection could read this public repository, but its GitHub App installation was not authorized for `YoungLionOrganization`; branch creation returned HTTP 403. Give the GitHub app access to `YoungLionOrganization/LeoMiniGames` before asking ChatGPT to push this patch directly.
+## Generated archives
+
+Do not commit generated source/build ZIPs into the repository root. Generated binaries and source archives belong in GitHub Actions artifacts and GitHub Releases.
+
+## Release after applying a patch
+
+For a release-affecting patch:
+
+1. merge the patch to `main`;
+2. wait for exact-SHA CI success;
+3. rerun **Build Release Artifacts**;
+4. run **Publish Release** with `mode=validate`;
+5. run **Publish Release** with `mode=publish`;
+6. approve the protected `release` Environment if GitHub asks for approval.
+
+See `docs/GITHUB_RELEASES.md` for the canonical operator procedure.
+
+## Connected GitHub tooling
+
+A ChatGPT/GitHub connector may be able to inspect the repository and workflow logs while still lacking repository-content write permission. A `403 Resource not accessible by integration` on branch/file creation is an authorization limitation of that connection, not a Git error in this repository.

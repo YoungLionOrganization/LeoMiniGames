@@ -1,6 +1,12 @@
-# LeoMiniGames v0.7.0 Build Matrix
+# LeoMiniGames v0.7.1 Build Matrix
 
 This matrix distinguishes **configured CI coverage** from **physically verified release behavior**. A successful GitHub Actions job proves that the source builds/packages on that runner; it does not replace real-device QA.
+
+## Current GitHub evidence
+
+As of 2026-09-22, **LeoMiniGames CI #21** and **Build Release Artifacts #9** both completed successfully for exact commit `9943b5c1824b81fad87f2d67741fefd714c869f6`. The first `Publish Release` run completed preflight successfully in validation mode; its publish job was intentionally skipped because `mode=publish` was not selected.
+
+This is CI/build evidence only. It does not convert any platform row into a physical-device verification claim.
 
 | Target | CPU / ABI | Toolchain / runner | CI action | Release artifact |
 | --- | --- | --- | --- | --- |

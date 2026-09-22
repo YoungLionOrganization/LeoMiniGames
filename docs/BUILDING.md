@@ -1,4 +1,4 @@
-# Building LeoMiniGames 0.7.0
+# Building LeoMiniGames 0.7.1
 
 ## Requirements
 
@@ -30,5 +30,9 @@ The repository validators are source/static checks; they do not replace a real Q
 python tools/source_guard.py
 python tools/sanity_check.py
 python tools/validate_project.py
-python tools/validate_v060.py
+python tools/security_audit.py
+python tools/validate_i18n.py
+python tools/validate_distribution.py
+python tools/audit_prebuilt_binaries.py
+python tools/validate_v071.py
 ```

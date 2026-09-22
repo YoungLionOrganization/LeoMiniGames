@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.7.1 — Release, Maintenance and Update Infrastructure
+
+### Release engineering
+- Added canonical release metadata under `release/`, a strict public asset allowlist and deterministic `release-assets` aggregation.
+- Added the guarded manual `Publish Release` workflow with separate validation/publish modes, exact-`main`-SHA CI/build gates, authorized publisher checking, duplicate tag/release protection and protected `release` Environment approval.
+- Publishing now uses a draft-first transaction: validated assets are uploaded and compared exactly before the QtIFW repository is published and the draft is made public.
+- Added rollback protection for the `updates` branch if final GitHub Release publication fails after the QtIFW repository push.
+
+### Installer and updates
+- Windows QtIFW packages are hybrid installers and generate update repositories for x86_64 and ARM64.
+- Added `LeoMiniGamesMaintenance` integration for update, repair/modify and uninstall flows.
+- Added `UpdateService` with Stable/Preview channels, SemVer prerelease comparison, bounded HTTPS GitHub metadata handling and installer/portable-aware update behavior.
+- Fixed Apple mobile builds by keeping the Windows-only `QProcess::startDetached()` Maintenance Tool launch path out of iOS/iPadOS compilation.
+
+### Validation / compatibility
+- Added `validate_v071.py` release/update regression checks.
+- Preserved the v0.5/v0.6/v0.7 game/mod compatibility contract; no v0.7.1 game API migration is required.
+- Save Transfer and the portable `.lmgsave` exchange format remain deferred to v0.8.0.
+
+
 ## 0.7.0 — Compatibility, SDK, Security and Distribution
 
 ### GitHub / release engineering
