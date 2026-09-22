@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.1 — Release, Update Gateway and Developer Lab Servicing
+
+### Fixed
+- Developer Lab no longer validates API keys by calling the publisher content-list endpoint. It uses the dedicated backend `GET /api/v1/developer/auth/verify` contract, preventing valid keys from being rejected because onboarding or `content:read` publication gates are unrelated to local RCC testing.
+- Developer Lab sends the current application version in its User-Agent and validates an explicit `authenticated/key/developer` response contract while preserving redirect, timeout and response-size protections.
+- Android CI/release packaging now retries only recognized transient Gradle distribution/network failures. This addresses the real CI #24 x86_64 failure where the Gradle distribution host returned HTTP 500 without hiding genuine compilation/package failures.
+- Publish Release continues to require an exact-SHA successful CI run. Publish #4 correctly refused publication after CI #24 failed, rather than bypassing the failed release gate.
+
+### Backend integration
+- Added a dedicated Developer Lab API-key verification endpoint and cPanel/FastCGI-safe Authorization-header extraction.
+- Application update metadata/downloads remain routed through `leominigames.younglion.xyz`; GitHub remains a replaceable backend provider rather than a client dependency.
+
 ## 0.7.1 — Release, Maintenance and Update Infrastructure
 
 ### Release engineering

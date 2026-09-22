@@ -54,6 +54,9 @@ def main() -> int:
     build_workflow = text(".github/workflows/build-artifacts.yml")
     publish_workflow = text(".github/workflows/publish-release.yml")
     ci_workflow = text(".github/workflows/ci.yml")
+    developer_cpp = text("src/core/DeveloperManager.cpp")
+    android_retry = text("tools/ci/android_build_with_retry.sh")
+    package_android = text("tools/package/package_android.sh")
 
     package_source = text("tools/package/package_source.py")
 
@@ -113,6 +116,20 @@ def main() -> int:
     require("update-repositories" in build_workflow, "QtIFW update-repositories artifact missing")
     require("tools/validate_v071.py" in build_workflow, "build workflow does not run v0.7.1 validator")
     require("tools/validate_v071.py" in ci_workflow, "CI does not run v0.7.1 validator")
+    require("tools/ci/android_build_with_retry.sh build-android apk" in ci_workflow,
+            "CI Android lanes do not use the transient Gradle/network retry guard")
+    require("gradle-distributions" in android_retry and "HTTP response code: 5" in android_retry
+            and "non-retryable error" in android_retry,
+            "Android retry helper must retry only recognized transient Gradle/network failures")
+    require("android_build_with_retry.sh" in package_android,
+            "Android release packaging does not use the transient Gradle/network retry guard")
+    require("/api/v1/developer/auth/verify" in developer_cpp,
+            "Developer Lab does not use the dedicated API-key verification endpoint")
+    require("/api/v1/developer/contents" not in developer_cpp,
+            "Developer Lab still abuses the content-listing endpoint as an auth probe")
+    require('value(QStringLiteral("authenticated")).toBool(false)' in developer_cpp
+            and 'value(QStringLiteral("key")).isObject()' in developer_cpp,
+            "Developer Lab does not validate the v0.7.1 auth response contract")
 
     require("tools/validate_v071.py" in package_source, "source package script does not run v0.7.1 validator")
     require("tools/validate_v070.py" not in package_source and "tools/validate_v060.py" not in package_source,

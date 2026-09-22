@@ -257,7 +257,8 @@ jobs:
             -DANDROID_ABI="${{ matrix.abi }}" \
             -DANDROID_SDK_ROOT="$ANDROID_SDK_ROOT" \
             -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT"
-      - run: cmake --build build-android --target apk --parallel
+      - name: Build Android APK (retry transient Gradle download failures)
+        run: bash tools/ci/android_build_with_retry.sh build-android apk
 
   android-universal:
     name: Android universal multi-ABI
@@ -298,7 +299,8 @@ jobs:
             -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
             -DQT_ANDROID_BUILD_ALL_ABIS=TRUE \
             -DQT_ANDROID_ABIS="arm64-v8a;armeabi-v7a;x86_64;x86"
-      - run: cmake --build build-android --target apk --parallel
+      - name: Build Android APK (retry transient Gradle download failures)
+        run: bash tools/ci/android_build_with_retry.sh build-android apk
 
   apple-mobile:
     name: ${{ matrix.label }} (unsigned)

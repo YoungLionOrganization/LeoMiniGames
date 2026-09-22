@@ -25,7 +25,7 @@ The audit targeted prior LeoMiniGames regression classes: QML runtime/binding er
 | mod catalog refresh during active row-index callback | wrong-row mutation/race | refresh blocked during resolving/downloading/installing; uninstall/install re-entry guarded |
 | download ticket could cross configured catalog origin | auth/trust boundary drift | ticket endpoint constrained to configured HTTPS origin; redirects constrained |
 | developer key redirect/oversized response | credential leakage / DoS | manual redirect refusal, timeout and 512 KiB response bound |
-| arbitrary 2xx JSON accepted as developer auth | false authenticated session | expected `data.items` response contract required |
+| arbitrary 2xx JSON accepted as developer auth (historical v0.7.0 path) | false authenticated session | originally required the content-list `data.items` shape; superseded in v0.7.1 by the dedicated `/api/v1/developer/auth/verify` contract |
 | local Developer RCC source replaced after validation | TOCTOU | hash, session copy and re-hash before mount |
 | local RCC collides with installed/built-in ID | namespace shadowing | collision rejected |
 | empty stats/achievement game ID opened empty file name | runtime warning | empty path is no-op |
@@ -62,3 +62,14 @@ The audit targeted prior LeoMiniGames regression classes: QML runtime/binding er
 ## Conclusion
 
 No new concrete static/source defect remained after the final audit pass. Production runtime acceptance still requires Qt-enabled CI/CTest plus physical-device Gamer QA; those are explicitly separate from this source audit.
+
+## v0.7.1 follow-up audit — 2026-09-22
+
+| Finding | Evidence / risk | Resolution |
+| --- | --- | --- |
+| Developer Lab used `GET /api/v1/developer/contents` as an API-key validity probe | A valid key could be rejected because that route also requires `content:read`, completed developer onboarding and publisher authorization. Authentication and publishing authorization were incorrectly coupled. | Client now calls dedicated `GET /api/v1/developer/auth/verify`; backend verifies active key + enabled developer + active membership without treating content-list permissions as authentication. |
+| Authorization header handling assumed only `HTTP_AUTHORIZATION` | Apache/cPanel/FastCGI deployments may expose the forwarded bearer value through `REDIRECT_HTTP_AUTHORIZATION` or request headers, producing false `Developer API key required` failures. | Backend bearer parsing accepts the safe server/header variants while preserving strict single-token `Bearer` syntax. |
+| Android CI packaging had no retry for Gradle distribution transport failures | CI #24 Android x86_64 failed only because the Gradle distribution request returned HTTP 500; all source validation and almost every other platform lane succeeded. | Added bounded retry helper that recognizes transport/Gradle-distribution failures only, cleans partial wrapper files and retries. Genuine build failures remain fatal immediately. |
+| Publish workflow was reported as failed after CI #24 | Publish #4 preflight could not find a successful exact-SHA `ci.yml` run for `d22534e...`. | No gate bypass was added. Publish must remain blocked until the exact commit has a green CI; the underlying Android transient-failure handling was fixed instead. |
+
+The Developer Lab fix does not persist raw API keys and does not grant publishing/native/L3 authority. Local RCC security boundaries are unchanged.

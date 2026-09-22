@@ -30,3 +30,11 @@ Static validation passes with no errors. The only expected distribution warning 
 ## Not claimed
 
 This package has not been physically executed on every Windows/Linux/macOS/Android/iOS target in this environment. CI/device success must be confirmed after the final tree is pushed to GitHub and the native workflows run with the required signing credentials.
+
+## 2026-09-22 v0.7.1 workflow follow-up
+
+GitHub CI run `35752864666` (CI #24) at `d22534e2170948f2ab6c0f8b333cec5380e88f6a` had one failed lane: Android x86_64. Compilation/configuration succeeded; `androiddeployqt` failed while the Gradle wrapper fetched `gradle-8.14.3-bin.zip` because the upstream request returned HTTP 500. The same commit's Build Release Artifacts #11 succeeded, confirming this was a transient distribution transport failure rather than a source incompatibility.
+
+Android CI and packaging now use `tools/ci/android_build_with_retry.sh`. It retries only logs matching Gradle-distribution/network failures and does not retry ordinary compile/link/package errors. `Publish Release` remains exact-SHA gated and therefore correctly refused Publish #4 while CI #24 was red.
+
+Full evidence for the current workflow + Developer Lab servicing pass is recorded in `WORKFLOW_DEVELOPER_LAB_FIX_REPORT.md`.

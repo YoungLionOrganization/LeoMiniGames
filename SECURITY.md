@@ -30,7 +30,7 @@ Dynamic native plugin loading is disabled on Android and iOS. Signing/provenance
 
 ## Developer Mode
 
-Local Developer RCC import requires an authenticated developer session. The current compatible path validates a scoped `lmg_...` credential against the canonical developer endpoint. The raw credential is used for that request only and is not persisted by `DeveloperManager` to QSettings or application files.
+Local Developer RCC import requires an authenticated developer session. The current compatible path validates a scoped `lmg_...` credential against the dedicated canonical `/api/v1/developer/auth/verify` endpoint; content-listing permissions are not used as a proxy for authentication. The raw credential is used for that request only and is not persisted by `DeveloperManager` to QSettings or application files.
 
 Authentication redirects are refused, responses are bounded and local RCC files are copied to a hashed session cache and re-hashed before mount. Installed/built-in ID collisions are rejected. Local manifests never receive Native/L3 authority, and Developer-local RCC network access is disabled.
 
