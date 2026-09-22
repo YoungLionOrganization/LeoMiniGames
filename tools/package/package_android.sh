@@ -8,7 +8,7 @@ BUILD_APK="${LMG_BUILD_APK:-1}"
 BUILD_AAB="${LMG_BUILD_AAB:-1}"
 DIST="$ROOT/dist/android"
 ANDROID_BUILD_RETRY="$ROOT/tools/ci/android_build_with_retry.sh"
-[[ -x "$ANDROID_BUILD_RETRY" ]] || { echo "Missing Android retry helper: $ANDROID_BUILD_RETRY" >&2; exit 65; }
+[[ -f "$ANDROID_BUILD_RETRY" ]] || { echo "Missing Android retry helper: $ANDROID_BUILD_RETRY" >&2; exit 65; }
 mkdir -p "$DIST"
 
 LEGAL_ZIP="$DIST/LeoMiniGames-v${VERSION}-Android-Legal.zip"
@@ -38,7 +38,7 @@ with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
 PY
 
 if [[ "$BUILD_APK" == "1" ]]; then
-  "$ANDROID_BUILD_RETRY" "$BUILD_DIR" apk
+  bash "$ANDROID_BUILD_RETRY" "$BUILD_DIR" apk
   APK="$(find "$BUILD_DIR" -type f -name '*.apk' ! -name '*-unsigned.apk' | head -n1)"
   [[ -n "$APK" ]] || APK="$(find "$BUILD_DIR" -type f -name '*.apk' | head -n1)"
   [[ -n "$APK" ]] || { echo 'APK target completed but no APK was found' >&2; exit 2; }
@@ -46,7 +46,7 @@ if [[ "$BUILD_APK" == "1" ]]; then
 fi
 
 if [[ "$BUILD_AAB" == "1" ]]; then
-  "$ANDROID_BUILD_RETRY" "$BUILD_DIR" aab
+  bash "$ANDROID_BUILD_RETRY" "$BUILD_DIR" aab
   AAB="$(find "$BUILD_DIR" -type f -name '*.aab' | head -n1)"
   [[ -n "$AAB" ]] || { echo 'AAB target completed but no AAB was found' >&2; exit 3; }
   cp "$AAB" "$DIST/LeoMiniGames-v${VERSION}-Android-${ABI}.aab"

@@ -84,3 +84,15 @@ Backend validation for the matching delivery:
 - `tools/validate_update_gateway.php`: PASS
 
 No production Developer API key was used and no physical-device QA is claimed. A post-fix GitHub-hosted CI result can only exist after this working tree is committed and pushed.
+
+## 2026-09-22 follow-up: Build Release Artifacts #12
+
+Latest inspected source commit: `2fbd4b7ffc9259c5d3171ff5247d9393e1fa2bbb`.
+
+- LeoMiniGames CI #25 (`35757266231`) completed successfully for the exact SHA.
+- Build Release Artifacts #12 (`35757409242`) reached successful validation and successful Windows, Linux, macOS and most Apple-mobile packaging lanes, but the Android release jobs failed before Gradle execution.
+- The common Android failure was not C++/QML, Gradle, signing or NDK compilation. `tools/package/package_android.sh` required `tools/ci/android_build_with_retry.sh` to have executable permission (`-x`). The exact Git tree stores that helper as a normal `100644` file, so all release Android jobs exited with code 65 despite the helper being present.
+
+The packaging fix uses a normal-file check (`-f`) and invokes the helper through `bash` for both `apk` and `aab`. `validate_v071.py` now enforces this contract so a file-mode regression is caught during the source-validation job instead of in five parallel Android packaging jobs.
+
+A new GitHub-hosted Build Release Artifacts result requires this patched tree to be pushed; this report does not claim an unobserved post-fix hosted-run result.

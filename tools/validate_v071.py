@@ -123,6 +123,12 @@ def main() -> int:
             "Android retry helper must retry only recognized transient Gradle/network failures")
     require("android_build_with_retry.sh" in package_android,
             "Android release packaging does not use the transient Gradle/network retry guard")
+    require('[[ -f "$ANDROID_BUILD_RETRY" ]]' in package_android
+            and '[[ -x "$ANDROID_BUILD_RETRY" ]]' not in package_android,
+            "Android packaging must not require executable permission on the retry helper")
+    require('bash "$ANDROID_BUILD_RETRY" "$BUILD_DIR" apk' in package_android
+            and 'bash "$ANDROID_BUILD_RETRY" "$BUILD_DIR" aab' in package_android,
+            "Android packaging must invoke the retry helper through bash")
     require("/api/v1/developer/auth/verify" in developer_cpp,
             "Developer Lab does not use the dedicated API-key verification endpoint")
     require("/api/v1/developer/contents" not in developer_cpp,

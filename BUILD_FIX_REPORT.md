@@ -38,3 +38,21 @@ GitHub CI run `35752864666` (CI #24) at `d22534e2170948f2ab6c0f8b333cec5380e88f6
 Android CI and packaging now use `tools/ci/android_build_with_retry.sh`. It retries only logs matching Gradle-distribution/network failures and does not retry ordinary compile/link/package errors. `Publish Release` remains exact-SHA gated and therefore correctly refused Publish #4 while CI #24 was red.
 
 Full evidence for the current workflow + Developer Lab servicing pass is recorded in `WORKFLOW_DEVELOPER_LAB_FIX_REPORT.md`.
+
+## 2026-09-22 v0.7.1 release-artifact packaging fix
+
+GitHub Build Release Artifacts #12 (`35757409242`) at commit `2fbd4b7ffc9259c5d3171ff5247d9393e1fa2bbb` exposed a release-only Android packaging regression. The Android source/configuration steps succeeded, but every per-ABI release job and the universal multi-ABI job failed immediately in `tools/package/package_android.sh` with exit code 65:
+
+```text
+Missing Android retry helper: .../tools/ci/android_build_with_retry.sh
+```
+
+The helper was not actually absent. The exact Git tree contains `tools/ci/android_build_with_retry.sh` with mode `100644`. `package_android.sh` incorrectly required `[[ -x ... ]]` and then invoked the script directly. That assumption is unnecessary and is fragile across Git mode handling and ZIP/source-package extraction.
+
+Resolution:
+
+- Android packaging now checks the helper with `[[ -f ... ]]` rather than executable permission.
+- APK and AAB targets invoke the helper explicitly through `bash`, matching CI's already-working invocation model.
+- `validate_v071.py` now rejects a future `-x` dependency and requires both APK/AAB helper calls to use `bash`.
+
+This fix does not weaken build validation and does not retry ordinary compile/link failures. It only removes an irrelevant filesystem-mode precondition from the release packaging path.
