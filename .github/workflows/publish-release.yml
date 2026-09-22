@@ -127,8 +127,11 @@ jobs:
             echo "Tag already exists: $TAG" >&2
             exit 14
           fi
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Release already exists: $TAG" >&2
+          # The tag endpoint intentionally does not expose draft releases. A failed
+          # publish run may therefore leave a recoverable draft with this tag. Only
+          # an already-public release is a hard stop at preflight.
+          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" >/dev/null 2>&1; then
+            echo "Published release already exists: $TAG" >&2
             exit 15
           fi
 
@@ -200,12 +203,13 @@ jobs:
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/${{ needs.preflight.outputs.tag }}" >/dev/null 2>&1; then
             echo "tag appeared after preflight" >&2; exit 21
           fi
-          if gh release view "${{ needs.preflight.outputs.tag }}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "release appeared after preflight" >&2; exit 22
-          fi
+          # An existing draft is recoverable and is handled transactionally by the
+          # next step. A public release would have created the tag and was rejected
+          # above.
           python3 tools/release/validate_release_assets.py _release-assets
 
-      - name: Create draft and upload exact asset set
+      - name: Prepare draft and upload exact asset set
+        id: draft
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.preflight.outputs.tag }}
@@ -215,19 +219,86 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          extra=()
-          [[ "$PRERELEASE" == "true" ]] && extra+=(--prerelease)
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "$TITLE" --notes-file "$NOTES" --draft "${extra[@]}"
+
+          find_release_id() {
+            local page=1
+            while (( page <= 20 )); do
+              local rows count found
+              rows="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100&page=$page")"
+              found="$(RELEASES_JSON="$rows" TAG="$TAG" python3 - <<'PY'
+          import json, os
+          for release in json.loads(os.environ['RELEASES_JSON']):
+              if release.get('tag_name') == os.environ['TAG']:
+                  print(release.get('id', ''))
+                  break
+          PY
+          )"
+              if [[ -n "$found" ]]; then
+                printf '%s\n' "$found"
+                return 0
+              fi
+              count="$(RELEASES_JSON="$rows" python3 - <<'PY'
+          import json, os
+          print(len(json.loads(os.environ['RELEASES_JSON'])))
+          PY
+          )"
+              (( count < 100 )) && break
+              (( page += 1 ))
+            done
+            return 1
+          }
+
+          RELEASE_ID="$(find_release_id || true)"
+          if [[ -n "$RELEASE_ID" ]]; then
+            release_json="$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID")"
+            decision="$(RELEASE_JSON="$release_json" EXPECTED_SHA="$GITHUB_SHA" python3 - <<'PY'
+          import json, os
+          release = json.loads(os.environ['RELEASE_JSON'])
+          if not release.get('draft'):
+              raise SystemExit('existing release is not a recoverable draft')
+          target = str(release.get('target_commitish') or '')
+          print('recover' if target == os.environ['EXPECTED_SHA'] else 'replace-stale')
+          PY
+          )"
+            if [[ "$decision" == "replace-stale" ]]; then
+              echo "Deleting stale draft release id=$RELEASE_ID before publishing current SHA $GITHUB_SHA"
+              gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" >/dev/null
+              RELEASE_ID=""
+            else
+              echo "Recovering existing draft release id=$RELEASE_ID for $TAG"
+              body="$(cat "$NOTES")"
+              gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
+                -f name="$TITLE" -f body="$body" -F draft=true -F prerelease="$PRERELEASE" >/dev/null
+            fi
+          fi
+
+          if [[ -z "$RELEASE_ID" ]]; then
+            extra=()
+            [[ "$PRERELEASE" == "true" ]] && extra+=(--prerelease)
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "$TITLE" --notes-file "$NOTES" --draft "${extra[@]}"
+            RELEASE_ID="$(find_release_id || true)"
+            test -n "$RELEASE_ID" || { echo "Created draft could not be resolved by release id." >&2; exit 22; }
+          fi
+
+          # Retry-safe transaction: remove any assets left by a previously failed
+          # publish attempt, then upload the validated exact set again.
+          while IFS= read -r asset_id; do
+            [[ -z "$asset_id" ]] && continue
+            gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" >/dev/null
+          done < <(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?per_page=100" --jq '.[].id')
+
           gh release upload "$TAG" _release-assets/* --repo "$GITHUB_REPOSITORY"
 
           local_names="$(find _release-assets -maxdepth 1 -type f -printf '%f\n' | sort)"
-          remote_names="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.assets[].name' | sort)"
+          remote_names="$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?per_page=100" --jq '.[].name' | sort)"
           if [[ "$local_names" != "$remote_names" ]]; then
             echo "Uploaded GitHub Release assets do not equal validated local assets." >&2
             diff -u <(printf '%s\n' "$local_names") <(printf '%s\n' "$remote_names") || true
             exit 23
           fi
+
+          echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
 
       - name: Publish QtIFW repository then make draft public
         env:
@@ -235,6 +306,7 @@ jobs:
           TAG: ${{ needs.preflight.outputs.tag }}
           TRACK: ${{ needs.preflight.outputs.update_track }}
           PRERELEASE: ${{ needs.preflight.outputs.prerelease }}
+          RELEASE_ID: ${{ steps.draft.outputs.release_id }}
         shell: bash
         run: |
           set -euo pipefail
@@ -270,7 +342,7 @@ jobs:
             echo "$NEW_UPDATES_SHA" > "$RUNNER_TEMP/new-updates-sha"
           )
 
-          RELEASE_ID="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.id')"
+          test -n "$RELEASE_ID" || { echo "Missing draft release id." >&2; exit 24; }
           if ! gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
               -F draft=false -F prerelease="$PRERELEASE" >/dev/null; then
             echo "Failed to publish draft; attempting update-repository rollback." >&2

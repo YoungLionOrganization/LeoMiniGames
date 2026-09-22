@@ -222,7 +222,7 @@ Item {
                 width: parent.width - Constants.u32
                 anchors.horizontalCenter: parent.horizontalCenter
                 title: qsTr("Updates")
-                subtitle: qsTr("Check GitHub for LeoMiniGames application updates.")
+                subtitle: qsTr("Check LeoMiniGames Update Service for application updates.")
 
                 Column {
                     width: parent.width
@@ -279,7 +279,7 @@ Item {
                         width: parent.width
                         text: Updates.maintenanceAvailable
                               ? qsTr("Installed build · updates are applied by LeoMiniGames Maintenance.")
-                              : qsTr("Portable build · updates open the matching GitHub release package.")
+                              : qsTr("Portable build · updates download through LeoMiniGames Update Service.")
                         color: Constants.textMuted
                         font.pixelSize: Constants.u10
                         wrapMode: Text.WordWrap

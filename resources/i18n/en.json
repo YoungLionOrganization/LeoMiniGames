@@ -1,5 +1,14 @@
 {
   "language": "English",
   "app_name": "LeoMiniGames",
-  "coming_soon": true
+  "coming_soon": true,
+  "Check LeoMiniGames Update Service for application updates.": "Check LeoMiniGames Update Service for application updates.",
+  "Portable build · updates download through LeoMiniGames Update Service.": "Portable build · updates download through LeoMiniGames Update Service.",
+  "Updates are not available for this platform.": "Updates are not available for this platform.",
+  "Could not check the LeoMiniGames update service.": "Could not check the LeoMiniGames update service.",
+  "The update service returned invalid metadata.": "The update service returned invalid metadata.",
+  "The update service could not resolve an update.": "The update service could not resolve an update.",
+  "The update service returned an unsupported metadata contract.": "The update service returned an unsupported metadata contract.",
+  "The update download URL failed validation.": "The update download URL failed validation.",
+  "The maintenance repository URL failed validation.": "The maintenance repository URL failed validation."
 }

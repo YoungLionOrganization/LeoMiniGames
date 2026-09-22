@@ -66,7 +66,7 @@ Copy-Item (Join-Path $Stage '*') $PackageData -Recurse -Force
 
 $ConfigPath = Join-Path $ConfigDir 'config.xml'
 $PackageXmlPath = Join-Path $PackageMeta 'package.xml'
-$RepoUrl = "https://raw.githubusercontent.com/YoungLionOrganization/LeoMiniGames/updates/$UpdateTrack/windows/$Suffix"
+$RepoUrl = "https://leominigames.younglion.xyz/updates/qtifw/$UpdateTrack/windows/$Suffix"
 $ReleaseDate = if ($env:LMG_RELEASE_DATE) { $env:LMG_RELEASE_DATE } else { (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd') }
 
 $ConfigText = Get-Content $ConfigPath -Raw -Encoding UTF8

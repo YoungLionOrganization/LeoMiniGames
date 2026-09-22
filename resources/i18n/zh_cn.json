@@ -31,7 +31,6 @@
   "UPDATE": "更新",
   "REINSTALL": "重新安装",
   "Updates": "更新",
-  "Check GitHub for LeoMiniGames application updates.": "通过 GitHub 检查 LeoMiniGames 应用更新。",
   "Update channel": "更新通道",
   "Stable": "稳定版",
   "Preview": "预览版",
@@ -42,10 +41,18 @@
   "Update check failed: %1": "检查更新失败：%1",
   "Current version: %1": "当前版本：%1",
   "Installed build · updates are applied by LeoMiniGames Maintenance.": "已安装版本 · 更新由 LeoMiniGames Maintenance 应用。",
-  "Portable build · updates open the matching GitHub release package.": "便携版本 · 更新会打开对应的 GitHub Release 软件包。",
   "Checking…": "正在检查…",
   "Check for updates": "检查更新",
   "Open updater": "打开更新程序",
   "Download update": "下载更新",
-  "Release notes": "发行说明"
+  "Release notes": "发行说明",
+  "Check LeoMiniGames Update Service for application updates.": "通过 LeoMiniGames 更新服务检查应用更新。",
+  "Portable build · updates download through LeoMiniGames Update Service.": "便携版本 · 更新通过 LeoMiniGames 更新服务下载。",
+  "Updates are not available for this platform.": "此平台暂无可用更新。",
+  "Could not check the LeoMiniGames update service.": "无法检查 LeoMiniGames 更新服务。",
+  "The update service returned invalid metadata.": "更新服务返回了无效的元数据。",
+  "The update service could not resolve an update.": "更新服务无法确定可用更新。",
+  "The update service returned an unsupported metadata contract.": "更新服务返回了不受支持的元数据协议。",
+  "The update download URL failed validation.": "更新下载 URL 验证失败。",
+  "The maintenance repository URL failed validation.": "维护仓库 URL 验证失败。"
 }

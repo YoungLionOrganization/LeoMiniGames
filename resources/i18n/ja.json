@@ -31,7 +31,6 @@
   "UPDATE": "更新",
   "REINSTALL": "再インストール",
   "Updates": "アップデート",
-  "Check GitHub for LeoMiniGames application updates.": "GitHub で LeoMiniGames のアプリ更新を確認します。",
   "Update channel": "更新チャンネル",
   "Stable": "安定版",
   "Preview": "プレビュー",
@@ -42,10 +41,18 @@
   "Update check failed: %1": "更新の確認に失敗しました: %1",
   "Current version: %1": "現在のバージョン: %1",
   "Installed build · updates are applied by LeoMiniGames Maintenance.": "インストール版 · 更新は LeoMiniGames Maintenance で適用されます。",
-  "Portable build · updates open the matching GitHub release package.": "ポータブル版 · 対応する GitHub Release パッケージを開きます。",
   "Checking…": "確認中…",
   "Check for updates": "更新を確認",
   "Open updater": "アップデーターを開く",
   "Download update": "更新をダウンロード",
-  "Release notes": "リリースノート"
+  "Release notes": "リリースノート",
+  "Check LeoMiniGames Update Service for application updates.": "LeoMiniGames Update Service でアプリの更新を確認します。",
+  "Portable build · updates download through LeoMiniGames Update Service.": "ポータブル版 · 更新は LeoMiniGames Update Service 経由でダウンロードされます。",
+  "Updates are not available for this platform.": "このプラットフォームでは更新を利用できません。",
+  "Could not check the LeoMiniGames update service.": "LeoMiniGames Update Service を確認できませんでした。",
+  "The update service returned invalid metadata.": "更新サービスが無効なメタデータを返しました。",
+  "The update service could not resolve an update.": "更新サービスが利用可能な更新を特定できませんでした。",
+  "The update service returned an unsupported metadata contract.": "更新サービスが未対応のメタデータ契約を返しました。",
+  "The update download URL failed validation.": "更新ダウンロード URL の検証に失敗しました。",
+  "The maintenance repository URL failed validation.": "メンテナンスリポジトリ URL の検証に失敗しました。"
 }

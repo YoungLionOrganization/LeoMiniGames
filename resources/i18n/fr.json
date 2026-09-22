@@ -32,7 +32,6 @@
   "REINSTALL": "RÉINSTALLER",
   "No mods are published yet.": "Aucun mod publié pour le moment.",
   "Updates": "Mises à jour",
-  "Check GitHub for LeoMiniGames application updates.": "Rechercher les mises à jour de LeoMiniGames sur GitHub.",
   "Update channel": "Canal de mise à jour",
   "Stable": "Stable",
   "Preview": "Aperçu",
@@ -43,10 +42,18 @@
   "Update check failed: %1": "Échec de la recherche de mises à jour : %1",
   "Current version: %1": "Version actuelle : %1",
   "Installed build · updates are applied by LeoMiniGames Maintenance.": "Version installée · les mises à jour sont appliquées par LeoMiniGames Maintenance.",
-  "Portable build · updates open the matching GitHub release package.": "Version portable · les mises à jour ouvrent le paquet GitHub Release correspondant.",
   "Checking…": "Vérification…",
   "Check for updates": "Rechercher des mises à jour",
   "Open updater": "Ouvrir le programme de mise à jour",
   "Download update": "Télécharger la mise à jour",
-  "Release notes": "Notes de version"
+  "Release notes": "Notes de version",
+  "Check LeoMiniGames Update Service for application updates.": "Rechercher les mises à jour via le service de mise à jour LeoMiniGames.",
+  "Portable build · updates download through LeoMiniGames Update Service.": "Version portable · les mises à jour sont téléchargées via le service de mise à jour LeoMiniGames.",
+  "Updates are not available for this platform.": "Les mises à jour ne sont pas disponibles pour cette plateforme.",
+  "Could not check the LeoMiniGames update service.": "Impossible de vérifier le service de mise à jour LeoMiniGames.",
+  "The update service returned invalid metadata.": "Le service de mise à jour a renvoyé des métadonnées non valides.",
+  "The update service could not resolve an update.": "Le service de mise à jour n’a pas pu déterminer une mise à jour.",
+  "The update service returned an unsupported metadata contract.": "Le service de mise à jour a renvoyé un contrat de métadonnées non pris en charge.",
+  "The update download URL failed validation.": "L’URL de téléchargement de la mise à jour a échoué à la validation.",
+  "The maintenance repository URL failed validation.": "L’URL du dépôt de maintenance a échoué à la validation."
 }

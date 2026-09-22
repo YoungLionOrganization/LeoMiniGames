@@ -31,7 +31,6 @@
   "UPDATE": "ATUALIZAR",
   "REINSTALL": "REINSTALAR",
   "Updates": "Atualizações",
-  "Check GitHub for LeoMiniGames application updates.": "Verificar atualizações do LeoMiniGames no GitHub.",
   "Update channel": "Canal de atualização",
   "Stable": "Estável",
   "Preview": "Pré-visualização",
@@ -42,10 +41,18 @@
   "Update check failed: %1": "Falha ao verificar atualizações: %1",
   "Current version: %1": "Versão atual: %1",
   "Installed build · updates are applied by LeoMiniGames Maintenance.": "Versão instalada · as atualizações são aplicadas pelo LeoMiniGames Maintenance.",
-  "Portable build · updates open the matching GitHub release package.": "Versão portátil · as atualizações abrem o pacote correspondente no GitHub Release.",
   "Checking…": "A verificar…",
   "Check for updates": "Verificar atualizações",
   "Open updater": "Abrir atualizador",
   "Download update": "Transferir atualização",
-  "Release notes": "Notas da versão"
+  "Release notes": "Notas da versão",
+  "Check LeoMiniGames Update Service for application updates.": "Verificar atualizações pelo Serviço de Atualização do LeoMiniGames.",
+  "Portable build · updates download through LeoMiniGames Update Service.": "Versão portátil · as atualizações são baixadas pelo Serviço de Atualização do LeoMiniGames.",
+  "Updates are not available for this platform.": "As atualizações não estão disponíveis para esta plataforma.",
+  "Could not check the LeoMiniGames update service.": "Não foi possível consultar o Serviço de Atualização do LeoMiniGames.",
+  "The update service returned invalid metadata.": "O serviço de atualização retornou metadados inválidos.",
+  "The update service could not resolve an update.": "O serviço de atualização não conseguiu determinar uma atualização.",
+  "The update service returned an unsupported metadata contract.": "O serviço de atualização retornou um contrato de metadados não suportado.",
+  "The update download URL failed validation.": "A URL de download da atualização falhou na validação.",
+  "The maintenance repository URL failed validation.": "A URL do repositório de manutenção falhou na validação."
 }

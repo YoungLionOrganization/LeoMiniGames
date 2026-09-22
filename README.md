@@ -330,6 +330,10 @@ ctest --test-dir build --output-on-failure
 
 Platform-specific details are documented in [`BUILDING.md`](BUILDING.md), [`docs/BUILDING.md`](docs/BUILDING.md) and [`BUILD_MATRIX.md`](BUILD_MATRIX.md).
 
+## Update service boundary
+
+Application update discovery and downloads are resolved through `https://leominigames.younglion.xyz`, not directly through GitHub. The backend currently uses the YoungLionOrganization/LeoMiniGames GitHub repository as its upstream provider, but clients consume the versioned `leominigames-update-v1` contract and backend-proxied package/QtIFW URLs. This keeps a future move to R2 or another distribution backend server-side. See [`docs/UPDATES.md`](docs/UPDATES.md).
+
 ## Release artifacts
 
 **Build Release Artifacts** is a manual build workflow. It does not publish a GitHub Release by itself; instead it produces platform artifacts plus two internal aggregation artifacts:

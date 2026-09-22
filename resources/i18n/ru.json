@@ -32,7 +32,6 @@
   "REINSTALL": "ПЕРЕУСТАНОВИТЬ",
   "No mods are published yet.": "Пока нет опубликованных модов.",
   "Updates": "Обновления",
-  "Check GitHub for LeoMiniGames application updates.": "Проверять обновления LeoMiniGames через GitHub.",
   "Update channel": "Канал обновлений",
   "Stable": "Стабильный",
   "Preview": "Предварительный",
@@ -43,10 +42,18 @@
   "Update check failed: %1": "Не удалось проверить обновления: %1",
   "Current version: %1": "Текущая версия: %1",
   "Installed build · updates are applied by LeoMiniGames Maintenance.": "Установленная версия · обновления применяются через LeoMiniGames Maintenance.",
-  "Portable build · updates open the matching GitHub release package.": "Портативная версия · обновление открывает соответствующий пакет GitHub Release.",
   "Checking…": "Проверка…",
   "Check for updates": "Проверить обновления",
   "Open updater": "Открыть средство обновления",
   "Download update": "Скачать обновление",
-  "Release notes": "Примечания к выпуску"
+  "Release notes": "Примечания к выпуску",
+  "Check LeoMiniGames Update Service for application updates.": "Проверять обновления приложения через службу обновлений LeoMiniGames.",
+  "Portable build · updates download through LeoMiniGames Update Service.": "Портативная версия · обновления загружаются через службу обновлений LeoMiniGames.",
+  "Updates are not available for this platform.": "Обновления недоступны для этой платформы.",
+  "Could not check the LeoMiniGames update service.": "Не удалось проверить службу обновлений LeoMiniGames.",
+  "The update service returned invalid metadata.": "Служба обновлений вернула недопустимые метаданные.",
+  "The update service could not resolve an update.": "Служба обновлений не смогла определить доступное обновление.",
+  "The update service returned an unsupported metadata contract.": "Служба обновлений вернула неподдерживаемый формат метаданных.",
+  "The update download URL failed validation.": "URL загрузки обновления не прошёл проверку.",
+  "The maintenance repository URL failed validation.": "URL репозитория обслуживания не прошёл проверку."
 }

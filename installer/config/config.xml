@@ -30,7 +30,7 @@
         <Repository>
             <Url>@LMG_UPDATE_REPOSITORY_URL@</Url>
             <Enabled>1</Enabled>
-            <DisplayName>LeoMiniGames GitHub Updates</DisplayName>
+            <DisplayName>LeoMiniGames Update Service</DisplayName>
         </Repository>
     </RemoteRepositories>
 

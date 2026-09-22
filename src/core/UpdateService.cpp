@@ -3,11 +3,10 @@
 #include "SettingsManager.h"
 
 #include <QCoreApplication>
-#include <QDesktopServices>
 #include <QDateTime>
+#include <QDesktopServices>
 #include <QDir>
 #include <QFileInfo>
-#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkAccessManager>
@@ -19,12 +18,12 @@
 #include <QRegularExpression>
 #include <QSysInfo>
 #include <QTimer>
+#include <QUrlQuery>
 
 namespace {
 constexpr qint64 kMaxUpdateMetadataBytes = 2 * 1024 * 1024;
 constexpr qint64 kAutomaticCheckIntervalSeconds = 12 * 60 * 60;
-const QUrl kLatestStableReleaseUrl(QStringLiteral("https://api.github.com/repos/YoungLionOrganization/LeoMiniGames/releases/latest"));
-const QUrl kReleaseListUrl(QStringLiteral("https://api.github.com/repos/YoungLionOrganization/LeoMiniGames/releases?per_page=20"));
+const QUrl kUpdateGatewayUrl(QStringLiteral("https://leominigames.younglion.xyz/api/v1/updates/v1/check"));
 
 struct SemVer {
     int major = 0;
@@ -104,16 +103,23 @@ QString normalizedArchitecture()
     if (arch == QStringLiteral("i386") || arch == QStringLiteral("i686") || arch == QStringLiteral("x86"))
         return QStringLiteral("x86");
     if (arch.contains(QStringLiteral("arm")))
-        return QStringLiteral("armeabi-v7a");
+        return QStringLiteral("armv7");
     return arch;
 }
 
-QString releaseTagVersion(const QJsonObject &release)
+QString platformName()
 {
-    QString tag = release.value(QStringLiteral("tag_name")).toString().trimmed();
-    if (tag.startsWith(QLatin1Char('v'), Qt::CaseInsensitive))
-        tag.remove(0, 1);
-    return tag;
+#if defined(Q_OS_WIN)
+    return QStringLiteral("windows");
+#elif defined(Q_OS_ANDROID)
+    return QStringLiteral("android");
+#elif defined(Q_OS_MACOS)
+    return QStringLiteral("macos");
+#elif defined(Q_OS_LINUX)
+    return QStringLiteral("linux");
+#else
+    return QStringLiteral("unsupported");
+#endif
 }
 }
 
@@ -180,6 +186,7 @@ void UpdateService::clearResult()
     m_releaseNotes.clear();
     m_releaseUrl = QUrl{};
     m_downloadUrl = QUrl{};
+    m_maintenanceRepositoryUrl = QUrl{};
     m_errorString.clear();
     m_status = QStringLiteral("idle");
     m_checking = false;
@@ -203,6 +210,10 @@ void UpdateService::checkForUpdates()
 {
     if (m_checking)
         return;
+    if (platformName() == QStringLiteral("unsupported")) {
+        finishWithError(tr("Updates are not available for this platform."));
+        return;
+    }
 
     m_errorString.clear();
     m_status = QStringLiteral("checking");
@@ -210,24 +221,30 @@ void UpdateService::checkForUpdates()
     m_updateAvailable = false;
     emit updateStateChanged();
 
-    const QUrl endpoint = m_channel == QStringLiteral("preview") ? kReleaseListUrl : kLatestStableReleaseUrl;
+    QUrl endpoint = kUpdateGatewayUrl;
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("channel"), m_channel);
+    query.addQueryItem(QStringLiteral("platform"), platformName());
+    query.addQueryItem(QStringLiteral("arch"), normalizedArchitecture());
+    query.addQueryItem(QStringLiteral("install"), installType());
+    query.addQueryItem(QStringLiteral("current"), currentVersion());
+    endpoint.setQuery(query);
+
     QNetworkRequest request(endpoint);
     request.setHeader(QNetworkRequest::UserAgentHeader,
                       QStringLiteral("LeoMiniGames/%1 update-check").arg(currentVersion()));
-    request.setRawHeader("Accept", "application/vnd.github+json");
-    request.setRawHeader("X-GitHub-Api-Version", "2022-11-28");
+    request.setRawHeader("Accept", "application/json");
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
     m_reply = m_network->get(request);
+
     QTimer *timeout = new QTimer(m_reply);
     timeout->setSingleShot(true);
     timeout->setInterval(15000);
     connect(timeout, &QTimer::timeout, m_reply, &QNetworkReply::abort);
     timeout->start();
     connect(m_reply, &QNetworkReply::downloadProgress, this, [this](qint64 received, qint64) {
-        if (m_reply) {
-            if (received > kMaxUpdateMetadataBytes)
-                m_reply->abort();
-        }
+        if (m_reply && received > kMaxUpdateMetadataBytes)
+            m_reply->abort();
     });
     connect(m_reply, &QNetworkReply::finished, this, [this] {
         QNetworkReply *reply = m_reply;
@@ -242,140 +259,87 @@ void UpdateService::checkForUpdates()
         reply->deleteLater();
 
         m_checking = false;
-        if (!isAllowedGitHubUrl(finalUrl)) {
+        if (!isAllowedUpdateUrl(finalUrl)) {
             finishWithError(tr("The update request was redirected to an untrusted host."));
             return;
         }
         if (networkError != QNetworkReply::NoError || httpStatus < 200 || httpStatus >= 300) {
             finishWithError(networkError == QNetworkReply::OperationCanceledError
                                 ? tr("Update metadata was too large or the request was cancelled.")
-                                : tr("Could not check GitHub for updates."));
+                                : tr("Could not check the LeoMiniGames update service."));
             return;
         }
         if (payload.size() > kMaxUpdateMetadataBytes) {
             finishWithError(tr("Update metadata exceeded the safety limit."));
             return;
         }
-
-        if (m_channel == QStringLiteral("preview"))
-            parseReleaseList(payload);
-        else
-            parseStableRelease(payload);
+        parseGatewayResponse(payload);
     });
 }
 
-void UpdateService::parseStableRelease(const QByteArray &payload)
+void UpdateService::parseGatewayResponse(const QByteArray &payload)
 {
     QJsonParseError error{};
     const QJsonDocument document = QJsonDocument::fromJson(payload, &error);
     if (error.error != QJsonParseError::NoError || !document.isObject()) {
-        finishWithError(tr("GitHub returned invalid update metadata."));
-        return;
-    }
-    applyRelease(document.object());
-}
-
-void UpdateService::parseReleaseList(const QByteArray &payload)
-{
-    QJsonParseError error{};
-    const QJsonDocument document = QJsonDocument::fromJson(payload, &error);
-    if (error.error != QJsonParseError::NoError || !document.isArray()) {
-        finishWithError(tr("GitHub returned invalid update metadata."));
+        finishWithError(tr("The update service returned invalid metadata."));
         return;
     }
 
-    QJsonObject best;
-    SemVer bestVersion;
-    for (const QJsonValue &value : document.array()) {
-        if (!value.isObject())
-            continue;
-        const QJsonObject release = value.toObject();
-        if (release.value(QStringLiteral("draft")).toBool())
-            continue;
-        const SemVer candidate = parseSemVer(release.value(QStringLiteral("tag_name")).toString());
-        if (!candidate.valid)
-            continue;
-        if (!bestVersion.valid || compareSemVer(candidate, bestVersion) > 0) {
-            best = release;
-            bestVersion = candidate;
-        }
-    }
-    if (best.isEmpty()) {
-        finishWithError(tr("No compatible GitHub release metadata was found."));
+    const QJsonObject root = document.object();
+    if (!root.value(QStringLiteral("ok")).toBool()) {
+        finishWithError(tr("The update service could not resolve an update."));
         return;
     }
-    applyRelease(best);
-}
+    const QJsonObject data = root.value(QStringLiteral("data")).toObject();
+    if (data.value(QStringLiteral("schema")).toInt() != 1
+        || data.value(QStringLiteral("provider_contract")).toString() != QStringLiteral("leominigames-update-v1")) {
+        finishWithError(tr("The update service returned an unsupported metadata contract."));
+        return;
+    }
 
-void UpdateService::applyRelease(const QJsonObject &release)
-{
-    const QString remoteVersionText = releaseTagVersion(release);
+    const QJsonObject release = data.value(QStringLiteral("release")).toObject();
+    const QString remoteVersionText = release.value(QStringLiteral("version")).toString().trimmed();
     const SemVer localVersion = parseSemVer(currentVersion());
     const SemVer remoteVersion = parseSemVer(remoteVersionText);
-    const QUrl releaseUrl(release.value(QStringLiteral("html_url")).toString());
+    const QUrl releaseUrl(release.value(QStringLiteral("page_url")).toString());
+    const QJsonObject download = data.value(QStringLiteral("download")).toObject();
+    const QUrl downloadUrl(download.value(QStringLiteral("url")).toString());
+    const QUrl maintenanceUrl(data.value(QStringLiteral("maintenance_repository_url")).toString());
 
-    if (!localVersion.valid || !remoteVersion.valid || !isAllowedGitHubUrl(releaseUrl)) {
+    if (!localVersion.valid || !remoteVersion.valid || !isAllowedUpdateUrl(releaseUrl)) {
         finishWithError(tr("The release metadata failed validation."));
+        return;
+    }
+    if (downloadUrl.isValid() && !downloadUrl.isEmpty() && !isAllowedUpdateUrl(downloadUrl)) {
+        finishWithError(tr("The update download URL failed validation."));
+        return;
+    }
+    if (maintenanceUrl.isValid() && !maintenanceUrl.isEmpty() && !isAllowedUpdateUrl(maintenanceUrl)) {
+        finishWithError(tr("The maintenance repository URL failed validation."));
         return;
     }
 
     m_latestVersion = remoteVersionText;
-    m_releaseName = release.value(QStringLiteral("name")).toString();
-    if (m_releaseName.trimmed().isEmpty())
+    m_releaseName = release.value(QStringLiteral("name")).toString().trimmed();
+    if (m_releaseName.isEmpty())
         m_releaseName = QStringLiteral("LeoMiniGames v%1").arg(remoteVersionText);
-    m_releaseNotes = release.value(QStringLiteral("body")).toString();
+    m_releaseNotes = release.value(QStringLiteral("notes")).toString();
     m_releaseUrl = releaseUrl;
-    m_downloadUrl = selectDownloadUrl(release);
+    m_downloadUrl = downloadUrl;
+    m_maintenanceRepositoryUrl = maintenanceUrl;
     m_updateAvailable = compareSemVer(remoteVersion, localVersion) > 0;
     m_errorString.clear();
     m_status = m_updateAvailable ? QStringLiteral("available") : QStringLiteral("up-to-date");
     emit updateStateChanged();
 }
 
-QUrl UpdateService::selectDownloadUrl(const QJsonObject &release) const
-{
-    const QJsonArray assets = release.value(QStringLiteral("assets")).toArray();
-    const QString arch = normalizedArchitecture();
-    QStringList preferredFragments;
-#if defined(Q_OS_WIN)
-    preferredFragments << QStringLiteral("Windows-%1.zip").arg(arch == QStringLiteral("arm64") ? QStringLiteral("ARM64") : arch);
-#elif defined(Q_OS_ANDROID)
-    preferredFragments << QStringLiteral("Android-universal.apk");
-    if (arch == QStringLiteral("arm64"))
-        preferredFragments << QStringLiteral("Android-arm64-v8a.apk");
-    else if (arch == QStringLiteral("x86_64"))
-        preferredFragments << QStringLiteral("Android-x86_64.apk");
-#elif defined(Q_OS_MACOS)
-    preferredFragments << QStringLiteral("macOS-universal.dmg") << QStringLiteral("macOS-%1.dmg").arg(arch);
-#elif defined(Q_OS_LINUX)
-    preferredFragments << QStringLiteral("Ubuntu-24.04-%1.AppImage").arg(arch)
-                       << QStringLiteral("Linux-Ubuntu-24.04-%1.tar.gz").arg(arch);
-#endif
-
-    for (const QString &fragment : preferredFragments) {
-        for (const QJsonValue &assetValue : assets) {
-            const QJsonObject asset = assetValue.toObject();
-            const QString name = asset.value(QStringLiteral("name")).toString();
-            if (!name.endsWith(fragment, Qt::CaseInsensitive))
-                continue;
-            const QUrl url(asset.value(QStringLiteral("browser_download_url")).toString());
-            if (isAllowedGitHubUrl(url))
-                return url;
-        }
-    }
-    return QUrl{};
-}
-
 QUrl UpdateService::maintenanceRepositoryUrl() const
 {
-#if !defined(Q_OS_WIN)
-    return QUrl{};
+#if defined(Q_OS_WIN)
+    return m_maintenanceRepositoryUrl;
 #else
-    const QString architecture = normalizedArchitecture() == QStringLiteral("arm64")
-        ? QStringLiteral("ARM64") : QStringLiteral("x86_64");
-    const QString track = m_channel == QStringLiteral("preview") ? QStringLiteral("preview") : QStringLiteral("stable");
-    return QUrl(QStringLiteral("https://raw.githubusercontent.com/YoungLionOrganization/LeoMiniGames/updates/%1/windows/%2")
-                    .arg(track, architecture));
+    return QUrl{};
 #endif
 }
 
@@ -386,7 +350,7 @@ bool UpdateService::launchMaintenance()
     if (tool.isEmpty())
         return false;
     const QUrl repository = maintenanceRepositoryUrl();
-    if (!repository.isValid() || repository.scheme() != QStringLiteral("https"))
+    if (!isAllowedUpdateUrl(repository))
         return false;
 
     const QStringList arguments{
@@ -403,14 +367,14 @@ bool UpdateService::openUpdate()
 {
     if (maintenanceAvailable() && launchMaintenance())
         return true;
-    if (m_downloadUrl.isValid() && isAllowedGitHubUrl(m_downloadUrl))
+    if (m_downloadUrl.isValid() && isAllowedUpdateUrl(m_downloadUrl))
         return QDesktopServices::openUrl(m_downloadUrl);
     return openReleasePage();
 }
 
 bool UpdateService::openReleasePage()
 {
-    return m_releaseUrl.isValid() && isAllowedGitHubUrl(m_releaseUrl)
+    return m_releaseUrl.isValid() && isAllowedUpdateUrl(m_releaseUrl)
         ? QDesktopServices::openUrl(m_releaseUrl) : false;
 }
 
@@ -423,14 +387,13 @@ void UpdateService::finishWithError(const QString &message)
     emit updateStateChanged();
 }
 
-bool UpdateService::isAllowedGitHubUrl(const QUrl &url)
+bool UpdateService::isAllowedUpdateUrl(const QUrl &url)
 {
     if (!url.isValid() || url.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0)
         return false;
-    const QString host = url.host().toLower();
-    return host == QStringLiteral("github.com")
-        || host == QStringLiteral("api.github.com")
-        || host == QStringLiteral("objects.githubusercontent.com")
-        || host == QStringLiteral("github-releases.githubusercontent.com")
-        || host == QStringLiteral("raw.githubusercontent.com");
+    if (!url.userInfo().isEmpty() || url.host().compare(QStringLiteral("leominigames.younglion.xyz"), Qt::CaseInsensitive) != 0)
+        return false;
+    const QString path = url.path();
+    return path.startsWith(QStringLiteral("/api/v1/updates/"))
+        || path.startsWith(QStringLiteral("/updates/"));
 }

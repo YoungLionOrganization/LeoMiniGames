@@ -123,9 +123,9 @@ The protected `release` Environment is waiting for a reviewer. Use **Review depl
 
 Someone pushed to `main` while the release waited for approval. This is fail-closed behavior. Run CI and Build Release Artifacts for the new `main` SHA, then rerun Publish Release.
 
-### It fails because a tag or release already exists
+### It fails because a tag or public release already exists
 
-Do not bypass the guard. Determine whether the existing tag/release is the intended immutable publication or a mistaken partial release. The workflow intentionally refuses to overwrite an existing release identity.
+A real tag or already-public release remains immutable and is a hard stop. A **draft** with the same tag is different: the workflow now recovers it when it targets the current exact SHA, or deletes/replaces it when it is a stale draft from an older pre-release SHA. Do not manually overwrite an already-public release.
 
 ### No successful exact-SHA workflow is found
 
@@ -153,11 +153,18 @@ Retain the correct signing/upload key for application update continuity. If Goog
 
 ## Current v0.7.1 state
 
-At commit `9943b5c1824b81fad87f2d67741fefd714c869f6` on 2026-09-22:
+The most recent inspected release candidate before this workflow fix was commit `bd9bd54833850a0a74cf5d9fd504c6833a15f522` on 2026-09-22:
 
-- LeoMiniGames CI #21: **success**
-- Build Release Artifacts #9: **success**
-- Publish Release #1 preflight: **success**
-- Publish Release #1 publish job: **skipped by validation mode**
+- LeoMiniGames CI #23: **success**
+- Build Release Artifacts #10: **success**
+- Publish Release #3 preflight: **success**
+- Publish Release #3 publish job: **failed after draft creation/upload** because the workflow tried to resolve the still-draft release through `releases/tags/v0.7.1`, which returned HTTP 404.
 
-Therefore the next publication action is to run **Publish Release** with `mode=publish`, then approve the `release` Environment if GitHub requests approval.
+The corrected workflow carries the numeric draft release ID instead. After this fix is committed, the commit SHA changes, so CI and **Build Release Artifacts** must be run again for the new exact SHA before `Publish Release` is run in `publish` mode.
+
+## v0.7.1 draft-release retry behavior
+
+The publish transaction is retry-safe. GitHub does not expose a draft release through the normal `releases/tags/{tag}` REST lookup used for published releases. A failed publish can therefore leave an `untagged-*` draft even though the final tag does not exist yet. The workflow resolves drafts from the release collection, recovers a draft that targets the exact current `main` SHA, removes any partial asset set, re-uploads the validated assets, and carries the numeric release ID into the final publish step. If a draft with the same tag targets an older SHA, the authorized publish transaction deletes that stale draft and creates a fresh draft for the current exact SHA.
+
+If `Prepare draft and upload exact asset set` fails, fix the source/workflow issue, obtain successful CI and **Build Release Artifacts** for the resulting exact SHA, and rerun `Publish Release` in `publish` mode.
+

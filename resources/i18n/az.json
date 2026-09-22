@@ -133,7 +133,6 @@
   "Catalog is unavailable.\nCheck your connection or try Refresh.": "Kataloq əlçatan deyil.\nBağlantını yoxla və ya Yenilə düyməsini sına.",
   "Refresh": "Yenilə",
   "Updates": "Yeniləmələr",
-  "Check GitHub for LeoMiniGames application updates.": "LeoMiniGames tətbiq yeniləmələrini GitHub üzərindən yoxla.",
   "Update channel": "Yeniləmə kanalı",
   "Stable": "Stabil",
   "Preview": "Ön baxış",
@@ -144,10 +143,18 @@
   "Update check failed: %1": "Yeniləmə yoxlanışı uğursuz oldu: %1",
   "Current version: %1": "Cari versiya: %1",
   "Installed build · updates are applied by LeoMiniGames Maintenance.": "Quraşdırılmış versiya · yeniləmələr LeoMiniGames Maintenance ilə tətbiq olunur.",
-  "Portable build · updates open the matching GitHub release package.": "Portativ versiya · yeniləmələr uyğun GitHub buraxılış paketini açır.",
   "Checking…": "Yoxlanılır…",
   "Check for updates": "Yeniləmələri yoxla",
   "Open updater": "Yeniləyicini aç",
   "Download update": "Yeniləməni endir",
-  "Release notes": "Buraxılış qeydləri"
+  "Release notes": "Buraxılış qeydləri",
+  "Check LeoMiniGames Update Service for application updates.": "Tətbiq yeniləmələri üçün LeoMiniGames Yeniləmə Xidmətini yoxla.",
+  "Portable build · updates download through LeoMiniGames Update Service.": "Portativ versiya · yeniləmələr LeoMiniGames Yeniləmə Xidməti vasitəsilə endirilir.",
+  "Updates are not available for this platform.": "Bu platforma yeniləmə mövcud deyil.",
+  "Could not check the LeoMiniGames update service.": "LeoMiniGames yeniləmə xidməti yoxlanıla bilmədi.",
+  "The update service returned invalid metadata.": "Yeniləmə xidməti etibarsız metadata qaytardı.",
+  "The update service could not resolve an update.": "Yeniləmə xidməti uyğun yeniləməni müəyyən edə bilmədi.",
+  "The update service returned an unsupported metadata contract.": "Yeniləmə xidməti dəstəklənməyən metadata müqaviləsi qaytardı.",
+  "The update download URL failed validation.": "Yeniləmə yükləmə URL-i doğrulamadan keçmədi.",
+  "The maintenance repository URL failed validation.": "Maintenance repository URL-i doğrulamadan keçmədi."
 }

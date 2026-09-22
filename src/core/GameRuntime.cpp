@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "GameRuntime.h"
+#include <QCoreApplication>
 #include <QSet>
 #include <QVersionNumber>
 
 GameRuntime::GameRuntime(QObject *parent) : QObject(parent) {}
+QString GameRuntime::version() const { return QCoreApplication::applicationVersion(); }
 QStringList GameRuntime::capabilities() const
 {
     return {QStringLiteral("theme"), QStringLiteral("i18n"), QStringLiteral("save.atomic"),

@@ -60,6 +60,10 @@ def main() -> int:
     require("project(LeoMiniGames VERSION 0.7.1" in cmake, "CMake version is not 0.7.1")
     require("LEOMINIGAMES_ANDROID_VERSION_CODE 701" in cmake, "Android versionCode is not 701")
     require('setApplicationVersion(QStringLiteral("0.7.1"))' in main_cpp, "runtime app version is not 0.7.1")
+    game_runtime_h = text("src/core/GameRuntime.h")
+    game_runtime_cpp = text("src/core/GameRuntime.cpp")
+    require('QStringLiteral("0.7.0")' not in game_runtime_h, "GameRuntime still hardcodes the previous app version")
+    require("QCoreApplication::applicationVersion()" in game_runtime_cpp, "GameRuntime version is not bound to the canonical application version")
     require("<Version>0.7.1</Version>" in package_xml, "QtIFW package version is not 0.7.1")
     require("<Version>0.7.1</Version>" in config_xml, "QtIFW config version is not 0.7.1")
 
@@ -71,18 +75,27 @@ def main() -> int:
             "Maintenance Tool configuration missing")
 
     require("class UpdateService" in update_h, "UpdateService declaration missing")
-    require("api.github.com/repos/YoungLionOrganization/LeoMiniGames/releases" in update_cpp,
-            "UpdateService GitHub release endpoint missing")
+    require("https://leominigames.younglion.xyz/api/v1/updates/v1/check" in update_cpp,
+            "UpdateService backend gateway endpoint missing")
+    require("api.github.com/repos/YoungLionOrganization/LeoMiniGames/releases" not in update_cpp
+            and "raw.githubusercontent.com/YoungLionOrganization/LeoMiniGames/updates" not in update_cpp,
+            "UpdateService must not talk directly to the GitHub update provider")
     require("NoLessSafeRedirectPolicy" in update_cpp, "UpdateService safe redirect policy missing")
     require("kMaxUpdateMetadataBytes" in update_cpp, "Update metadata size guard missing")
     require("request.setTransferTimeout" not in update_cpp,
             "UpdateService uses QNetworkRequest::setTransferTimeout, which requires Qt 6.7 but the project baseline is Qt 6.5")
     require("QTimer *timeout" in update_cpp and "QNetworkReply::abort" in update_cpp,
             "Qt 6.5-compatible network timeout guard missing")
-    require("const QUrl finalUrl = reply->url()" in update_cpp and "isAllowedGitHubUrl(finalUrl)" in update_cpp,
+    require("const QUrl finalUrl = reply->url()" in update_cpp and "isAllowedUpdateUrl(finalUrl)" in update_cpp,
             "final redirect host validation missing")
-    require("raw.githubusercontent.com/YoungLionOrganization/LeoMiniGames/updates" in update_cpp,
-            "Maintenance repository URL missing")
+    require("provider_contract" in update_cpp and "leominigames-update-v1" in update_cpp,
+            "backend update contract validation missing")
+    require("leominigames.younglion.xyz" in update_cpp,
+            "YoungLion update domain validation missing")
+    require("https://leominigames.younglion.xyz/updates/qtifw/$UpdateTrack/windows/$Suffix" in package_windows,
+            "Windows QtIFW repository is not routed through the LeoMiniGames backend")
+    require("raw.githubusercontent.com/YoungLionOrganization/LeoMiniGames/updates" not in package_windows,
+            "Windows package script still embeds the GitHub update repository directly")
     require(re.search(r"#if defined\(Q_OS_WIN\)\s*#include <QProcess>\s*#endif", update_cpp) is not None,
             "QProcess include must be Windows-only so iOS/iPadOS builds remain portable")
     launch_block = update_cpp.split("bool UpdateService::launchMaintenance()", 1)[1].split("bool UpdateService::openUpdate()", 1)[0]
@@ -121,6 +134,16 @@ def main() -> int:
             "exact-SHA workflow gate missing")
     require("--draft" in publish_workflow and "gh release upload" in publish_workflow,
             "draft-first release transaction missing")
+    require("id: draft" in publish_workflow and "steps.draft.outputs.release_id" in publish_workflow,
+            "publish workflow must carry the draft release id across steps")
+    require("Recovering existing draft release" in publish_workflow
+            and "Deleting stale draft release" in publish_workflow
+            and "releases/assets/$asset_id" in publish_workflow,
+            "publish workflow must recover same-SHA drafts, replace stale drafts, and clean partial assets before retry")
+    require('releases/$RELEASE_ID/assets?per_page=100' in publish_workflow,
+            "draft asset verification must use release id instead of the published-tag endpoint")
+    require('releases/tags/$TAG" --jq' not in publish_workflow,
+            "publish workflow must not resolve a draft release through /releases/tags/{tag}")
     require("update-repositories" in publish_workflow and "HEAD:refs/heads/updates" in publish_workflow,
             "GitHub-hosted QtIFW repository publication missing")
 

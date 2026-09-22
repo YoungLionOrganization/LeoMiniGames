@@ -13,7 +13,7 @@ class GameRuntime final : public QObject
 public:
     explicit GameRuntime(QObject *parent = nullptr);
     bool ready() const { return true; }
-    QString version() const { return QStringLiteral("0.7.0"); }
+    QString version() const;
     QString apiVersion() const { return QStringLiteral("0.7"); }
     QStringList capabilities() const;
     Q_INVOKABLE bool supports(const QString &capability) const;

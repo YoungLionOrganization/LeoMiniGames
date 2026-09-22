@@ -6,7 +6,6 @@
 
 class QNetworkAccessManager;
 class QNetworkReply;
-class QJsonObject;
 class SettingsManager;
 
 class UpdateService final : public QObject
@@ -60,13 +59,10 @@ signals:
 
 private:
     void finishWithError(const QString &message);
-    void parseStableRelease(const QByteArray &payload);
-    void parseReleaseList(const QByteArray &payload);
-    void applyRelease(const QJsonObject &release);
-    QUrl selectDownloadUrl(const QJsonObject &release) const;
+    void parseGatewayResponse(const QByteArray &payload);
     QString maintenanceToolPath() const;
     QUrl maintenanceRepositoryUrl() const;
-    static bool isAllowedGitHubUrl(const QUrl &url);
+    static bool isAllowedUpdateUrl(const QUrl &url);
 
     SettingsManager *m_settings = nullptr;
     QNetworkAccessManager *m_network = nullptr;
@@ -77,6 +73,7 @@ private:
     QString m_releaseNotes;
     QUrl m_releaseUrl;
     QUrl m_downloadUrl;
+    QUrl m_maintenanceRepositoryUrl;
     QString m_status = QStringLiteral("idle");
     QString m_errorString;
     bool m_checking = false;
