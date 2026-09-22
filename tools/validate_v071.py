@@ -83,6 +83,13 @@ def main() -> int:
             "final redirect host validation missing")
     require("raw.githubusercontent.com/YoungLionOrganization/LeoMiniGames/updates" in update_cpp,
             "Maintenance repository URL missing")
+    require(re.search(r"#if defined\(Q_OS_WIN\)\s*#include <QProcess>\s*#endif", update_cpp) is not None,
+            "QProcess include must be Windows-only so iOS/iPadOS builds remain portable")
+    launch_block = update_cpp.split("bool UpdateService::launchMaintenance()", 1)[1].split("bool UpdateService::openUpdate()", 1)[0]
+    require("#if defined(Q_OS_WIN)" in launch_block and "QProcess::startDetached" in launch_block and "#else" in launch_block,
+            "launchMaintenance must compile QProcess code only on Windows")
+    require("const qsizetype common = qMin(" in update_cpp,
+            "SemVer prerelease comparison should avoid Apple 64-bit narrowing warnings")
     require("UpdateService" in main_cpp and 'setContextProperty(QStringLiteral("Updates")' in main_cpp,
             "UpdateService is not exposed to QML")
     require("Updates.checkForUpdates()" in settings_qml, "Settings update-check action missing")

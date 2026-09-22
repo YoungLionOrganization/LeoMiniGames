@@ -13,7 +13,9 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#if defined(Q_OS_WIN)
 #include <QProcess>
+#endif
 #include <QRegularExpression>
 #include <QSysInfo>
 #include <QTimer>
@@ -81,8 +83,8 @@ int compareSemVer(const SemVer &left, const SemVer &right)
     if (right.prerelease.isEmpty())
         return -1;
 
-    const int common = qMin(left.prerelease.size(), right.prerelease.size());
-    for (int i = 0; i < common; ++i) {
+    const qsizetype common = qMin(left.prerelease.size(), right.prerelease.size());
+    for (qsizetype i = 0; i < common; ++i) {
         const int result = compareIdentifier(left.prerelease.at(i), right.prerelease.at(i));
         if (result != 0)
             return result;
@@ -379,6 +381,7 @@ QUrl UpdateService::maintenanceRepositoryUrl() const
 
 bool UpdateService::launchMaintenance()
 {
+#if defined(Q_OS_WIN)
     const QString tool = maintenanceToolPath();
     if (tool.isEmpty())
         return false;
@@ -391,6 +394,9 @@ bool UpdateService::launchMaintenance()
         QStringLiteral("--start-updater")
     };
     return QProcess::startDetached(tool, arguments);
+#else
+    return false;
+#endif
 }
 
 bool UpdateService::openUpdate()
