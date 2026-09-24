@@ -1,0 +1,24 @@
+<Updates>
+ <ApplicationName>{AnyApplication}</ApplicationName>
+ <ApplicationVersion>1.0.0</ApplicationVersion>
+ <Checksum>true</Checksum>
+ <PackageUpdate>
+  <Name>xyz.younglion.leominigames</Name>
+  <DisplayName>LeoMiniGames</DisplayName>
+  <Description>LeoMiniGames application and runtime.</Description>
+  <Version>0.7.1</Version>
+  <ReleaseDate>2026-09-24</ReleaseDate>
+  <ForcedInstallation>true</ForcedInstallation>
+  <Essential>true</Essential>
+  <Checkable>false</Checkable>
+  <Script>installscript.qs</Script>
+  <UpdateFile CompressedSize="22892468" OS="Any" UncompressedSize="99836413"/>
+  <DownloadableArchives>generic.7z,iconengines.7z,imageformats.7z,Legal.7z,licenses.7z,multimedia.7z,networkinformation.7z,platforms.7z,qml.7z,qmltooling.7z,tls.7z,translations.7z,content.7z</DownloadableArchives>
+  <Licenses>
+   <License file="LICENSE.txt" name="LeoMiniGames Source-Available Publisher Ecosystem License 1.0"/>
+  </Licenses>
+  <SHA1>ebaba0a863d2196c44fff7a8d8554c7ed7e8c8d1</SHA1>
+ </PackageUpdate>
+ <SHA1>fd77645d3cf529d2eef1112c67751bc5f7dbd1ca</SHA1>
+ <MetadataName>2026-09-24-0951_meta.7z</MetadataName>
+</Updates>
