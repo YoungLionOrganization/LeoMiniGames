@@ -153,18 +153,29 @@ def main() -> int:
     require("contents: read" in publish_workflow and "actions: read" in publish_workflow,
             "publish workflow preflight permissions are not least-privilege")
     require("authorized_publishers.json" in publish_workflow, "authorized publisher gate missing")
-    require("headSha" in publish_workflow and "GITHUB_SHA" in publish_workflow,
-            "exact-SHA workflow gate missing")
-    require("--draft" in publish_workflow and "gh release upload" in publish_workflow,
-            "draft-first release transaction missing")
+    require("headSha" in publish_workflow and "TARGET_SHA" in publish_workflow and "build_run_id" in publish_workflow,
+            "immutable build-candidate workflow gate missing")
+    require("is_safe_publisher_delta" in publish_workflow
+            and ".github/workflows/publish-release.yml|tools/validate_v071.py" in publish_workflow,
+            "publisher-only delta reuse guard missing")
+    require('--method POST "repos/$GITHUB_REPOSITORY/releases"' in publish_workflow
+            and "'draft': True" in publish_workflow
+            and "['upload_url']" in publish_workflow
+            and "https://uploads.github.com/" in publish_workflow,
+            "draft creation must use the REST response id/upload URL without a post-create lookup race")
+    require("gh release upload" not in publish_workflow,
+            "draft asset upload must not depend on tag-based gh release upload")
     require("id: draft" in publish_workflow and "steps.draft.outputs.release_id" in publish_workflow,
             "publish workflow must carry the draft release id across steps")
     require("Recovering existing draft release" in publish_workflow
             and "Deleting stale draft release" in publish_workflow
             and "releases/assets/$asset_id" in publish_workflow,
-            "publish workflow must recover same-SHA drafts, replace stale drafts, and clean partial assets before retry")
+            "publish workflow must recover same-target drafts, replace stale drafts, and clean partial assets before retry")
     require('releases/$RELEASE_ID/assets?per_page=100' in publish_workflow,
             "draft asset verification must use release id instead of the published-tag endpoint")
+    require('Created draft could not be resolved by release id' not in publish_workflow
+            and 'find_release_id()' not in publish_workflow,
+            "publish workflow still contains the draft post-create list-resolution race")
     require('releases/tags/$TAG" --jq' not in publish_workflow,
             "publish workflow must not resolve a draft release through /releases/tags/{tag}")
     require("update-repositories" in publish_workflow and "HEAD:refs/heads/updates" in publish_workflow,

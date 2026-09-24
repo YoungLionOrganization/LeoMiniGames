@@ -11,6 +11,11 @@ on:
         options:
           - validate
           - publish
+      build_run_id:
+        description: "Optional successful Build Release Artifacts run ID. Leave blank to reuse the newest safe candidate."
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -31,7 +36,8 @@ jobs:
       prerelease: ${{ steps.meta.outputs.prerelease }}
       notes: ${{ steps.meta.outputs.notes }}
       update_track: ${{ steps.meta.outputs.update_track }}
-      build_run_id: ${{ steps.gates.outputs.build_run_id }}
+      build_run_id: ${{ steps.candidate.outputs.build_run_id }}
+      target_sha: ${{ steps.candidate.outputs.target_sha }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -57,7 +63,7 @@ jobs:
           print(f"update_track={data['update_track']}")
           PY
 
-      - name: Validate source and release policy
+      - name: Validate publisher workflow source
         run: |
           python3 tools/source_guard.py
           python3 tools/validate_project.py
@@ -68,11 +74,11 @@ jobs:
           python3 tools/audit_prebuilt_binaries.py
           python3 tools/validate_v071.py
 
-      - name: Verify branch, exact SHA, publisher and required workflows
-        id: gates
+      - name: Resolve immutable build candidate
+        id: candidate
         env:
           GH_TOKEN: ${{ github.token }}
-          MODE: ${{ inputs.mode }}
+          REQUESTED_BUILD_RUN: ${{ inputs.build_run_id }}
         shell: bash
         run: |
           set -euo pipefail
@@ -80,9 +86,114 @@ jobs:
 
           MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')"
           test "$MAIN_SHA" = "$GITHUB_SHA" || {
-            echo "Current workflow SHA $GITHUB_SHA is not main HEAD $MAIN_SHA" >&2
+            echo "Workflow commit $GITHUB_SHA is not current main HEAD $MAIN_SHA" >&2
             exit 11
           }
+
+          # A publisher-only workflow correction must not force a multi-platform
+          # binary rebuild. Any application/package/source change still does.
+          is_safe_publisher_delta() {
+            local candidate_sha="$1"
+            git merge-base --is-ancestor "$candidate_sha" "$GITHUB_SHA" || return 1
+            local changed
+            changed="$(git diff --name-only "$candidate_sha..$GITHUB_SHA")"
+            [[ -z "$changed" ]] && return 0
+            while IFS= read -r path; do
+              [[ -z "$path" ]] && continue
+              case "$path" in
+                .github/workflows/publish-release.yml|tools/validate_v071.py) ;;
+                *) return 1 ;;
+              esac
+            done <<< "$changed"
+          }
+
+          validate_build_run() {
+            local run_id="$1"
+            local run_json run_path conclusion event head_sha
+            run_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id")"
+            run_path="$(RUN_JSON="$run_json" python3 - <<'PY'
+          import json, os
+          print(json.loads(os.environ['RUN_JSON']).get('path', ''))
+          PY
+          )"
+            conclusion="$(RUN_JSON="$run_json" python3 - <<'PY'
+          import json, os
+          print(json.loads(os.environ['RUN_JSON']).get('conclusion', ''))
+          PY
+          )"
+            event="$(RUN_JSON="$run_json" python3 - <<'PY'
+          import json, os
+          print(json.loads(os.environ['RUN_JSON']).get('event', ''))
+          PY
+          )"
+            head_sha="$(RUN_JSON="$run_json" python3 - <<'PY'
+          import json, os
+          print(json.loads(os.environ['RUN_JSON']).get('head_sha', ''))
+          PY
+          )"
+            [[ "$run_path" == ".github/workflows/build-artifacts.yml" ]] || return 1
+            [[ "$conclusion" == "success" && "$event" == "workflow_dispatch" && -n "$head_sha" ]] || return 1
+            is_safe_publisher_delta "$head_sha" || return 1
+            printf '%s\t%s\n' "$run_id" "$head_sha"
+          }
+
+          BUILD_RUN=""
+          TARGET_SHA=""
+          if [[ -n "${REQUESTED_BUILD_RUN// }" ]]; then
+            pair="$(validate_build_run "$REQUESTED_BUILD_RUN" || true)"
+            [[ -n "$pair" ]] || {
+              echo "Requested build run $REQUESTED_BUILD_RUN is not a successful safe Build Release Artifacts candidate." >&2
+              exit 12
+            }
+            BUILD_RUN="${pair%%$'\t'*}"
+            TARGET_SHA="${pair#*$'\t'}"
+          else
+            while IFS=$'\t' read -r run_id head_sha; do
+              pair="$(validate_build_run "$run_id" || true)"
+              if [[ -n "$pair" ]]; then
+                BUILD_RUN="$run_id"
+                TARGET_SHA="$head_sha"
+                break
+              fi
+            done < <(gh run list --repo "$GITHUB_REPOSITORY" --workflow build-artifacts.yml --status success --limit 30 \
+              --json databaseId,headSha,createdAt --jq '.[] | [.databaseId,.headSha] | @tsv')
+          fi
+
+          [[ -n "$BUILD_RUN" && -n "$TARGET_SHA" ]] || {
+            echo "No successful Build Release Artifacts candidate can be safely reused." >&2
+            echo "Run Build Release Artifacts only if application/package source changed." >&2
+            exit 13
+          }
+
+          CURRENT_META="$(cat release/release.json)"
+          BUILD_META="$(git show "$TARGET_SHA:release/release.json")"
+          CURRENT_META="$CURRENT_META" BUILD_META="$BUILD_META" python3 - <<'PY'
+          import json, os
+          current = json.loads(os.environ['CURRENT_META'])
+          built = json.loads(os.environ['BUILD_META'])
+          keys = ('version','tag','title','target_branch','prerelease','release_notes_path','update_track')
+          mismatch = {k:(built.get(k), current.get(k)) for k in keys if built.get(k) != current.get(k)}
+          if mismatch:
+              raise SystemExit(f"build candidate release metadata differs from current release metadata: {mismatch}")
+          PY
+
+          echo "Reusing Build Release Artifacts run $BUILD_RUN at immutable source SHA $TARGET_SHA"
+          if [[ "$TARGET_SHA" != "$GITHUB_SHA" ]]; then
+            echo "Current main differs only by publisher-infrastructure files; no binary rebuild is required."
+          fi
+          echo "build_run_id=$BUILD_RUN" >> "$GITHUB_OUTPUT"
+          echo "target_sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Verify publisher, CI and duplicate guards
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODE: ${{ inputs.mode }}
+          TARGET_SHA: ${{ steps.candidate.outputs.target_sha }}
+          BUILD_RUN_ID: ${{ steps.candidate.outputs.build_run_id }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
 
           if [[ "$MODE" == "publish" ]]; then
             ACTOR="$GITHUB_ACTOR" python3 - <<'PY'
@@ -102,44 +213,50 @@ jobs:
           PY
           )
 
-          BUILD_RUN=""
           for workflow in "${REQUIRED[@]}"; do
             selector="$(basename "$workflow")"
-            json="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$selector" --commit "$GITHUB_SHA" --status success --limit 20 --json databaseId,headSha,conclusion,createdAt)"
-            run_id="$(RUNS_JSON="$json" EXACT_SHA="$GITHUB_SHA" python3 - <<'PY'
+            if [[ "$workflow" == ".github/workflows/build-artifacts.yml" ]]; then
+              run_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID")"
+              RUN_JSON="$run_json" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'
           import json, os
-          rows = [r for r in json.loads(os.environ["RUNS_JSON"]) if r.get("headSha") == os.environ["EXACT_SHA"] and r.get("conclusion") == "success"]
-          rows.sort(key=lambda r: r.get("createdAt", ""))
-          print(rows[-1]["databaseId"] if rows else "")
+          run = json.loads(os.environ['RUN_JSON'])
+          if run.get('conclusion') != 'success' or run.get('head_sha') != os.environ['TARGET_SHA']:
+              raise SystemExit('selected build run is no longer a successful exact-target build')
+          PY
+              echo "Validated build-artifacts.yml run $BUILD_RUN_ID at $TARGET_SHA"
+              continue
+            fi
+
+            json="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$selector" --commit "$TARGET_SHA" --status success --limit 20 --json databaseId,headSha,conclusion,createdAt)"
+            run_id="$(RUNS_JSON="$json" EXACT_SHA="$TARGET_SHA" python3 - <<'PY'
+          import json, os
+          rows = [r for r in json.loads(os.environ['RUNS_JSON']) if r.get('headSha') == os.environ['EXACT_SHA'] and r.get('conclusion') == 'success']
+          rows.sort(key=lambda r: r.get('createdAt', ''))
+          print(rows[-1]['databaseId'] if rows else '')
           PY
           )"
-            test -n "$run_id" || { echo "No successful exact-SHA run for $workflow at $GITHUB_SHA" >&2; exit 12; }
-            echo "Validated $workflow run $run_id at exact SHA $GITHUB_SHA"
-            if [[ "$workflow" == ".github/workflows/build-artifacts.yml" ]]; then
-              BUILD_RUN="$run_id"
-            fi
+            [[ -n "$run_id" ]] || {
+              echo "No successful exact-target run for $workflow at $TARGET_SHA" >&2
+              exit 14
+            }
+            echo "Validated $workflow run $run_id at $TARGET_SHA"
           done
-          test -n "$BUILD_RUN" || { echo "Build Release Artifacts is not listed/available." >&2; exit 13; }
-          echo "build_run_id=$BUILD_RUN" >> "$GITHUB_OUTPUT"
 
-          TAG="${{ steps.meta.outputs.tag }}"
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1; then
             echo "Tag already exists: $TAG" >&2
-            exit 14
+            exit 15
           fi
-          # The tag endpoint intentionally does not expose draft releases. A failed
-          # publish run may therefore leave a recoverable draft with this tag. Only
-          # an already-public release is a hard stop at preflight.
           if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" >/dev/null 2>&1; then
             echo "Published release already exists: $TAG" >&2
-            exit 15
+            exit 16
           fi
 
       - name: Download exact-build public assets
         env:
           GH_TOKEN: ${{ github.token }}
-          BUILD_RUN_ID: ${{ steps.gates.outputs.build_run_id }}
+          BUILD_RUN_ID: ${{ steps.candidate.outputs.build_run_id }}
         run: |
+          set -euo pipefail
           mkdir -p _release-assets _update-repositories
           gh run download "$BUILD_RUN_ID" --repo "$GITHUB_REPOSITORY" --name release-assets --dir _release-assets
           gh run download "$BUILD_RUN_ID" --repo "$GITHUB_REPOSITORY" --name update-repositories --dir _update-repositories
@@ -188,11 +305,28 @@ jobs:
       - name: Re-run destructive-operation guards
         env:
           GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
+          BUILD_RUN_ID: ${{ needs.preflight.outputs.build_run_id }}
+          TAG: ${{ needs.preflight.outputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
           MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')"
           test "$MAIN_SHA" = "$GITHUB_SHA" || { echo "main advanced after preflight" >&2; exit 20; }
+
+          git merge-base --is-ancestor "$TARGET_SHA" "$GITHUB_SHA" || { echo "release target is not an ancestor of current main" >&2; exit 21; }
+          while IFS= read -r path; do
+            [[ -z "$path" ]] && continue
+            case "$path" in
+              .github/workflows/publish-release.yml|tools/validate_v071.py) ;;
+              *)
+                echo "Application/package source changed after build candidate: $path" >&2
+                echo "A new Build Release Artifacts run is required." >&2
+                exit 22
+                ;;
+            esac
+          done < <(git diff --name-only "$TARGET_SHA..$GITHUB_SHA")
+
           ACTOR="$GITHUB_ACTOR" python3 - <<'PY'
           import json, os
           from pathlib import Path
@@ -200,12 +334,19 @@ jobs:
           if os.environ["ACTOR"] not in allowed:
               raise SystemExit(f"actor {os.environ['ACTOR']!r} is not authorized")
           PY
-          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/${{ needs.preflight.outputs.tag }}" >/dev/null 2>&1; then
-            echo "tag appeared after preflight" >&2; exit 21
+
+          run_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID")"
+          RUN_JSON="$run_json" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'
+          import json, os
+          run = json.loads(os.environ['RUN_JSON'])
+          if run.get('conclusion') != 'success' or run.get('head_sha') != os.environ['TARGET_SHA']:
+              raise SystemExit('selected Build Release Artifacts run is no longer valid')
+          PY
+
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1; then
+            echo "tag appeared after preflight" >&2
+            exit 23
           fi
-          # An existing draft is recoverable and is handled transactionally by the
-          # next step. A public release would have created the tag and was rejected
-          # above.
           python3 tools/release/validate_release_assets.py _release-assets
 
       - name: Prepare draft and upload exact asset set
@@ -216,86 +357,126 @@ jobs:
           TITLE: ${{ needs.preflight.outputs.title }}
           NOTES: ${{ needs.preflight.outputs.notes }}
           PRERELEASE: ${{ needs.preflight.outputs.prerelease }}
+          TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
         shell: bash
         run: |
           set -euo pipefail
 
-          find_release_id() {
-            local page=1
-            while (( page <= 20 )); do
-              local rows count found
-              rows="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100&page=$page")"
-              found="$(RELEASES_JSON="$rows" TAG="$TAG" python3 - <<'PY'
+          # Do not use tag-based release CLI upload or a post-create list lookup here.
+          # Draft tag lookup/listing can lag immediately after creation. The REST
+          # create response gives the immutable numeric release id and upload URL.
+
+          releases_json="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100")"
+          plan="$(RELEASES_JSON="$releases_json" TAG="$TAG" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'
           import json, os
-          for release in json.loads(os.environ['RELEASES_JSON']):
-              if release.get('tag_name') == os.environ['TAG']:
-                  print(release.get('id', ''))
-                  break
+          matches = [r for r in json.loads(os.environ['RELEASES_JSON']) if r.get('tag_name') == os.environ['TAG']]
+          public = [r for r in matches if not r.get('draft')]
+          if public:
+              raise SystemExit('a non-draft release with this tag already exists')
+          exact = sorted(
+              [r for r in matches if str(r.get('target_commitish') or '') == os.environ['TARGET_SHA']],
+              key=lambda r: r.get('created_at', ''), reverse=True)
+          keep = exact[0]['id'] if exact else None
+          delete = [r['id'] for r in matches if r.get('id') != keep]
+          print(json.dumps({'keep': keep, 'delete': delete}))
           PY
           )"
-              if [[ -n "$found" ]]; then
-                printf '%s\n' "$found"
-                return 0
-              fi
-              count="$(RELEASES_JSON="$rows" python3 - <<'PY'
+
+          while IFS= read -r stale_id; do
+            [[ -z "$stale_id" ]] && continue
+            echo "Deleting stale draft release id=$stale_id"
+            gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/$stale_id" >/dev/null
+          done < <(PLAN="$plan" python3 - <<'PY'
           import json, os
-          print(len(json.loads(os.environ['RELEASES_JSON'])))
+          for value in json.loads(os.environ['PLAN'])['delete']:
+              print(value)
+          PY
+          )
+
+          RELEASE_ID="$(PLAN="$plan" python3 - <<'PY'
+          import json, os
+          print(json.loads(os.environ['PLAN']).get('keep') or '')
           PY
           )"
-              (( count < 100 )) && break
-              (( page += 1 ))
-            done
-            return 1
+
+          body="$(cat "$NOTES")"
+          if [[ -n "$RELEASE_ID" ]]; then
+            echo "Recovering existing draft release id=$RELEASE_ID for $TAG"
+            patch_payload="$(TITLE="$TITLE" BODY="$body" PRERELEASE="$PRERELEASE" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'
+          import json, os
+          print(json.dumps({
+              'name': os.environ['TITLE'],
+              'body': os.environ['BODY'],
+              'target_commitish': os.environ['TARGET_SHA'],
+              'draft': True,
+              'prerelease': os.environ['PRERELEASE'].lower() == 'true',
+          }))
+          PY
+          )"
+            release_json="$(printf '%s' "$patch_payload" | gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --input -)"
+          else
+            create_payload="$(TAG="$TAG" TITLE="$TITLE" BODY="$body" PRERELEASE="$PRERELEASE" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'
+          import json, os
+          print(json.dumps({
+              'tag_name': os.environ['TAG'],
+              'target_commitish': os.environ['TARGET_SHA'],
+              'name': os.environ['TITLE'],
+              'body': os.environ['BODY'],
+              'draft': True,
+              'prerelease': os.environ['PRERELEASE'].lower() == 'true',
+          }))
+          PY
+          )"
+            release_json="$(printf '%s' "$create_payload" | gh api --method POST "repos/$GITHUB_REPOSITORY/releases" --input -)"
+            RELEASE_ID="$(RELEASE_JSON="$release_json" python3 - <<'PY'
+          import json, os
+          print(json.loads(os.environ['RELEASE_JSON'])['id'])
+          PY
+          )"
+            echo "Created draft release id=$RELEASE_ID directly from REST response."
+          fi
+
+          UPLOAD_URL="$(RELEASE_JSON="$release_json" python3 - <<'PY'
+          import json, os
+          print(json.loads(os.environ['RELEASE_JSON'])['upload_url'].split('{', 1)[0])
+          PY
+          )"
+          [[ -n "$RELEASE_ID" && "$UPLOAD_URL" == https://uploads.github.com/* ]] || {
+            echo "Invalid draft release response." >&2
+            exit 24
           }
 
-          RELEASE_ID="$(find_release_id || true)"
-          if [[ -n "$RELEASE_ID" ]]; then
-            release_json="$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID")"
-            decision="$(RELEASE_JSON="$release_json" EXPECTED_SHA="$GITHUB_SHA" python3 - <<'PY'
-          import json, os
-          release = json.loads(os.environ['RELEASE_JSON'])
-          if not release.get('draft'):
-              raise SystemExit('existing release is not a recoverable draft')
-          target = str(release.get('target_commitish') or '')
-          print('recover' if target == os.environ['EXPECTED_SHA'] else 'replace-stale')
-          PY
-          )"
-            if [[ "$decision" == "replace-stale" ]]; then
-              echo "Deleting stale draft release id=$RELEASE_ID before publishing current SHA $GITHUB_SHA"
-              gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" >/dev/null
-              RELEASE_ID=""
-            else
-              echo "Recovering existing draft release id=$RELEASE_ID for $TAG"
-              body="$(cat "$NOTES")"
-              gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
-                -f name="$TITLE" -f body="$body" -F draft=true -F prerelease="$PRERELEASE" >/dev/null
-            fi
-          fi
-
-          if [[ -z "$RELEASE_ID" ]]; then
-            extra=()
-            [[ "$PRERELEASE" == "true" ]] && extra+=(--prerelease)
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-              --title "$TITLE" --notes-file "$NOTES" --draft "${extra[@]}"
-            RELEASE_ID="$(find_release_id || true)"
-            test -n "$RELEASE_ID" || { echo "Created draft could not be resolved by release id." >&2; exit 22; }
-          fi
-
-          # Retry-safe transaction: remove any assets left by a previously failed
-          # publish attempt, then upload the validated exact set again.
           while IFS= read -r asset_id; do
             [[ -z "$asset_id" ]] && continue
             gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" >/dev/null
           done < <(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?per_page=100" --jq '.[].id')
 
-          gh release upload "$TAG" _release-assets/* --repo "$GITHUB_REPOSITORY"
+          for file in _release-assets/*; do
+            [[ -f "$file" ]] || continue
+            name="$(basename "$file")"
+            encoded_name="$(NAME="$name" python3 - <<'PY'
+          import os, urllib.parse
+          print(urllib.parse.quote(os.environ['NAME'], safe=''))
+          PY
+          )"
+            echo "Uploading $name to draft release id=$RELEASE_ID"
+            curl --fail-with-body --silent --show-error \
+              --retry 3 --retry-delay 2 --retry-all-errors \
+              -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@$file" \
+              "${UPLOAD_URL}?name=${encoded_name}" >/dev/null
+          done
 
           local_names="$(find _release-assets -maxdepth 1 -type f -printf '%f\n' | sort)"
           remote_names="$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?per_page=100" --jq '.[].name' | sort)"
           if [[ "$local_names" != "$remote_names" ]]; then
             echo "Uploaded GitHub Release assets do not equal validated local assets." >&2
             diff -u <(printf '%s\n' "$local_names") <(printf '%s\n' "$remote_names") || true
-            exit 23
+            exit 25
           fi
 
           echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
@@ -306,6 +487,7 @@ jobs:
           TAG: ${{ needs.preflight.outputs.tag }}
           TRACK: ${{ needs.preflight.outputs.update_track }}
           PRERELEASE: ${{ needs.preflight.outputs.prerelease }}
+          TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
           RELEASE_ID: ${{ steps.draft.outputs.release_id }}
         shell: bash
         run: |
@@ -320,7 +502,7 @@ jobs:
             git fetch origin refs/heads/updates:refs/remotes/origin/updates
             git worktree add --detach "$WORKTREE" refs/remotes/origin/updates
           else
-            git worktree add --detach "$WORKTREE" "$GITHUB_SHA"
+            git worktree add --detach "$WORKTREE" "$TARGET_SHA"
             (
               cd "$WORKTREE"
               git switch --orphan updates
@@ -342,9 +524,18 @@ jobs:
             echo "$NEW_UPDATES_SHA" > "$RUNNER_TEMP/new-updates-sha"
           )
 
-          test -n "$RELEASE_ID" || { echo "Missing draft release id." >&2; exit 24; }
-          if ! gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" \
-              -F draft=false -F prerelease="$PRERELEASE" >/dev/null; then
+          test -n "$RELEASE_ID" || { echo "Missing draft release id." >&2; exit 26; }
+          publish_payload="$(PRERELEASE="$PRERELEASE" python3 - <<'PY'
+          import json, os
+          print(json.dumps({'draft': False, 'prerelease': os.environ['PRERELEASE'].lower() == 'true'}))
+          PY
+          )"
+          set +e
+          published="$(printf '%s' "$publish_payload" | gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --input - 2>"$RUNNER_TEMP/publish-release.err")"
+          publish_rc=$?
+          set -e
+          if (( publish_rc != 0 )); then
+            cat "$RUNNER_TEMP/publish-release.err" >&2 || true
             echo "Failed to publish draft; attempting update-repository rollback." >&2
             NEW_UPDATES_SHA="$(cat "$RUNNER_TEMP/new-updates-sha")"
             CURRENT_UPDATES_SHA="$(git ls-remote origin refs/heads/updates | awk '{print $1}')"
@@ -355,7 +546,20 @@ jobs:
                 git push --delete origin updates || true
               fi
             fi
-            exit 24
+            exit 27
           fi
 
-          echo "Published $TAG and $TRACK QtIFW update repository."
+          # Verify the strongly-related PATCH response itself. Do not add an
+          # immediate tag/commit lookup here; tag visibility may lag publication.
+          PUBLISHED_JSON="$published" TAG="$TAG" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'
+          import json, os
+          release = json.loads(os.environ['PUBLISHED_JSON'])
+          if release.get('draft'):
+              raise SystemExit('release is still draft after publish PATCH')
+          if release.get('tag_name') != os.environ['TAG']:
+              raise SystemExit('published release tag mismatch')
+          if str(release.get('target_commitish') or '') != os.environ['TARGET_SHA']:
+              raise SystemExit('published release target mismatch')
+          PY
+
+          echo "Published $TAG from immutable build $TARGET_SHA and $TRACK QtIFW update repository."
