@@ -4,6 +4,7 @@ function Component()
         if (installer.value("LMGExistingInstallDir"))
             installer.addWizardPage(component, "ExistingInstallationPage", QInstaller.TargetDirectory);
         installer.addWizardPage(component, "InstallOptionsPage", QInstaller.ReadyForInstallation);
+        installer.addWizardPageItem(component, "InstallationSummary", QInstaller.ReadyForInstallation, 10);
     }
 }
 
@@ -12,7 +13,7 @@ Component.prototype.DynamicExistingInstallationPageCallback = function()
     var page = gui.pageWidgetByObjectName("DynamicExistingInstallationPage");
     if (!page) return;
     page.windowTitle = "Existing LeoMiniGames Installation";
-    page.IntroLabel.text = "An existing LeoMiniGames installation was detected. Choose what Setup should do.";
+    page.IntroLabel.text = "An existing LeoMiniGames installation was detected. Choose an action for the Maintenance Tool.";
     page.DetectedVersionLabel.text = "Installed version: " + installer.value("LMGExistingVersion");
     page.DetectedPathLabel.text = "Installation folder: " + installer.value("LMGExistingInstallDir");
 }
@@ -30,10 +31,11 @@ Component.prototype.createOperations = function()
     component.createOperations();
     if (systemInfo.productType !== "windows") return;
 
-    var options = component.userInterface("InstallOptionsPage");
-    var desktopShortcut = !options || options.DesktopShortcutCheckBox.checked;
-    var startMenuShortcut = !options || options.StartMenuShortcutCheckBox.checked;
-    var maintenanceShortcut = !options || options.MaintenanceShortcutCheckBox.checked;
+    var options = typeof gui !== "undefined" && gui ? gui.pageWidgetByObjectName("DynamicInstallOptionsPage") : null;
+    if (!options) options = component.userInterface("InstallOptionsPage");
+    var desktopShortcut = !options || !options.DesktopShortcutCheckBox || options.DesktopShortcutCheckBox.checked;
+    var startMenuShortcut = !options || !options.StartMenuShortcutCheckBox || options.StartMenuShortcutCheckBox.checked;
+    var maintenanceShortcut = !options || !options.MaintenanceShortcutCheckBox || options.MaintenanceShortcutCheckBox.checked;
 
     if (startMenuShortcut) {
         component.addOperation("CreateShortcut",

@@ -83,18 +83,22 @@ def main() -> int:
             "QtIFW installer control script / stable Classic layout missing")
     require("<Logo>" not in config_xml and "<PageListPixmap>" not in config_xml,
             "QtIFW installer still stacks redundant logo/page-list artwork")
-    require("existinginstallation.ui" in package_xml and "installoptions.ui" in package_xml,
-            "QtIFW existing-install/options pages missing")
-    require("<Checkable>false</Checkable>" not in package_xml and "<ForcedInstallation>true</ForcedInstallation>" in package_xml,
-            "QtIFW single application component must remain visible/forced in install summary")
+    require(all(name in package_xml for name in ("existinginstallation.ui", "installoptions.ui", "installationsummary.ui")),
+            "QtIFW existing-install/options/summary pages missing")
+    require("<Checkable>false</Checkable>" not in package_xml and "<ForcedInstallation>true</ForcedInstallation>" in package_xml
+            and "<Default>true</Default>" in package_xml,
+            "QtIFW application component must be preselected and required")
     require("LMGExistingInstallDir" in control_qs and "LeoMiniGamesMaintenance.exe" in control_qs
             and "--start-updater" in control_qs and "--start-package-manager" in control_qs and "--start-uninstaller" in control_qs,
             "existing-install Upgrade/Modify/Uninstall detection flow missing")
-    require("ReadyForInstallationPageCallback" in control_qs and "InstallMsgLabel" in control_qs,
+    require("ReadyForInstallationPageCallback" in control_qs and "InstallMsgLabel" in control_qs
+            and "DynamicInstallationSummary" in control_qs and 'if (!page) return "upgrade"' in control_qs,
             "Ready page does not explicitly populate the You are installing summary")
     require("DesktopShortcutCheckBox" in installer_script and "StartMenuShortcutCheckBox" in installer_script
             and "MaintenanceShortcutCheckBox" in installer_script,
             "Windows integration choices missing from installer")
+    require("!options.DesktopShortcutCheckBox ||" in installer_script,
+            "QtIFW dynamic checkbox access is not guarded")
     require("LEOMINIGAMES_WINDOWS_CPU_PROFILE" in cmake and "/arch:AVX2" in cmake
             and "LMG_WINDOWS_X64_AVX2=1" in cmake and "CMAKE_SIZEOF_VOID_P EQUAL 4" in cmake,
             "Windows baseline/AVX2/64-bit-only build contract missing")

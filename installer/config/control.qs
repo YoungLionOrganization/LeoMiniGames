@@ -88,7 +88,6 @@ Controller.prototype.detectExistingInstallation = function()
         var app = dir + "/LeoMiniGames.exe";
         if (installer.fileExists(maintenance) && installer.fileExists(app)) {
             installer.setValue("LMGExistingInstallDir", dir);
-            installer.setValue("TargetDir", dir);
             var version = "";
             for (var r = 0; r < roots.length && !version; ++r)
                 version = this.registryValue(roots[r][0], "Version", roots[r][1]);
@@ -107,7 +106,7 @@ Controller.prototype.IntroductionPageCallback = function()
     var existing = installer.value("LMGExistingInstallDir");
     if (page.MessageLabel) {
         if (existing) {
-            page.MessageLabel.setText("An existing LeoMiniGames installation was detected. Continue to choose Update, Repair / Reinstall, Modify, or Uninstall.");
+            page.MessageLabel.setText("An existing LeoMiniGames installation was detected. Continue to choose Update, Modify, or Uninstall.");
         } else {
             page.MessageLabel.setText("Install LeoMiniGames " + installer.value("ProductVersion") + " for Windows.");
         }
@@ -120,10 +119,11 @@ Controller.prototype.IntroductionPageCallback = function()
 Controller.prototype.existingAction = function()
 {
     var page = gui.pageWidgetByObjectName("DynamicExistingInstallationPage");
-    if (!page) return "repair";
+    // If the custom widget is unavailable, never attempt a second installation
+    // over the registered installation. The updater is the safe default.
+    if (!page) return "upgrade";
     if (page.UninstallRadioButton && page.UninstallRadioButton.checked) return "uninstall";
     if (page.ModifyRadioButton && page.ModifyRadioButton.checked) return "modify";
-    if (page.RepairRadioButton && page.RepairRadioButton.checked) return "repair";
     return "upgrade";
 }
 
@@ -155,19 +155,18 @@ Controller.prototype.TargetDirectoryPageCallback = function()
     var existing = installer.value("LMGExistingInstallDir");
     if (existing) {
         var action = this.existingAction();
-        if (action !== "repair") {
-            if (!this.launchMaintenance(action) && page && page.WarningLabel)
-                page.WarningLabel.setText("Could not launch the installed Maintenance Tool. Choose Repair / Reinstall or close Setup and start LeoMiniGamesMaintenance.exe manually.");
-            return;
+        if (!this.launchMaintenance(action)) {
+            QMessageBox.critical("MaintenanceLaunchError", "LeoMiniGames Setup",
+                "The installed Maintenance Tool could not be started from " + existing +
+                ". Open LeoMiniGamesMaintenance.exe in that folder. Setup will not overwrite an existing installation.");
+            gui.rejectWithoutPrompt();
         }
-        if (page && page.TargetDirectoryLineEdit)
-            page.TargetDirectoryLineEdit.setText(existing);
-        try { installer.setMessageBoxAutomaticAnswer("OverwriteTargetDirectory", QMessageBox.Yes); } catch (e) {}
+        return;
     }
     if (page) {
-        page.title = existing ? "Repair / Reinstall" : "Installation Folder";
+        page.title = "Installation Folder";
         if (page.MessageLabel)
-            page.MessageLabel.setText(existing ? "Repair uses the existing installation folder and reinstalls the files from this Setup package." : "Choose where LeoMiniGames will be installed.");
+            page.MessageLabel.setText("Choose where LeoMiniGames will be installed.");
     }
 }
 
@@ -180,12 +179,15 @@ Controller.prototype.ComponentSelectionPageCallback = function()
 
 Controller.prototype.ReadyForInstallationPageCallback = function()
 {
-    installer.selectComponent("xyz.younglion.leominigames");
     var page = gui.currentPageWidget();
     if (!page) return;
-    page.title = installer.value("LMGExistingInstallDir") ? "Ready to Repair" : "Ready to Install";
+    page.title = "Ready to Install";
     if (page.InstallMsgLabel)
-        page.InstallMsgLabel.setText("You are installing LeoMiniGames " + installer.value("ProductVersion") + " — " + installer.value("LMGBuildLabel"));
+        page.InstallMsgLabel.setText("You are installing:");
+    var summary = gui.pageWidgetByObjectName("DynamicInstallationSummary");
+    if (summary && summary.SummaryLabel)
+        summary.SummaryLabel.setText("LeoMiniGames " + installer.value("ProductVersion") +
+            " (" + installer.value("LMGBuildLabel") + ")\nDestination: " + installer.value("TargetDir"));
     if (page.InstallComponentsTreeview) {
         page.InstallComponentsTreeview.visible = true;
         page.InstallComponentsTreeview.minimumHeight = 130;

@@ -49,6 +49,9 @@ jobs:
           python3 tools/validate_distribution.py
           python3 tools/audit_prebuilt_binaries.py
           python3 tools/validate_v072.py
+          node tests/test_installer_scripts.js
+          node --check < installer/config/control.qs
+          node --check < installer/packages/xyz.younglion.leominigames/meta/installscript.qs
 
   source:
     name: Source ZIP

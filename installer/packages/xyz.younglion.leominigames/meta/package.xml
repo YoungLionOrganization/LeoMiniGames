@@ -5,6 +5,7 @@
     <Version>0.7.2</Version>
     <ReleaseDate>2026-09-20</ReleaseDate>
     <Name>xyz.younglion.leominigames</Name>
+    <Default>true</Default>
     <ForcedInstallation>true</ForcedInstallation>
     <Essential>true</Essential>
     <UpdateText>Updates LeoMiniGames while preserving installed content and user data.</UpdateText>
@@ -12,6 +13,7 @@
     <UserInterfaces>
         <UserInterface>existinginstallation.ui</UserInterface>
         <UserInterface>installoptions.ui</UserInterface>
+        <UserInterface>installationsummary.ui</UserInterface>
     </UserInterfaces>
     <Licenses>
         <License name="LeoMiniGames Source-Available Publisher Ecosystem License 1.0" file="LICENSE.txt" />

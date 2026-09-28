@@ -217,8 +217,8 @@ try:
         ok(f'QtIFW version {expected_version}')
     else:
         err('QtIFW version mismatch')
-    if pkg.findtext('ForcedInstallation') == 'true' and pkg.findtext('Essential') == 'true':
-        ok('QtIFW application component is forced/essential so the install summary cannot collapse to an empty optional tree')
+    if pkg.findtext('Default') == 'true' and pkg.findtext('ForcedInstallation') == 'true' and pkg.findtext('Essential') == 'true':
+        ok('QtIFW application component is selected by default and required')
     else:
         err('QtIFW application component selection contract incomplete')
     if pkg.find('Checkable') is None:
@@ -242,7 +242,7 @@ try:
     else:
         err('QtIFW still references Logo/PageListPixmap in the page-list layout')
     ui_names = [x.text for x in pkg.findall('./UserInterfaces/UserInterface') if x.text]
-    for ui in {'existinginstallation.ui','installoptions.ui'}:
+    for ui in {'existinginstallation.ui','installoptions.ui','installationsummary.ui'}:
         (ok if ui in ui_names else err)(f'QtIFW custom page registered: {ui}')
     for ui in ui_names:
         ET.parse(ROOT/'installer/packages/xyz.younglion.leominigames/meta'/ui)
@@ -253,13 +253,21 @@ except Exception as ex:
 iscript = read('installer/packages/xyz.younglion.leominigames/meta/installscript.qs')
 for token in ['iconPath=@TargetDir@/LeoMiniGames.exe','workingDirectory=@TargetDir@','@DesktopDir@/LeoMiniGames.lnk',
               'DesktopShortcutCheckBox','StartMenuShortcutCheckBox','MaintenanceShortcutCheckBox',
-              'ExistingInstallationPage','InstallOptionsPage','GlobalConfig','__LMG_WINDOWS_CPU_PROFILE__']:
+              'ExistingInstallationPage','InstallOptionsPage','InstallationSummary','GlobalConfig','__LMG_WINDOWS_CPU_PROFILE__']:
     (ok if token in iscript else err)(f'Installer script semantic {token}')
+if 'options.DesktopShortcutCheckBox.checked' in iscript and '!options.DesktopShortcutCheckBox ||' in iscript:
+    ok('QtIFW shortcut choices guard missing dynamic controls')
+else:
+    err('QtIFW shortcut choices may dereference missing dynamic controls')
 control = read('installer/config/control.qs')
 for token in ['LMGExistingInstallDir','LeoMiniGamesMaintenance.exe','--start-updater','--start-package-manager',
               '--start-uninstaller','ReadyForInstallationPageCallback','InstallMsgLabel','InstallComponentsTreeview',
               'Get-CimInstance Win32_Processor','gui.rejectWithoutPrompt','__LMG_WINDOWS_BUILD_LABEL__']:
     (ok if token in control else err)(f'Installer control semantic {token}')
+if 'if (!page) return "upgrade"' in control and 'Setup will not overwrite an existing installation' in control and 'RepairRadioButton' not in control:
+    ok('QtIFW existing installation never falls through to overlapping setup')
+else:
+    err('QtIFW existing installation may fall through to overlapping setup')
 win_pack_installer = read('tools/package/package_windows.ps1')
 for token in ['LMG_WINDOWS_ARCH','LMG_WINDOWS_CPU_PROFILE','x86_64-AVX2','__LMG_WINDOWS_BUILD_LABEL__',
               '__LMG_UPDATE_REPOSITORY_URL__','build-info.json','Unresolved installer placeholder']:

@@ -22,6 +22,10 @@ upstream responses, hardened archive verification, and short-lived developer
 sessions. Deploy it separately after running its migration and installation
 checks. See `V072_VALIDATION.md` in each source archive for verification status.
 
+A Windows installer follow-up routes already-installed products through their
+Maintenance Tool and guards optional page controls; details and remaining
+Windows test gates are in `INSTALLER_FIX_VALIDATION.md`.
+
 Native Linux Qt and PHP checks passed locally. Android APK/AAB and the hosted
 backend were not built or exercised in this environment; signing, cross-build
 and production transport must be verified on the release runner/host before a

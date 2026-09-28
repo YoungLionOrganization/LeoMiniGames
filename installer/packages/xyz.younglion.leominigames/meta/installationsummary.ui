@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>InstallationSummary</class>
+ <widget class="QWidget" name="InstallationSummary">
+  <layout class="QVBoxLayout" name="summaryLayout">
+   <item><widget class="QLabel" name="SummaryLabel">
+    <property name="text"><string>LeoMiniGames Application</string></property>
+    <property name="wordWrap"><bool>true</bool></property>
+   </widget></item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
