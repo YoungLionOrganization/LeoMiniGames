@@ -269,6 +269,12 @@ jobs:
             -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT"
       - name: Build Android APK (retry transient Gradle download failures)
         run: bash tools/ci/android_build_with_retry.sh build-android apk
+      - name: Verify packaged Android ELF alignment
+        shell: bash
+        run: |
+          apk="$(find build-android/android-build -type f -name '*.apk' -print -quit)"
+          test -n "$apk"
+          python3 tools/validate_android_package.py "$apk" --abis "${{ matrix.abi }}"
 
   android-universal:
     name: Android universal multi-ABI
@@ -318,6 +324,12 @@ jobs:
             -DQT_ANDROID_ABIS="arm64-v8a;armeabi-v7a;x86_64;x86"
       - name: Build Android APK (retry transient Gradle download failures)
         run: bash tools/ci/android_build_with_retry.sh build-android apk
+      - name: Verify packaged Android ELF alignment
+        shell: bash
+        run: |
+          apk="$(find build-android/android-build -type f -name '*.apk' -print -quit)"
+          test -n "$apk"
+          python3 tools/validate_android_package.py "$apk" --abis arm64-v8a,armeabi-v7a,x86_64,x86
 
   apple-mobile:
     name: ${{ matrix.label }} (unsigned)

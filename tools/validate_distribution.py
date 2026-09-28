@@ -332,6 +332,12 @@ if all(x in mac_pack for x in ['macdeployqt','LMG_PLATFORM_SUFFIX','NOTICE','COP
 else: err('macOS packaging contract incomplete')
 
 android_pack = read('tools/package/package_android.sh')
+android_retry = read('tools/ci/android_build_with_retry.sh')
+gradle_align = read('tools/ci/preserve_android_native_alignment.gradle')
+if 'GRADLE_USER_HOME' in android_retry and 'preserve_android_native_alignment.gradle' in android_retry and "keepDebugSymbols.add('**/*.so')" in gradle_align:
+    ok('Android packaging preserves 16 KiB ELF alignment during Gradle stripping')
+else:
+    err('Android package may rewrite aligned native libraries during Gradle stripping')
 if all(x in android_pack for x in ['LMG_ANDROID_ABI','LMG_BUILD_AAB','Android-Legal.zip','LICENSE_HISTORY.md','LICENSE_METADATA.json','YOUNGLION_LMG_SDK_LICENSE_1.0.txt','YOUNGLION_PACKAGE_LICENSE_1.0.txt']):
     ok('Android packaging is ABI-aware and emits legal sidecar')
 else: err('Android packaging contract incomplete')

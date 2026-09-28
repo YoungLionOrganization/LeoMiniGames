@@ -4,6 +4,16 @@ set -euo pipefail
 BUILD_DIR="${1:?usage: android_build_with_retry.sh <build-dir> <target>}"
 TARGET="${2:?usage: android_build_with_retry.sh <build-dir> <target>}"
 MAX_ATTEMPTS="${LMG_ANDROID_BUILD_RETRIES:-3}"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+[[ -d "$BUILD_DIR" ]] || { echo "Android build directory not found: $BUILD_DIR" >&2; exit 2; }
+BUILD_DIR="$(cd "$BUILD_DIR" && pwd)"
+# Both CI and release packaging call this helper. Keep Qt's already aligned
+# native libraries intact when Android Gradle Plugin assembles APKs and AABs.
+# The isolated Gradle home keeps this override out of other projects.
+export GRADLE_USER_HOME="$BUILD_DIR/.lmg-gradle-home"
+mkdir -p "$GRADLE_USER_HOME/init.d"
+cp "$ROOT/tools/ci/preserve_android_native_alignment.gradle" \
+   "$GRADLE_USER_HOME/init.d/preserve_android_native_alignment.gradle"
 
 if ! [[ "$MAX_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
   echo "Invalid LMG_ANDROID_BUILD_RETRIES: $MAX_ATTEMPTS" >&2

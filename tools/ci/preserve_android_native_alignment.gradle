@@ -1,0 +1,9 @@
+// Gradle's native debug-symbol stripping can rewrite PT_LOAD layout of Qt's
+// already 16 KiB aligned FFmpeg libraries. Keep original ELF bytes in release
+// APKs/AABs; the package validator still checks every 64-bit library.
+gradle.beforeProject { project ->
+    project.plugins.withId('com.android.application') {
+        project.extensions.getByName('android').packagingOptions.jniLibs.keepDebugSymbols.add('**/*.so')
+        project.logger.lifecycle('LeoMiniGames: preserving native ELF alignment during Android packaging')
+    }
+}

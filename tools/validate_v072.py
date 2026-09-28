@@ -57,8 +57,14 @@ def main() -> int:
     developer_cpp = text("src/core/DeveloperManager.cpp")
     android_retry = text("tools/ci/android_build_with_retry.sh")
     package_android = text("tools/package/package_android.sh")
+    gradle_alignment = text("tools/ci/preserve_android_native_alignment.gradle")
 
     package_source = text("tools/package/package_source.py")
+    require("GRADLE_USER_HOME" in android_retry and "preserve_android_native_alignment.gradle" in android_retry
+            and "keepDebugSymbols.add('**/*.so')" in gradle_alignment,
+            "Android packaging must preserve aligned Qt native libraries through Gradle stripping")
+    require(ci_workflow.count('python3 tools/validate_android_package.py "$apk" --abis') >= 2,
+            "CI must validate actual packaged per-ABI and universal APK ELF alignment")
 
     require("project(LeoMiniGames VERSION 0.7.2" in cmake, "CMake version is not 0.7.2")
     require("LEOMINIGAMES_ANDROID_VERSION_CODE 702" in cmake, "Android versionCode is not 702")
