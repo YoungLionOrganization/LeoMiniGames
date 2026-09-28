@@ -40,9 +40,11 @@ for abi in "${ABIS[@]}"; do
     make -j"${LMG_BUILD_JOBS:-4}" build_libs
     cp -L libcrypto.so "$OUT/$abi/libcrypto_3.so"
     cp -L libssl.so "$OUT/$abi/libssl_3.so"
-    patchelf --set-soname libcrypto_3.so "$OUT/$abi/libcrypto_3.so"
-    patchelf --set-soname libssl_3.so "$OUT/$abi/libssl_3.so"
-    patchelf --replace-needed libcrypto.so.3 libcrypto_3.so "$OUT/$abi/libssl_3.so"
+    # patchelf can rewrite PT_LOAD segments using its default 4 KiB page size.
+    # Preserve Android's required 16 KiB alignment on every rewrite.
+    patchelf --page-size 16384 --set-soname libcrypto_3.so "$OUT/$abi/libcrypto_3.so"
+    patchelf --page-size 16384 --set-soname libssl_3.so "$OUT/$abi/libssl_3.so"
+    patchelf --page-size 16384 --replace-needed libcrypto.so.3 libcrypto_3.so "$OUT/$abi/libssl_3.so"
     cp LICENSE.txt "$OUT/LICENSE-OpenSSL.txt"
   )
 done

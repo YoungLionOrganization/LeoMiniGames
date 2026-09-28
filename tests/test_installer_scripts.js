@@ -53,13 +53,47 @@ assert.equal(controllerHarness('uninstall').args[0], '--start-uninstaller');
 assert.equal(controllerHarness(null).args[2], '--start-updater');
 assert.equal(controllerHarness('upgrade', false).calls.some(c => c[0] === 'critical'), true);
 
+// QtIFW validates the custom page before it enters TargetDirectory; this is
+// the actual Next-button path for an existing installation.
+for (const action of ['upgrade', 'modify', 'uninstall']) {
+    const values = { LMGExistingInstallDir: 'C:/Program Files/LeoMiniGames',
+        LMGUpdateRepository: 'https://example.test/updates' };
+    const calls = [];
+    const component = {};
+    const page = { UpgradeRadioButton: { checked: action === 'upgrade' },
+        ModifyRadioButton: { checked: action === 'modify' },
+        UninstallRadioButton: { checked: action === 'uninstall' } };
+    const installer = {
+        isCommandLineInstance: () => false, isInstaller: () => true,
+        value: key => values[key] || '', fileExists: () => true,
+        addWizardPage: () => true,
+        addWizardPageItem: () => true,
+        setValidatorForCustomPage: (comp, name, method) => calls.push(['validator', comp, name, method]),
+        executeDetached: (exe, args, dir) => { calls.push(['launch', exe, args, dir]); return true; },
+    };
+    const gui = { pageWidgetByObjectName: () => page,
+        rejectWithoutPrompt: () => calls.push(['quit']) };
+    const context = { installer, gui, component,
+        QInstaller: { TargetDirectory: 1, ReadyForInstallation: 2 },
+        QMessageBox: { critical: () => { throw Error('Unexpected maintenance error'); } } };
+    vm.runInNewContext(script, context);
+    const instance = new context.Component();
+    assert.equal(calls[0][3], 'validateExistingInstallationPage');
+    assert.equal(instance.validateExistingInstallationPage(), false);
+    assert.ok(calls.some(c => c[0] === 'quit'));
+    assert.equal(calls.find(c => c[0] === 'launch')[2].at(-1),
+        action === 'upgrade' ? '--start-updater' :
+            action === 'modify' ? '--start-package-manager' : '--start-uninstaller');
+}
+
 // A fresh installation must still use the normal target directory and show
 // the application even if QtIFW's built-in component tree is initially empty.
 {
     const values = { TargetDir: 'C:/Apps/LeoMiniGames', ProductVersion: '0.7.2',
         LMGBuildLabel: 'Windows x64 baseline' };
     let summaryText = '';
-    const page = { InstallMsgLabel: { setText: () => {} },
+    let installText = '';
+    const page = { InstallMsgLabel: { setText: text => { installText = text; } },
         InstallComponentsTreeview: {}, ComponentSummaryScrollArea: {} };
     const gui = { currentPageWidget: () => page,
         pageWidgetByObjectName: () => ({ SummaryLabel: { setText: text => { summaryText = text; } } }) };
@@ -74,6 +108,7 @@ assert.equal(controllerHarness('upgrade', false).calls.some(c => c[0] === 'criti
     controller.ReadyForInstallationPageCallback();
     assert.match(summaryText, /LeoMiniGames 0\.7\.2/);
     assert.match(summaryText, /C:\/Apps\/LeoMiniGames/);
+    assert.match(installText, /LeoMiniGames 0\.7\.2/);
 }
 
 function optionsHarness(widget) {
@@ -96,4 +131,19 @@ assert.equal(optionsHarness(undefined).length, 3, 'unset custom page uses safe d
 assert.equal(optionsHarness({}).length, 3, 'missing checkbox controls must not crash');
 assert.equal(optionsHarness({ DesktopShortcutCheckBox: { checked: false },
     StartMenuShortcutCheckBox: { checked: true }, MaintenanceShortcutCheckBox: { checked: false } }).length, 1);
+{
+    const operations = [];
+    const widget = {};
+    const selected = { DesktopShortcutCheckBox: { checked: false },
+        StartMenuShortcutCheckBox: { checked: true }, MaintenanceShortcutCheckBox: { checked: false } };
+    const component = { createOperations: () => {}, userInterface: () => widget,
+        addOperation: (name, ...args) => operations.push([name, ...args]),
+        addElevatedOperation: () => {} };
+    const context = { component, installer: { isInstaller: () => false, isCommandLineInstance: () => false },
+        gui: { pageWidgetByObjectName: () => widget, findChild: (_widget, name) => selected[name] },
+        systemInfo: { productType: 'windows' } };
+    vm.runInNewContext(script, context);
+    new context.Component().createOperations();
+    assert.equal(operations.filter(x => x[0] === 'CreateShortcut').length, 1);
+}
 console.log('PASS: QtIFW existing install routing, launch failure, and shortcut options');

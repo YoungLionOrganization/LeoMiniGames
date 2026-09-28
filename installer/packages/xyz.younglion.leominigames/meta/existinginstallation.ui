@@ -15,7 +15,7 @@
      <item><widget class="QRadioButton" name="UninstallRadioButton"><property name="text"><string>Uninstall LeoMiniGames</string></property></widget></item>
     </layout>
    </widget></item>
-   <item><widget class="QLabel" name="HintLabel"><property name="text"><string>Update, Modify and Uninstall use the installed LeoMiniGames Maintenance Tool. Setup cannot install into an occupied installation folder.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+   <item><widget class="QLabel" name="HintLabel"><property name="text"><string>Choose Update to open the installed Maintenance Tool for this existing installation. Your current folder will be used.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
    <item><spacer name="verticalSpacer"><property name="orientation"><enum>Qt::Vertical</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>20</height></size></property></spacer></item>
   </layout>
  </widget>

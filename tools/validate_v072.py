@@ -97,7 +97,9 @@ def main() -> int:
     require("DesktopShortcutCheckBox" in installer_script and "StartMenuShortcutCheckBox" in installer_script
             and "MaintenanceShortcutCheckBox" in installer_script,
             "Windows integration choices missing from installer")
-    require("!options.DesktopShortcutCheckBox ||" in installer_script,
+    require('setValidatorForCustomPage(component, "ExistingInstallationPage", "validateExistingInstallationPage")' in installer_script,
+            "Existing installation must be handed to Maintenance Tool before TargetDirectory validation")
+    require('selected("DesktopShortcutCheckBox")' in installer_script and 'return !checkbox || checkbox.checked' in installer_script,
             "QtIFW dynamic checkbox access is not guarded")
     require("LEOMINIGAMES_WINDOWS_CPU_PROFILE" in cmake and "/arch:AVX2" in cmake
             and "LMG_WINDOWS_X64_AVX2=1" in cmake and "CMAKE_SIZEOF_VOID_P EQUAL 4" in cmake,

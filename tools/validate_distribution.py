@@ -255,10 +255,14 @@ for token in ['iconPath=@TargetDir@/LeoMiniGames.exe','workingDirectory=@TargetD
               'DesktopShortcutCheckBox','StartMenuShortcutCheckBox','MaintenanceShortcutCheckBox',
               'ExistingInstallationPage','InstallOptionsPage','InstallationSummary','GlobalConfig','__LMG_WINDOWS_CPU_PROFILE__']:
     (ok if token in iscript else err)(f'Installer script semantic {token}')
-if 'options.DesktopShortcutCheckBox.checked' in iscript and '!options.DesktopShortcutCheckBox ||' in iscript:
+if 'selected("DesktopShortcutCheckBox")' in iscript and 'return !checkbox || checkbox.checked' in iscript:
     ok('QtIFW shortcut choices guard missing dynamic controls')
 else:
     err('QtIFW shortcut choices may dereference missing dynamic controls')
+if 'setValidatorForCustomPage(component, "ExistingInstallationPage", "validateExistingInstallationPage")' in iscript and 'gui.rejectWithoutPrompt();\n    return false;' in iscript:
+    ok('QtIFW maintenance routing blocks navigation before occupied target directory')
+else:
+    err('QtIFW maintenance routing may reach occupied target directory')
 control = read('installer/config/control.qs')
 for token in ['LMGExistingInstallDir','LeoMiniGamesMaintenance.exe','--start-updater','--start-package-manager',
               '--start-uninstaller','ReadyForInstallationPageCallback','InstallMsgLabel','InstallComponentsTreeview',

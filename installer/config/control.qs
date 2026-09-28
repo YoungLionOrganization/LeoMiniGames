@@ -182,12 +182,13 @@ Controller.prototype.ReadyForInstallationPageCallback = function()
     var page = gui.currentPageWidget();
     if (!page) return;
     page.title = "Ready to Install";
+    var description = "LeoMiniGames " + installer.value("ProductVersion") +
+        " (" + installer.value("LMGBuildLabel") + ")\nDestination: " + installer.value("TargetDir");
     if (page.InstallMsgLabel)
-        page.InstallMsgLabel.setText("You are installing:");
+        page.InstallMsgLabel.setText("You are installing:\n" + description);
     var summary = gui.pageWidgetByObjectName("DynamicInstallationSummary");
     if (summary && summary.SummaryLabel)
-        summary.SummaryLabel.setText("LeoMiniGames " + installer.value("ProductVersion") +
-            " (" + installer.value("LMGBuildLabel") + ")\nDestination: " + installer.value("TargetDir"));
+        summary.SummaryLabel.setText(description);
     if (page.InstallComponentsTreeview) {
         page.InstallComponentsTreeview.visible = true;
         page.InstallComponentsTreeview.minimumHeight = 130;
