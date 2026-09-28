@@ -34,7 +34,7 @@ jobs:
           python3 tools/validate_i18n.py
           python3 tools/validate_distribution.py
           python3 tools/audit_prebuilt_binaries.py
-          python3 tools/validate_v071.py
+          python3 tools/validate_v072.py
           python3 -m py_compile tools/*.py
           find tools -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
 
@@ -105,7 +105,7 @@ jobs:
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            ca-certificates git python3 build-essential cmake ninja-build pkg-config \
+            ca-certificates git python3 build-essential cmake ninja-build libsecret-1-dev pkg-config \
             libgl-dev qt6-base-dev qt6-declarative-dev qt6-declarative-private-dev qt6-svg-dev qt6-multimedia-dev
       - name: Install Arch build dependencies
         if: matrix.distro == 'arch'
@@ -113,7 +113,7 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S --needed --noconfirm \
-            git python base-devel cmake ninja pkgconf \
+            git python base-devel cmake ninja libsecret pkgconf \
             qt6-base qt6-declarative qt6-svg qt6-multimedia
       - uses: actions/checkout@v7
       - name: Configure
@@ -249,6 +249,13 @@ jobs:
           modules: qtmultimedia
           aqtversion: "==3.3.*"
           cache: true
+      - name: Build verified OpenSSL 3.5 LTS for Android
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y patchelf perl make
+          bash tools/ci/build_android_openssl.sh "$RUNNER_TEMP/lmg-openssl" "${{ matrix.abi }}"
+          echo "LMG_ANDROID_OPENSSL_ROOT=$RUNNER_TEMP/lmg-openssl" >> "$GITHUB_ENV"
       - name: Configure Android
         shell: bash
         run: |
@@ -288,6 +295,13 @@ jobs:
               --autodesktop -m qtmultimedia -O "$QT_BASE"
           done
           echo "LMG_QT_BASE=$QT_BASE" >> "$GITHUB_ENV"
+      - name: Build verified OpenSSL 3.5 LTS for Android
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y patchelf perl make
+          bash tools/ci/build_android_openssl.sh "$RUNNER_TEMP/lmg-openssl"
+          echo "LMG_ANDROID_OPENSSL_ROOT=$RUNNER_TEMP/lmg-openssl" >> "$GITHUB_ENV"
       - name: Configure multi-ABI Android
         shell: bash
         run: |

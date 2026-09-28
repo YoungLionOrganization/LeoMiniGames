@@ -54,5 +54,8 @@
   "The update service could not resolve an update.": "更新服务无法确定可用更新。",
   "The update service returned an unsupported metadata contract.": "更新服务返回了不受支持的元数据协议。",
   "The update download URL failed validation.": "更新下载 URL 验证失败。",
-  "The maintenance repository URL failed validation.": "维护仓库 URL 验证失败。"
+  "The maintenance repository URL failed validation.": "维护仓库 URL 验证失败。",
+  "Remember API key securely on this device": "在此设备上安全保存 API 密钥",
+  "Log out and forget key": "退出并删除密钥",
+  "Saved API keys use the system credential store and are verified again when the app starts.": "API 密钥保存在系统凭据存储中，并在应用启动时重新验证。"
 }

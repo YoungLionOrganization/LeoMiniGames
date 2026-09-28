@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "DeveloperManager.h"
+#include "NetworkSafety.h"
+#include <qtkeychain/keychain.h>
+#include <QTimer>
+#include <QSslSocket>
 #include "AppPaths.h"
 #include "GameRegistry.h"
 #include "GameRuntime.h"
@@ -19,7 +23,16 @@
 #include <QRegularExpression>
 #include <QtGlobal>
 namespace { constexpr qint64 kMaxRccBytes=64LL*1024LL*1024LL; constexpr qint64 kMaxAuthResponse=512LL*1024LL; const QUrl kPortal(QStringLiteral("https://leominigames.younglion.xyz/developer/")); const QUrl kVerify(QStringLiteral("https://leominigames.younglion.xyz/api/v1/developer/auth/verify")); }
-DeveloperManager::DeveloperManager(AppPaths*p,GameRegistry*g,PluginDiagnostics*d,QObject*parent):QObject(parent),m_paths(p),m_games(g),m_diagnostics(d),m_network(new QNetworkAccessManager(this)){setStatus(QStringLiteral("Developer Mode is locked."));}
+DeveloperManager::DeveloperManager(AppPaths *paths, GameRegistry *games, PluginDiagnostics *diagnostics,
+                                   QObject *parent, QNetworkAccessManager *network)
+    : QObject(parent), m_paths(paths), m_games(games), m_diagnostics(diagnostics),
+      m_network(network ? network : new QNetworkAccessManager(this)), m_useCredentialStore(network == nullptr)
+{
+    setStatus(tr("Developer Mode is locked."));
+    // Injected transports are for isolated tests and must not touch real credentials.
+    if (m_useCredentialStore) QTimer::singleShot(0, this, &DeveloperManager::restoreSavedKey);
+}
+
 DeveloperManager::~DeveloperManager(){clearImported();}
 QVariantList DeveloperManager::deviceProfiles() const{return {QVariantMap{{"name","Current window"},{"width",0},{"height",0},{"safeTop",0},{"safeBottom",0}},QVariantMap{{"name","Small Android Phone"},{"width",360},{"height",640},{"safeTop",24},{"safeBottom",24}},QVariantMap{{"name","Large Android Phone"},{"width",412},{"height",915},{"safeTop",32},{"safeBottom",24}},QVariantMap{{"name","Tablet"},{"width",800},{"height",1280},{"safeTop",24},{"safeBottom",24}},QVariantMap{{"name","Desktop 1366x768"},{"width",1366},{"height",768},{"safeTop",0},{"safeBottom",0}},QVariantMap{{"name","Desktop 1920x1080"},{"width",1920},{"height",1080},{"safeTop",0},{"safeBottom",0}},QVariantMap{{"name","Ultrawide"},{"width",2560},{"height",1080},{"safeTop",0},{"safeBottom",0}},QVariantMap{{"name","Landscape mobile"},{"width",915},{"height",412},{"safeTop",0},{"safeBottom",16}}};}
 
@@ -32,11 +45,126 @@ void DeveloperManager::selectDeviceProfile(int index){const int max=deviceProfil
 void DeveloperManager::setError(const QString&m){m_error=m;if(!m.isEmpty()&&m_diagnostics)m_diagnostics->log(QStringLiteral("error"),m,QStringLiteral("DeveloperManager"),0);emit changed();} void DeveloperManager::setStatus(const QString&m){m_status=m;emit changed();}
 void DeveloperManager::openDeveloperPortal(){QDesktopServices::openUrl(kPortal);}
 bool DeveloperManager::safeKeyFormat(const QString&key){static const QRegularExpression re(QStringLiteral("^lmg_[0-9a-f]{12}_[A-Za-z0-9_-]{40,60}$"));return re.match(key).hasMatch();}
-void DeveloperManager::verifyApiKey(const QString &apiKey)
+namespace {
+const QString kCredentialService = QStringLiteral("xyz.younglion.leominigames.developer");
+const QString kCredentialKey = QStringLiteral("developer-api-key");
+void configureCredentialJob(QKeychain::Job *job) {
+    job->setKey(kCredentialKey);
+    job->setInsecureFallback(false);
+}
+}
+
+void DeveloperManager::restoreSavedKey()
 {
-    if(m_verifying)return; const QString key=apiKey.trimmed(); if(!safeKeyFormat(key)){setError(QStringLiteral("Invalid developer API-key format."));return;} m_verifying=true;m_error.clear();setStatus(QStringLiteral("Verifying developer account…"));emit changed();
-    QNetworkRequest req(kVerify);req.setRawHeader("Accept","application/json");req.setRawHeader("Authorization",QByteArrayLiteral("Bearer ")+key.toUtf8());req.setHeader(QNetworkRequest::UserAgentHeader,QStringLiteral("LeoMiniGames/%1 DeveloperLab").arg(QCoreApplication::applicationVersion()));req.setTransferTimeout(15000);req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,QNetworkRequest::ManualRedirectPolicy);
-    QNetworkReply *reply=m_network->get(req);connect(reply,&QNetworkReply::finished,this,[this,reply]{const QByteArray payload=reply->read(kMaxAuthResponse+1);const int http=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();const bool redirected=reply->attribute(QNetworkRequest::RedirectionTargetAttribute).isValid();const auto networkError=reply->error();reply->deleteLater();m_verifying=false;if(redirected){m_authenticated=false;setStatus(QStringLiteral("Developer Mode is locked."));setError(QStringLiteral("Developer authentication refused an HTTP redirect."));return;}if(payload.size()>kMaxAuthResponse){m_authenticated=false;setStatus(QStringLiteral("Developer Mode is locked."));setError(QStringLiteral("Developer authentication response exceeded the safety limit."));return;}QJsonParseError e{};const QJsonDocument doc=QJsonDocument::fromJson(payload,&e);const QJsonObject root=doc.isObject()?doc.object():QJsonObject{};const QString serverMessage=root.value(QStringLiteral("error")).toObject().value(QStringLiteral("message")).toString();if(networkError!=QNetworkReply::NoError||http<200||http>=300||e.error!=QJsonParseError::NoError||!doc.isObject()){m_authenticated=false;setStatus(QStringLiteral("Developer Mode is locked."));setError(serverMessage.isEmpty()?QStringLiteral("Developer credential verification failed (HTTP %1).").arg(http):serverMessage);return;}const QJsonObject data=root.value(QStringLiteral("data")).toObject();if(data.isEmpty()||!data.value(QStringLiteral("authenticated")).toBool(false)||!data.value(QStringLiteral("key")).isObject()||!data.value(QStringLiteral("developer")).isObject()){m_authenticated=false;setStatus(QStringLiteral("Developer Mode is locked."));setError(QStringLiteral("Developer credential response did not match the expected API contract."));return;}m_authenticated=true;m_error.clear();const QString publisher=data.value(QStringLiteral("publisher")).toObject().value(QStringLiteral("display_name")).toString();setStatus(publisher.isEmpty()?QStringLiteral("Developer Mode active for this session. API key was not persisted."):QStringLiteral("Developer Mode active for %1. API key was not persisted.").arg(publisher));emit changed();});
+    if (!m_useCredentialStore || m_verifying || m_authenticated) return;
+    const quint64 generation = ++m_authGeneration;
+    m_verifying = true;
+    emit changed();
+    auto *job = new QKeychain::ReadPasswordJob(kCredentialService, this);
+    configureCredentialJob(job);
+    connect(job, &QKeychain::Job::finished, this, [this, job, generation] {
+        if (generation != m_authGeneration) return;
+        m_verifying = false;
+        if (job->error() == QKeychain::NoError && safeKeyFormat(job->textData())) {
+            m_hasSavedKey = true;
+            verifyApiKey(job->textData(), false); // Always revalidate against server.
+        } else {
+            m_hasSavedKey = false;
+            emit changed();
+        }
+    });
+    job->start();
+}
+
+void DeveloperManager::saveVerifiedKey(const QString &key, quint64 generation)
+{
+    if (!m_useCredentialStore) return;
+    auto *job = new QKeychain::WritePasswordJob(kCredentialService, this);
+    configureCredentialJob(job);
+    job->setTextData(key);
+    m_verifying = true;
+    emit changed();
+    connect(job, &QKeychain::Job::finished, this, [this, job, generation] {
+        if (generation != m_authGeneration) return;
+        m_verifying = false;
+        if (job->error() == QKeychain::NoError) {
+            m_hasSavedKey = true;
+            setStatus(tr("Developer Mode active. API key saved in the system credential store."));
+        } else {
+            setError(tr("Developer Mode is active, but the system credential store could not save the key. Unlock your keyring and try again."));
+        }
+        emit changed();
+    });
+    job->start();
+}
+
+void DeveloperManager::forgetSavedKey()
+{
+    if (!m_useCredentialStore) return;
+    auto *job = new QKeychain::DeletePasswordJob(kCredentialService, this);
+    configureCredentialJob(job);
+    connect(job, &QKeychain::Job::finished, this, [this, job] {
+        if (job->error() == QKeychain::NoError || job->error() == QKeychain::EntryNotFound) {
+            m_hasSavedKey = false;
+            emit changed();
+        } else {
+            setError(tr("The saved key could not be removed. Unlock your system keyring and try again."));
+        }
+    });
+    job->start();
+}
+
+void DeveloperManager::verifyApiKey(const QString &apiKey, bool remember)
+{
+    if (m_verifying) return;
+    const QString key = apiKey.trimmed();
+    if (!safeKeyFormat(key)) { setError(tr("Invalid developer API-key format.")); return; }
+    const quint64 generation = ++m_authGeneration;
+    m_authenticated = false;
+    m_verifying = true;
+    m_error.clear();
+    setStatus(tr("Verifying developer account…"));
+    QNetworkRequest req(kVerify);
+    req.setRawHeader("Accept", "application/json");
+    req.setRawHeader("Authorization", QByteArrayLiteral("Bearer ") + key.toUtf8());
+    req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("LeoMiniGames/%1 DeveloperLab").arg(QCoreApplication::applicationVersion()));
+    req.setTransferTimeout(15000);
+    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+    QNetworkReply *reply = m_network->get(req);
+    m_authReply = reply;
+    NetworkSafety::boundJsonReply(reply, kMaxAuthResponse);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, generation, remember, key] {
+        reply->deleteLater();
+        if (generation != m_authGeneration) return;
+        m_authReply.clear();
+        m_verifying = false;
+        const QByteArray payload = reply->read(kMaxAuthResponse + 1);
+        const int http = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const bool redirected = reply->attribute(QNetworkRequest::RedirectionTargetAttribute).isValid();
+        QJsonParseError error{};
+        const QJsonDocument doc = QJsonDocument::fromJson(payload, &error);
+        if (redirected || reply->error() != QNetworkReply::NoError || http != 200 ||
+            reply->property("lmgResponseTooLarge").toBool() || payload.size() > kMaxAuthResponse ||
+            error.error != QJsonParseError::NoError || !doc.isObject()) {
+            setStatus(tr("Developer Mode is locked."));
+            // Do not echo arbitrary server text or credential-bearing URLs into logs.
+            setError(!QSslSocket::supportsSsl() ? tr("TLS support is unavailable. Install a build containing the TLS runtime.") :
+                     tr("Developer credential verification failed (HTTP %1).").arg(http));
+            if (http == 401 || http == 403) forgetSavedKey();
+            return;
+        }
+        const QJsonObject data = doc.object().value(QStringLiteral("data")).toObject();
+        if (!data.value(QStringLiteral("authenticated")).toBool(false) ||
+            !data.value(QStringLiteral("key")).isObject() || !data.value(QStringLiteral("developer")).isObject()) {
+            setError(tr("Developer credential response did not match the expected API contract."));
+            return;
+        }
+        m_authenticated = true;
+        m_error.clear();
+        setStatus(tr("Developer Mode active."));
+        if (remember) saveVerifiedKey(key, generation);
+        emit changed();
+    });
 }
 QString DeveloperManager::sha256File(const QString&p){QFile f(p);if(!f.open(QIODevice::ReadOnly))return QString();QCryptographicHash h(QCryptographicHash::Sha256);while(!f.atEnd())h.addData(f.read(1024*1024));return QString::fromLatin1(h.result().toHex());}
 bool DeveloperManager::importRcc(const QUrl &sourceFile)
@@ -55,7 +183,19 @@ bool DeveloperManager::importRcc(const QUrl &sourceFile)
     if(m_games&&!m_games->versionFor(inspection.packageId).isEmpty()){QFile::remove(copy);setError(QStringLiteral("Local package id collides with an installed or built-in game."));return false;}if(!RccPackageInspector::mount(copy,inspection)){QFile::remove(copy);setError(QStringLiteral("Validated RCC could not be mounted."));return false;}
     m_rccFile=copy;m_inspection=inspection;const QJsonObject m=inspection.manifest;QStringList locales;for(const QJsonValue&v:m.value(QStringLiteral("locales")).toArray())locales<<v.toString();QStringList capabilities;for(const QJsonValue&v:m.value(QStringLiteral("capabilities")).toArray())capabilities<<v.toString();m_packageInfo={{QStringLiteral("id"),inspection.packageId},{QStringLiteral("version"),m.value(QStringLiteral("version")).toString(QStringLiteral("dev"))},{QStringLiteral("packageFormat"),m.value(QStringLiteral("package_format")).toString(QStringLiteral("rcc-v1"))},{QStringLiteral("entry"),inspection.entryPath},{QStringLiteral("apiVersion"),m.value(QStringLiteral("api_version")).toString(QStringLiteral("legacy"))},{QStringLiteral("minApiVersion"),m.value(QStringLiteral("min_api_version")).toString()},{QStringLiteral("capabilities"),capabilities},{QStringLiteral("publisher"),m.value(QStringLiteral("publisher")).toString(m.value(QStringLiteral("author")).toString(QStringLiteral("Local developer")))},{QStringLiteral("publisherTrust"),QStringLiteral("local-unverified")},{QStringLiteral("mountMode"),inspection.legacyLayout?QStringLiteral("legacy"):QStringLiteral("canonical")},{QStringLiteral("resourceCount"),inspection.resources.size()},{QStringLiteral("locales"),locales},{QStringLiteral("defaultLocale"),m.value(QStringLiteral("default_locale")).toString(QStringLiteral("en"))},{QStringLiteral("saveVersion"),qMax(1,m.value(QStringLiteral("save_version")).toInt(1))},{QStringLiteral("nativeRequested"),m.value(QStringLiteral("native")).toBool(false)||m.value(QStringLiteral("plugin_level")).toInt(1)>=3},{QStringLiteral("nativeGranted"),false},{QStringLiteral("sha256"),digest}};m_error.clear();setStatus(QStringLiteral("Local RCC validated and mounted for this session."));emit packageChanged();return true;
 }
-bool DeveloperManager::launchImported(){if(m_rccFile.isEmpty()||!m_inspection.valid){setError(QStringLiteral("Import a valid RCC first."));return false;}emit launchRequested(m_inspection.packageId,QUrl(QStringLiteral("qrc:/mods/%1/%2").arg(m_inspection.packageId,m_inspection.entryPath)),m_packageInfo.value(QStringLiteral("version")).toString());return true;}
+bool DeveloperManager::launchImported(){if(!m_authenticated){setError(tr("Authenticate before running a local package."));return false;}if(m_rccFile.isEmpty()||!m_inspection.valid){setError(QStringLiteral("Import a valid RCC first."));return false;}emit launchRequested(m_inspection.packageId,QUrl(QStringLiteral("qrc:/mods/%1/%2").arg(m_inspection.packageId,m_inspection.entryPath)),m_packageInfo.value(QStringLiteral("version")).toString());return true;}
 void DeveloperManager::clearImported(){if(!m_rccFile.isEmpty()&&m_inspection.valid)RccPackageInspector::unmount(m_rccFile,m_inspection);if(!m_rccFile.isEmpty())QFile::remove(m_rccFile);m_rccFile.clear();m_inspection=RccPackageInspection{};m_packageInfo.clear();emit packageChanged();}
-void DeveloperManager::logout(){clearImported();m_authenticated=false;m_verifying=false;m_error.clear();setStatus(QStringLiteral("Developer Mode is locked."));emit changed();}
+void DeveloperManager::logout()
+{
+    ++m_authGeneration; // Invalidate any pending network/keychain completion first.
+    if (m_authReply) { m_authReply->abort(); m_authReply.clear(); }
+    clearImported();
+    m_authenticated = false;
+    m_verifying = false;
+    m_error.clear();
+    setStatus(tr("Developer Mode is locked."));
+    forgetSavedKey();
+    emit changed();
+}
+
 QVariantMap DeveloperManager::settingsSchemaFor(const QString&id)const{return id==m_inspection.packageId?m_inspection.manifest.value(QStringLiteral("settings_schema")).toObject().toVariantMap():QVariantMap{};} QStringList DeveloperManager::localesFor(const QString&id)const{QStringList r;if(id==m_inspection.packageId)for(const QJsonValue&v:m_inspection.manifest.value(QStringLiteral("locales")).toArray())r<<v.toString();return r;} QString DeveloperManager::defaultLocaleFor(const QString&id)const{return id==m_inspection.packageId?m_inspection.manifest.value(QStringLiteral("default_locale")).toString(QStringLiteral("en")):QStringLiteral("en");} int DeveloperManager::saveVersionFor(const QString&id)const{return id==m_inspection.packageId?qMax(1,m_inspection.manifest.value(QStringLiteral("save_version")).toInt(1)):1;}

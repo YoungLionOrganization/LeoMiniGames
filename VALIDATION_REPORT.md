@@ -96,3 +96,10 @@ Latest inspected source commit: `2fbd4b7ffc9259c5d3171ff5247d9393e1fa2bbb`.
 The packaging fix uses a normal-file check (`-f`) and invokes the helper through `bash` for both `apk` and `aab`. `validate_v071.py` now enforces this contract so a file-mode regression is caught during the source-validation job instead of in five parallel Android packaging jobs.
 
 A new GitHub-hosted Build Release Artifacts result requires this patched tree to be pushed; this report does not claim an unobserved post-fix hosted-run result.
+
+
+## 2026-09-24 Windows installer regression pass
+
+Static/source validation now covers the QtIFW layout and Windows CPU packaging regressions reported from the real installer screenshot. The old configuration combined `WizardStyle=Modern`, a top `Logo`, a `PageListPixmap`, and a visible page list; the new configuration removes both extra pixmaps and uses one Classic page list. The only application component is forced/essential without `Checkable=false`, and the controller explicitly fills `InstallMsgLabel` on the Ready page.
+
+Existing-install detection, Update/Repair/Modify/Uninstall dispatch, shortcut choices, x86_64 baseline + x86_64 AVX2 + ARM64 packaging, distinct AVX2 update routing, and the unsupported-Win32 guard are all covered by validators. This environment does not execute the QtIFW Windows GUI binary, so the final rendered installer and maintenance handoff must be confirmed by the next Windows artifact run / smoke test.

@@ -51,3 +51,15 @@ macOS DMG generation uses a fresh temporary image, stale-volume detach and bound
 ## Real-device QA
 
 Windows/Linux desktop and Android/iOS/iPadOS/macOS hardware behavior must still be recorded separately. Audio backend behavior, haptics, lifecycle/background save, touch/safe-area handling, installer/signing/notarization and update signatures cannot be proven solely by static validation or cross-compilation.
+
+
+## v0.7.1 Windows installer / CPU matrix follow-up — 2026-09-24
+
+| Artifact | CPU scope | Installer | Update architecture |
+| --- | --- | --- | --- |
+| Windows x86_64 baseline | Intel + AMD 64-bit x86 | ZIP + QtIFW Setup | `x86_64` |
+| Windows x86_64 AVX2 | Newer Intel + AMD with AVX2 | optimized ZIP + QtIFW Setup | `x86_64-avx2` |
+| Windows ARM64 | Windows on ARM | ZIP + QtIFW Setup | `arm64` |
+| Windows x86 32-bit | not a supported Qt 6 Windows release target | not produced | not advertised |
+
+The AVX2 lane is a real MSVC `/arch:AVX2` build, not a renamed baseline archive. Physical execution of the newly generated installer variants still requires the next Windows GitHub Actions build / Windows QA run and is not claimed by this source audit.

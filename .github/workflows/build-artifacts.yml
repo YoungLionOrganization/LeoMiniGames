@@ -12,7 +12,7 @@ concurrency:
 
 env:
   QT_CI_VERSION: "6.10.2"
-  LMG_VERSION: "0.7.1"
+  LMG_VERSION: "0.7.2"
   ANDROID_NDK_VERSION: "27.2.12479018"
   ANDROID_PLATFORM: "android-36"
   ANDROID_BUILD_TOOLS: "36.0.0"
@@ -48,7 +48,7 @@ jobs:
           python3 tools/validate_i18n.py
           python3 tools/validate_distribution.py
           python3 tools/audit_prebuilt_binaries.py
-          python3 tools/validate_v071.py
+          python3 tools/validate_v072.py
 
   source:
     name: Source ZIP
@@ -89,10 +89,47 @@ jobs:
         shell: pwsh
         env:
           LMG_PLATFORM_SUFFIX: x86_64
+          LMG_WINDOWS_ARCH: x86_64
+          LMG_WINDOWS_CPU_PROFILE: baseline
         run: ./tools/package/package_windows.ps1 -BuildDir build
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ env.LMG_VERSION }}-windows-x86_64
+          path: dist/windows/*
+          if-no-files-found: error
+
+  windows-x64-avx2:
+    name: Windows x86_64 AVX2 ZIP + Setup EXE
+    needs: validate
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
+        with:
+          version: ${{ env.QT_CI_VERSION }}
+          arch: win64_msvc2022_64
+          modules: qtmultimedia
+          aqtversion: "==3.3.*"
+          cache: true
+      - name: Install Qt Installer Framework 4.11 x64
+        shell: pwsh
+        run: ./tools/install_qtifw_windows.ps1 -Architecture x64
+      - name: Configure AVX2 optimized build
+        run: cmake -S . -B build -A x64 -DBUILD_TESTING=ON -DLEOMINIGAMES_WINDOWS_CPU_PROFILE=avx2
+      - name: Build and test AVX2 optimized build
+        run: |
+          cmake --build build --config Release --parallel
+          ctest --test-dir build -C Release --output-on-failure
+      - name: Package
+        shell: pwsh
+        env:
+          LMG_PLATFORM_SUFFIX: x86_64-AVX2
+          LMG_WINDOWS_ARCH: x86_64
+          LMG_WINDOWS_CPU_PROFILE: avx2
+        run: ./tools/package/package_windows.ps1 -BuildDir build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: LeoMiniGames-${{ env.LMG_VERSION }}-windows-x86_64-avx2
           path: dist/windows/*
           if-no-files-found: error
 
@@ -120,6 +157,8 @@ jobs:
         shell: pwsh
         env:
           LMG_PLATFORM_SUFFIX: ARM64
+          LMG_WINDOWS_ARCH: arm64
+          LMG_WINDOWS_CPU_PROFILE: baseline
         run: ./tools/package/package_windows.ps1 -BuildDir build
       - uses: actions/upload-artifact@v7
         with:
@@ -218,7 +257,7 @@ jobs:
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            ca-certificates git python3 build-essential cmake ninja-build pkg-config tar gzip \
+            ca-certificates git python3 build-essential cmake ninja-build libsecret-1-dev pkg-config tar gzip \
             libgl-dev qt6-base-dev qt6-declarative-dev qt6-declarative-private-dev qt6-svg-dev qt6-multimedia-dev
       - name: Arch dependencies
         if: matrix.distro == 'arch'
@@ -226,7 +265,7 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S --needed --noconfirm \
-            git python base-devel cmake ninja pkgconf tar gzip \
+            git python base-devel cmake ninja libsecret pkgconf tar gzip \
             qt6-base qt6-declarative qt6-svg qt6-multimedia
       - uses: actions/checkout@v7
       - run: |
@@ -338,9 +377,16 @@ jobs:
             echo "QT_ANDROID_KEYSTORE_KEY_PASS=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
             echo "LMG_ANDROID_SIGNING=1" >> "$GITHUB_ENV"
           else
-            echo "LMG_ANDROID_SIGNING=0" >> "$GITHUB_ENV"
-            echo "Signing secrets absent: unsigned APK/AAB artifacts will still be produced."
+            echo "Android release signing secrets are required for APK/AAB artifacts." >&2
+            exit 2
           fi
+      - name: Build verified OpenSSL 3.5 LTS for Android
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y patchelf perl make
+          bash tools/ci/build_android_openssl.sh "$RUNNER_TEMP/lmg-openssl" "${{ matrix.abi }}"
+          echo "LMG_ANDROID_OPENSSL_ROOT=$RUNNER_TEMP/lmg-openssl" >> "$GITHUB_ENV"
       - name: Configure
         shell: bash
         run: |
@@ -411,8 +457,16 @@ jobs:
             echo "QT_ANDROID_KEYSTORE_KEY_PASS=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
             echo "LMG_ANDROID_SIGNING=1" >> "$GITHUB_ENV"
           else
-            echo "LMG_ANDROID_SIGNING=0" >> "$GITHUB_ENV"
+            echo "Android release signing secrets are required for APK/AAB artifacts." >&2
+            exit 2
           fi
+      - name: Build verified OpenSSL 3.5 LTS for Android
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y patchelf perl make
+          bash tools/ci/build_android_openssl.sh "$RUNNER_TEMP/lmg-openssl"
+          echo "LMG_ANDROID_OPENSSL_ROOT=$RUNNER_TEMP/lmg-openssl" >> "$GITHUB_ENV"
       - name: Configure multi-ABI
         shell: bash
         run: |
@@ -516,6 +570,7 @@ jobs:
     needs:
       - source
       - windows-x64
+      - windows-x64-avx2
       - windows-arm64
       - linux-portable
       - linux-native

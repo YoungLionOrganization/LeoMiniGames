@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>InstallOptionsPage</class>
+ <widget class="QWidget" name="InstallOptionsPage">
+  <property name="minimumSize"><size><width>560</width><height>300</height></size></property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing"><number>12</number></property>
+   <item><widget class="QLabel" name="IntroLabel"><property name="text"><string>Choose Windows integration options.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+   <item><widget class="QLabel" name="BuildLabel"><property name="text"><string>Build information</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+   <item><widget class="QGroupBox" name="ShortcutGroup"><property name="title"><string>Shortcuts</string></property>
+    <layout class="QVBoxLayout" name="shortcutLayout">
+     <item><widget class="QCheckBox" name="DesktopShortcutCheckBox"><property name="text"><string>Create a Desktop shortcut</string></property><property name="checked"><bool>true</bool></property></widget></item>
+     <item><widget class="QCheckBox" name="StartMenuShortcutCheckBox"><property name="text"><string>Create a Start Menu shortcut</string></property><property name="checked"><bool>true</bool></property></widget></item>
+     <item><widget class="QCheckBox" name="MaintenanceShortcutCheckBox"><property name="text"><string>Add Update / Repair / Uninstall tool to the Start Menu</string></property><property name="checked"><bool>true</bool></property></widget></item>
+    </layout>
+   </widget></item>
+   <item><widget class="QLabel" name="UpdateInfoLabel"><property name="text"><string>The Maintenance Tool uses the LeoMiniGames update service. Update metadata and packages are obtained through leominigames.younglion.xyz.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+   <item><spacer name="verticalSpacer"><property name="orientation"><enum>Qt::Vertical</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>20</height></size></property></spacer></item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

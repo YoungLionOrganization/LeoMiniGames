@@ -73,3 +73,15 @@ No new concrete static/source defect remained after the final audit pass. Produc
 | Publish workflow was reported as failed after CI #24 | Publish #4 preflight could not find a successful exact-SHA `ci.yml` run for `d22534e...`. | No gate bypass was added. Publish must remain blocked until the exact commit has a green CI; the underlying Android transient-failure handling was fixed instead. |
 
 The Developer Lab fix does not persist raw API keys and does not grant publishing/native/L3 authority. Local RCC security boundaries are unchanged.
+
+
+## 2026-09-24 installer adversarial audit
+
+| Failure mode | Root cause / risk | Resolution |
+| --- | --- | --- |
+| Cramped/broken installer UI | Modern wizard branding plus `Logo` plus `PageListPixmap` duplicated visual regions | use Classic wizard + single page list; remove Logo/PageListPixmap references |
+| `You are installing` appears blank | only component was forced while explicitly `Checkable=false`; Ready page text was left to default QtIFW rendering | remove Checkable override, explicitly select component and set `InstallMsgLabel`/summary sizing |
+| Running Setup over an installed copy gives normal install flow | no controller or existing-install detection | detect registry/default/legacy install paths; show Update/Repair/Modify/Uninstall page |
+| AVX2 install receives generic update | client/backend knew only `x86_64` | compile-time AVX2 identity + separate `x86_64-AVX2` QtIFW repository/backend route |
+| Fake Intel/AMD split | vendor names do not imply different x86_64 ISA packages | shared baseline + optional AVX2 optimization; no vendor-only duplicate artifacts |
+| Unsupported 32-bit package claim | Qt 6 Windows official matrix is 64-bit x86_64/ARM64 | CMake rejects 32-bit Windows host release; workflow has no Win32 lane |

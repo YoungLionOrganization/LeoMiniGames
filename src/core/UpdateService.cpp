@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "UpdateService.h"
+#include "NetworkSafety.h"
 #include "SettingsManager.h"
 
 #include <QCoreApplication>
@@ -98,8 +99,13 @@ QString normalizedArchitecture()
     const QString arch = QSysInfo::currentCpuArchitecture().toLower();
     if (arch == QStringLiteral("arm64") || arch == QStringLiteral("aarch64"))
         return QStringLiteral("arm64");
-    if (arch == QStringLiteral("x86_64") || arch == QStringLiteral("amd64"))
+    if (arch == QStringLiteral("x86_64") || arch == QStringLiteral("amd64")) {
+#if defined(Q_OS_WIN) && defined(LMG_WINDOWS_X64_AVX2)
+        return QStringLiteral("x86_64-avx2");
+#else
         return QStringLiteral("x86_64");
+#endif
+    }
     if (arch == QStringLiteral("i386") || arch == QStringLiteral("i686") || arch == QStringLiteral("x86"))
         return QStringLiteral("x86");
     if (arch.contains(QStringLiteral("arm")))
@@ -236,6 +242,7 @@ void UpdateService::checkForUpdates()
     request.setRawHeader("Accept", "application/json");
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
     m_reply = m_network->get(request);
+    NetworkSafety::boundJsonReply(m_reply, kMaxUpdateMetadataBytes);
 
     QTimer *timeout = new QTimer(m_reply);
     timeout->setSingleShot(true);

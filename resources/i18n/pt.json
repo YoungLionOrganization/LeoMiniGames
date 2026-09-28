@@ -54,5 +54,8 @@
   "The update service could not resolve an update.": "O serviço de atualização não conseguiu determinar uma atualização.",
   "The update service returned an unsupported metadata contract.": "O serviço de atualização retornou um contrato de metadados não suportado.",
   "The update download URL failed validation.": "A URL de download da atualização falhou na validação.",
-  "The maintenance repository URL failed validation.": "A URL do repositório de manutenção falhou na validação."
+  "The maintenance repository URL failed validation.": "A URL do repositório de manutenção falhou na validação.",
+  "Remember API key securely on this device": "Guardar a chave API com segurança neste dispositivo",
+  "Log out and forget key": "Sair e esquecer a chave",
+  "Saved API keys use the system credential store and are verified again when the app starts.": "As chaves API são guardadas no armazenamento de credenciais do sistema e verificadas ao iniciar a aplicação."
 }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ExistingInstallationPage</class>
+ <widget class="QWidget" name="ExistingInstallationPage">
+  <property name="minimumSize"><size><width>560</width><height>300</height></size></property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing"><number>12</number></property>
+   <item><widget class="QLabel" name="IntroLabel"><property name="text"><string>LeoMiniGames is already installed.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+   <item><widget class="QLabel" name="DetectedVersionLabel"><property name="text"><string>Installed version</string></property></widget></item>
+   <item><widget class="QLabel" name="DetectedPathLabel"><property name="text"><string>Installation folder</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+   <item><widget class="QGroupBox" name="ActionGroup"><property name="title"><string>Choose an action</string></property>
+    <layout class="QVBoxLayout" name="actionLayout">
+     <item><widget class="QRadioButton" name="UpgradeRadioButton"><property name="text"><string>Update to the latest available version (recommended)</string></property><property name="checked"><bool>true</bool></property></widget></item>
+     <item><widget class="QRadioButton" name="RepairRadioButton"><property name="text"><string>Repair / reinstall using this Setup package</string></property></widget></item>
+     <item><widget class="QRadioButton" name="ModifyRadioButton"><property name="text"><string>Modify installation / components</string></property></widget></item>
+     <item><widget class="QRadioButton" name="UninstallRadioButton"><property name="text"><string>Uninstall LeoMiniGames</string></property></widget></item>
+    </layout>
+   </widget></item>
+   <item><widget class="QLabel" name="HintLabel"><property name="text"><string>Update, Modify and Uninstall use the installed LeoMiniGames Maintenance Tool. Repair reinstalls the local package without deleting game saves.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+   <item><spacer name="verticalSpacer"><property name="orientation"><enum>Qt::Vertical</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>20</height></size></property></spacer></item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

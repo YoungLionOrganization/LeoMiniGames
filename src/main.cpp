@@ -60,14 +60,14 @@ Q_IMPORT_PLUGIN(ReactionTapPlugin)
 
 int main(int argc, char *argv[])
 {
-#if defined(Q_OS_ANDROID) && defined(LEOMINIGAMES_ANDROID_OPENSSL_SUFFIX_3)
+#ifdef Q_OS_ANDROID
     qputenv("ANDROID_OPENSSL_SUFFIX", "_3");
 #endif
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("YoungLion"));
     app.setOrganizationDomain(QStringLiteral("xyz.younglion.leominigames"));
     app.setApplicationName(QStringLiteral("LeoMiniGames"));
-    app.setApplicationVersion(QStringLiteral("0.7.1"));
+    app.setApplicationVersion(QStringLiteral("0.7.2"));
     app.setApplicationDisplayName(QStringLiteral("LeoMiniGames"));
     app.setWindowIcon(QIcon(QStringLiteral(":/branding/leominigames_icon.png")));
     QQuickStyle::setStyle(QStringLiteral("Basic"));

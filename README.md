@@ -152,7 +152,8 @@ The application target set remains Windows, Linux, Android, iOS and macOS. GitHu
 
 | Platform | Architecture/toolchain | CI role | Release artifact |
 | --- | --- | --- | --- |
-| Windows | x86_64 / MSVC 2022 | build + CTest | portable ZIP + QtIFW EXE |
+| Windows | x86_64 baseline / MSVC 2022 | build + CTest | portable ZIP + QtIFW EXE |
+| Windows | x86_64 AVX2 / MSVC 2022 | release build + CTest | optimized portable ZIP + QtIFW EXE |
 | Windows | x86_64 / LLVM-MinGW | build + CTest | compatibility lane |
 | Windows | ARM64 / MSVC cross-build | build | portable ZIP + QtIFW EXE |
 | Linux | Ubuntu 22.04 x86_64 | build + CTest | compatibility lane |
@@ -330,6 +331,13 @@ ctest --test-dir build --output-on-failure
 
 Platform-specific details are documented in [`BUILDING.md`](BUILDING.md), [`docs/BUILDING.md`](docs/BUILDING.md) and [`BUILD_MATRIX.md`](BUILD_MATRIX.md).
 
+
+### Windows installer behavior
+
+The QtIFW Setup uses a single dark Classic-style wizard rather than stacking a Modern header logo and a page-list image. Existing installations are detected before the target-directory step and expose **Update**, **Repair / Reinstall**, **Modify**, and **Uninstall** actions. New installs expose separate Desktop, Start Menu, and Maintenance Tool shortcut choices, and the Ready page explicitly identifies the component/build being installed.
+
+Windows x86_64 is a shared 64-bit ISA for Intel and AMD processors, so the baseline package supports both vendors. A second x86_64 AVX2 package is produced for newer Intel/AMD CPUs, and ARM64 remains separate. The Qt 6 Windows host does not publish a 32-bit x86 package because that configuration is not an officially supported Qt 6 Windows target.
+
 ## Update service boundary
 
 Application update discovery and downloads are resolved through `https://leominigames.younglion.xyz`, not directly through GitHub. The backend currently uses the YoungLionOrganization/LeoMiniGames GitHub repository as its upstream provider, but clients consume the versioned `leominigames-update-v1` contract and backend-proxied package/QtIFW URLs. This keeps a future move to R2 or another distribution backend server-side. See [`docs/UPDATES.md`](docs/UPDATES.md).
@@ -341,7 +349,7 @@ Application update discovery and downloads are resolved through `https://leomini
 - `release-assets` — the validated public Release payload;
 - `update-repositories` — the Windows QtIFW repositories used by Maintenance Tool.
 
-The public asset allowlist for v0.7.1 contains 25 files: the source ZIP; Windows x86_64/ARM64 portable ZIPs and Setup EXEs; three Linux portable tarballs, three AppImages and three native tarballs; three macOS ZIPs and three DMGs; and five Android APKs. AABs, unsigned Apple test bundles, checksum sidecars, legal sidecars and QtIFW repository internals are intentionally excluded from the public GitHub Release asset set.
+The public asset allowlist for v0.7.1 contains 27 files: the source ZIP; Windows x86_64 baseline, x86_64 AVX2 and ARM64 portable ZIPs and Setup EXEs; three Linux portable tarballs, three AppImages and three native tarballs; three macOS ZIPs and three DMGs; and five Android APKs. AABs, unsigned Apple test bundles, checksum sidecars, legal sidecars and QtIFW repository internals are intentionally excluded from the public GitHub Release asset set.
 
 Windows packaging runs `windeployqt` before creating the portable archive. QtIFW produces hybrid installers so the installed Maintenance Tool can later consume the published update repository.
 

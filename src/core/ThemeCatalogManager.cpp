@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "ThemeCatalogManager.h"
+#include "NetworkSafety.h"
 
 #include "AppPaths.h"
 #include "SettingsManager.h"
@@ -272,6 +273,7 @@ void ThemeCatalogManager::refresh()
     request.setHeader(QNetworkRequest::UserAgentHeader,
         QStringLiteral("LeoMiniGames/%1").arg(QCoreApplication::applicationVersion()));
     QNetworkReply *reply = m_impl->network.get(request);
+    NetworkSafety::boundJsonReply(reply, kMaxThemeJsonBytes);
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
         std::unique_ptr<QNetworkReply, void(*)(QNetworkReply*)> guard(reply, [](QNetworkReply *r) { r->deleteLater(); });
         setLoading(false);
@@ -396,6 +398,7 @@ void ThemeCatalogManager::requestDownloadTicket(int row)
     request.setTransferTimeout(15000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::SameOriginRedirectPolicy);
     QNetworkReply *reply = m_impl->network.get(request);
+    NetworkSafety::boundJsonReply(reply, kMaxThemeJsonBytes);
     connect(reply, &QNetworkReply::finished, this, [this, reply, entryId] {
         std::unique_ptr<QNetworkReply, void(*)(QNetworkReply*)> guard(reply, [](QNetworkReply *r) { r->deleteLater(); });
         const int currentRow = indexOf(entryId);

@@ -45,7 +45,7 @@ QString GameSave::lastError() const { return m_lastError; }
 bool GameSave::safeToken(const QString &value)
 {
     static const QRegularExpression rx(QStringLiteral("^[A-Za-z0-9_.-]{1,64}$"));
-    return rx.match(value).hasMatch();
+    return value != QStringLiteral(".") && value != QStringLiteral("..") && !value.contains(QLatin1Char('\n')) && rx.match(value).hasMatch();
 }
 
 QString GameSave::gameDir() const
@@ -60,7 +60,35 @@ QString GameSave::backupPath(const QString &slot) const { const QString p = slot
 
 QVariant GameSave::get(const QString &key) const { return get(key, QVariant{}); }
 QVariant GameSave::get(const QString &key, const QVariant &fallback) const { return m_payload.value(key, fallback); }
-void GameSave::set(const QString &key, const QVariant &value) { if (!key.isEmpty() && m_payload.value(key) != value) { m_payload.insert(key, value); m_dirty = true; } }
+namespace {
+QVariant saveSnapshot(const QVariant &value, int depth, bool &ok)
+{
+    if (depth > 64) { ok = false; return QVariant{}; }
+    if (value.metaType() == QMetaType::fromType<QJSValue>())
+        return saveSnapshot(value.value<QJSValue>().toVariant(), depth + 1, ok);
+    if (value.metaType() == QMetaType::fromType<QVariantMap>()) {
+        QVariantMap result = value.toMap();
+        for (auto it = result.begin(); it != result.end(); ++it) it.value() = saveSnapshot(it.value(), depth + 1, ok);
+        return result;
+    }
+    if (value.metaType() == QMetaType::fromType<QVariantList>()) {
+        QVariantList result = value.toList();
+        for (QVariant &item : result) item = saveSnapshot(item, depth + 1, ok);
+        return result;
+    }
+    return value;
+}
+}
+void GameSave::set(const QString &key, const QVariant &value)
+{
+    if (key.isEmpty()) return;
+    bool ok = true;
+    const QVariant snapshot = saveSnapshot(value, 0, ok);
+    if (!ok) { setError(QStringLiteral("Save value exceeds the nesting limit.")); return; }
+    if (!m_payload.contains(key) || m_payload.value(key) != snapshot) {
+        m_payload.insert(key, snapshot); m_dirty = true;
+    }
+}
 void GameSave::remove(const QString &key) { if (m_payload.remove(key) > 0) m_dirty = true; }
 bool GameSave::contains(const QString &key) const { return m_payload.contains(key); }
 void GameSave::clearMemory() { if (!m_payload.isEmpty()) { m_payload.clear(); m_dirty = true; } }
@@ -203,7 +231,18 @@ bool GameSave::load(const QString &slot)
     return true;
 }
 
-bool GameSave::createSlot(const QString &slot) { if (!safeToken(slot)) { setError(QStringLiteral("Invalid save slot.")); return false; } const QVariantMap old = m_payload; const bool oldDirty = m_dirty; m_payload.clear(); m_dirty = true; const bool ok = save(slot); m_payload = old; m_dirty = oldDirty; return ok; }
+bool GameSave::createSlot(const QString &slot)
+{
+    const QString path = slotPath(slot);
+    if (path.isEmpty()) { setError(QStringLiteral("Invalid save slot.")); return false; }
+    if (QFile::exists(path) || QFile::exists(backupPath(slot))) {
+        setError(QStringLiteral("Save slot already exists.")); return false;
+    }
+    if (!writeFile(path, {}, m_schemaVersion, false)) return false;
+    emit saved(slot);
+    return true;
+}
+
 bool GameSave::deleteSlot(const QString &slot) { const QString p = slotPath(slot); if (p.isEmpty()) return false; QFile::remove(p + QStringLiteral(".bak")); return !QFile::exists(p) || QFile::remove(p); }
 QStringList GameSave::listSlots() const { QStringList out; const QString dirPath=gameDir(); if(dirPath.isEmpty())return out; QDir dir(dirPath); const auto files = dir.entryList({QStringLiteral("*.lmgsave")}, QDir::Files, QDir::Name); for (const QString &f : files) out << f.left(f.size() - 8); return out; }
 bool GameSave::autosave() { if (m_gameId.isEmpty() || !m_dirty) return true; return save(QStringLiteral("autosave")); }

@@ -8,7 +8,33 @@ LeoMiniGames uses `MAJOR.MINOR.PATCH` application versions. Patch releases may c
 
 Releases are not created merely by pushing a tag. `build-artifacts.yml` manually builds and aggregates artifacts; `publish-release.yml` is a separate guarded manual workflow. Its default `validate` mode performs release preflight only. Actual publication requires `mode=publish`, an authorized publisher and any configured approval on the protected GitHub `release` Environment.
 
+## v0.7.2 — transport, persistence and package safety
+
+This patch stores an opted-in Developer Lab API key in the operating-system
+keychain and rechecks it on restore. Logging out invalidates pending responses.
+Save-slot creation no longer overwrites a slot, and nested JavaScript snapshot
+values are normalized before they are written. Catalog, update and developer
+responses have size and time limits. Android builds include verified OpenSSL
+libraries per ABI and fail release packaging if a signing identity is missing.
+
+The backend companion adds HTTPS/proxy enforcement, bounded request and
+upstream responses, hardened archive verification, and short-lived developer
+sessions. Deploy it separately after running its migration and installation
+checks. See `V072_VALIDATION.md` in each source archive for verification status.
+
+Native Linux Qt and PHP checks passed locally. Android APK/AAB and the hosted
+backend were not built or exercised in this environment; signing, cross-build
+and production transport must be verified on the release runner/host before a
+public release.
+
 ## v0.7.1 — release, maintenance and update infrastructure
+
+### v0.7.1 Windows installer and CPU variants
+
+The Windows release now has three supported package families: **x86_64 baseline** for Intel/AMD, **x86_64 AVX2 optimized** for newer Intel/AMD processors, and **ARM64**. Intel and AMD do not require separate baseline binaries because both use the x86_64/AMD64 ISA. Windows 32-bit x86 is intentionally not advertised as a LeoMiniGames Qt 6 release target.
+
+Setup now avoids the previous duplicated logo/page-list layout, detects an existing installation, offers Update / Repair-Reinstall / Modify / Uninstall, exposes optional Windows shortcut integration, and explicitly fills the Ready-page install summary. AVX2 uses its own backend/QtIFW update architecture (`x86_64-avx2` / `x86_64-AVX2`) so optimized installations remain on the optimized update track.
+
 
 ### Scope
 
@@ -196,4 +222,3 @@ If a v0.7 runtime/security change breaks a legitimate v0.5/v0.6 package, prefer 
 ## Older version documentation
 
 Historical notes remain in `V0.5.0_CHANGES.md`, `V0.5.1_CHANGES.md`, `V0.5.2_CHANGES.md`, `V0.6.1_CHANGES.md` and `V0.6.2_CHANGES.md`.
-

@@ -72,7 +72,7 @@ jobs:
           python3 tools/validate_i18n.py
           python3 tools/validate_distribution.py
           python3 tools/audit_prebuilt_binaries.py
-          python3 tools/validate_v071.py
+          python3 tools/validate_v072.py
 
       - name: Resolve immutable build candidate
         id: candidate
@@ -101,7 +101,7 @@ jobs:
             while IFS= read -r path; do
               [[ -z "$path" ]] && continue
               case "$path" in
-                .github/workflows/publish-release.yml|tools/validate_v071.py) ;;
+                .github/workflows/publish-release.yml|tools/validate_v072.py) ;;
                 *) return 1 ;;
               esac
             done <<< "$changed"
@@ -262,6 +262,7 @@ jobs:
           gh run download "$BUILD_RUN_ID" --repo "$GITHUB_REPOSITORY" --name update-repositories --dir _update-repositories
           python3 tools/release/validate_release_assets.py _release-assets
           test -s _update-repositories/windows/x86_64/Updates.xml
+          test -s _update-repositories/windows/x86_64-AVX2/Updates.xml
           test -s _update-repositories/windows/ARM64/Updates.xml
 
       - uses: actions/upload-artifact@v7
@@ -318,7 +319,7 @@ jobs:
           while IFS= read -r path; do
             [[ -z "$path" ]] && continue
             case "$path" in
-              .github/workflows/publish-release.yml|tools/validate_v071.py) ;;
+              .github/workflows/publish-release.yml|tools/validate_v072.py) ;;
               *)
                 echo "Application/package source changed after build candidate: $path" >&2
                 echo "A new Build Release Artifacts run is required." >&2

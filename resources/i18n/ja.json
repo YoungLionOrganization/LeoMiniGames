@@ -54,5 +54,8 @@
   "The update service could not resolve an update.": "更新サービスが利用可能な更新を特定できませんでした。",
   "The update service returned an unsupported metadata contract.": "更新サービスが未対応のメタデータ契約を返しました。",
   "The update download URL failed validation.": "更新ダウンロード URL の検証に失敗しました。",
-  "The maintenance repository URL failed validation.": "メンテナンスリポジトリ URL の検証に失敗しました。"
+  "The maintenance repository URL failed validation.": "メンテナンスリポジトリ URL の検証に失敗しました。",
+  "Remember API key securely on this device": "このデバイスに API キーを安全に保存",
+  "Log out and forget key": "ログアウトしてキーを削除",
+  "Saved API keys use the system credential store and are verified again when the app starts.": "API キーはシステムの資格情報ストアに保存され、アプリ起動時に再検証されます。"
 }

@@ -156,5 +156,8 @@
   "The update service could not resolve an update.": "Güncelleme hizmeti uygun bir güncellemeyi belirleyemedi.",
   "The update service returned an unsupported metadata contract.": "Güncelleme hizmeti desteklenmeyen bir meta veri sözleşmesi döndürdü.",
   "The update download URL failed validation.": "Güncelleme indirme URL’si doğrulamadan geçemedi.",
-  "The maintenance repository URL failed validation.": "Bakım deposu URL’si doğrulamadan geçemedi."
+  "The maintenance repository URL failed validation.": "Bakım deposu URL’si doğrulamadan geçemedi.",
+  "Remember API key securely on this device": "API anahtarını bu cihazda güvenli sakla",
+  "Log out and forget key": "Çıkış yap ve anahtarı unut",
+  "Saved API keys use the system credential store and are verified again when the app starts.": "Kaydedilen API anahtarları sistemin güvenli deposunda tutulur ve uygulama açılırken yeniden doğrulanır."
 }

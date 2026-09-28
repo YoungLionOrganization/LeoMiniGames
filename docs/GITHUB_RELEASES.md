@@ -44,7 +44,7 @@ Wait until the whole workflow is green. In addition to per-platform artifacts it
 - `release-assets`
 - `update-repositories`
 
-`release-assets` is the only artifact set used for public GitHub Release upload. The current allowlist expects 25 public files. Files such as `*.aab`, `*.sha256`, `*-unsigned.zip`, `*-Legal.zip`, `Updates.xml` and repository metadata are intentionally not public Release assets.
+`release-assets` is the only artifact set used for public GitHub Release upload. The current allowlist expects 27 public files. Files such as `*.aab`, `*.sha256`, `*-unsigned.zip`, `*-Legal.zip`, `Updates.xml` and repository metadata are intentionally not public Release assets.
 
 ## Step 3 — validate the release gates
 

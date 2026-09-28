@@ -1,30 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Installer>
     <Name>LeoMiniGames</Name>
-    <Version>0.7.1</Version>
-    <Title>LeoMiniGames 0.7.1 Setup</Title>
+    <Version>0.7.2</Version>
+    <Title>LeoMiniGames 0.7.2 Setup</Title>
     <Publisher>YoungLion</Publisher>
     <ProductUrl>https://leominigames.younglion.xyz</ProductUrl>
 
     <InstallerApplicationIcon>leominigames_installer</InstallerApplicationIcon>
     <InstallerWindowIcon>installer_window_icon.png</InstallerWindowIcon>
-    <Logo>installer_logo.png</Logo>
-    <PageListPixmap>installer_pagelist.png</PageListPixmap>
     <StyleSheet>style.qss</StyleSheet>
-    <WizardStyle>Modern</WizardStyle>
+    <ControlScript>control.qs</ControlScript>
+    <TitleColor>#E8B86A</TitleColor>
+    <WizardStyle>Classic</WizardStyle>
     <WizardShowPageList>true</WizardShowPageList>
-    <WizardDefaultWidth>920</WizardDefaultWidth>
-    <WizardDefaultHeight>620</WizardDefaultHeight>
-    <WizardMinimumWidth>760</WizardMinimumWidth>
-    <WizardMinimumHeight>520</WizardMinimumHeight>
+    <WizardDefaultWidth>980</WizardDefaultWidth>
+    <WizardDefaultHeight>650</WizardDefaultHeight>
+    <WizardMinimumWidth>840</WizardMinimumWidth>
+    <WizardMinimumHeight>560</WizardMinimumHeight>
 
     <StartMenuDir>LeoMiniGames</StartMenuDir>
     <TargetDir>@ApplicationsDir@/LeoMiniGames</TargetDir>
+    <AdminTargetDir>@ApplicationsDir@/LeoMiniGames</AdminTargetDir>
     <MaintenanceToolName>LeoMiniGamesMaintenance</MaintenanceToolName>
     <MaintenanceToolIniFile>LeoMiniGamesMaintenance.ini</MaintenanceToolIniFile>
     <RepositorySettingsPageVisible>false</RepositorySettingsPageVisible>
+    <InstallActionColumnVisible>true</InstallActionColumnVisible>
     <SupportsModify>true</SupportsModify>
     <AllowNonAsciiCharacters>true</AllowNonAsciiCharacters>
+    <DependsOnLocalInstallerBinary>true</DependsOnLocalInstallerBinary>
 
     <RemoteRepositories>
         <Repository>

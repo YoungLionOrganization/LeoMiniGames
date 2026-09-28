@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "ModManager.h"
+#include "NetworkSafety.h"
 #include "AppPaths.h"
 #include "SettingsManager.h"
 #include "RccPackageInspector.h"
@@ -276,6 +277,12 @@ void ModManager::refresh()
     setLoading(true);
 
     QUrl url(apiBaseUrl() + QStringLiteral("/mods?limit=100"));
+    if (!url.isValid() || url.scheme() != QStringLiteral("https") || url.host().isEmpty() ||
+        !url.userInfo().isEmpty()) {
+        setLoading(false);
+        setError(tr("Mod catalog requires a valid HTTPS API base URL."));
+        return;
+    }
     QNetworkRequest request(url);
     request.setRawHeader("Accept", "application/json");
     request.setTransferTimeout(15000);
@@ -284,6 +291,7 @@ void ModManager::refresh()
                       QStringLiteral("LeoMiniGames/%1").arg(QCoreApplication::applicationVersion()));
 
     QNetworkReply *reply = m_impl->network.get(request);
+    NetworkSafety::boundJsonReply(reply, kMaxJsonResponseBytes);
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
         std::unique_ptr<QNetworkReply, void(*)(QNetworkReply*)> guard(
             reply, [](QNetworkReply *r) { r->deleteLater(); });
@@ -500,6 +508,7 @@ void ModManager::requestDownloadTicket(int row)
     request.setTransferTimeout(15000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::SameOriginRedirectPolicy);
     QNetworkReply *reply = m_impl->network.get(request);
+    NetworkSafety::boundJsonReply(reply, kMaxJsonResponseBytes);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, row] {
         const QByteArray payload = reply->readAll();

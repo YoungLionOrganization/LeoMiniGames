@@ -81,7 +81,7 @@ def collect_update_repositories(artifact_root: Path, output: Path) -> list[str]:
         shutil.copytree(repo_dir, target)
         copied.append(f"windows/{suffix}")
 
-    expected = {"windows/x86_64", "windows/ARM64"}
+    expected = {"windows/x86_64", "windows/x86_64-AVX2", "windows/ARM64"}
     missing = expected.difference(copied)
     if missing:
         raise SystemExit(f"missing QtIFW update repositories: {sorted(missing)}")

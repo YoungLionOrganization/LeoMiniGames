@@ -61,3 +61,25 @@ target_include_directories(test_rcc_compat PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_rcc_compat PRIVATE Qt6::Core)
 add_dependencies(test_rcc_compat compat_rcc_fixtures)
 add_test(NAME rcc_backward_compat COMMAND test_rcc_compat ${COMPAT_RCC_DIR})
+
+add_executable(test_save_safety test_save_safety.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/GameSave.cpp ${CMAKE_SOURCE_DIR}/src/core/GameSave.h
+    ${CMAKE_SOURCE_DIR}/src/core/AppPaths.cpp ${CMAKE_SOURCE_DIR}/src/core/AppPaths.h)
+target_include_directories(test_save_safety PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_save_safety PRIVATE Qt6::Core Qt6::Qml)
+add_test(NAME save_safety COMMAND test_save_safety)
+
+add_executable(test_network_safety test_network_safety.cpp)
+target_include_directories(test_network_safety PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_network_safety PRIVATE Qt6::Core Qt6::Network)
+add_test(NAME network_safety COMMAND test_network_safety)
+
+add_executable(test_developer_manager test_developer_manager.cpp ${LMG_CORE_SOURCES})
+target_include_directories(test_developer_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_developer_manager PRIVATE Qt6::Core Qt6::Gui Qt6::Qml
+    Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Svg qt6keychain)
+if(TARGET Qt6::Multimedia)
+    target_link_libraries(test_developer_manager PRIVATE Qt6::Multimedia)
+    target_compile_definitions(test_developer_manager PRIVATE LMG_HAS_MULTIMEDIA=1)
+endif()
+add_test(NAME developer_auth_races COMMAND test_developer_manager)

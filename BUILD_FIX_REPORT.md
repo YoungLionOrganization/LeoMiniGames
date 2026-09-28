@@ -56,3 +56,8 @@ Resolution:
 - `validate_v071.py` now rejects a future `-x` dependency and requires both APK/AAB helper calls to use `bash`.
 
 This fix does not weaken build validation and does not retry ordinary compile/link failures. It only removes an irrelevant filesystem-mode precondition from the release packaging path.
+
+
+## 2026-09-24 Windows packaging expansion
+
+Windows release packaging now emits x86_64 baseline, x86_64 AVX2 optimized, and ARM64 Setup/portable artifacts. AVX2 is compiled with `/arch:AVX2` and has its own QtIFW update repository. A 32-bit Win32 release lane was deliberately not added because the Qt 6 Windows release target used by LeoMiniGames is 64-bit x86_64/ARM64; CMake now fails clearly if a 32-bit Windows host is attempted instead of silently producing an unsupported package.

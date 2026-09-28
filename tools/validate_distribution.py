@@ -129,7 +129,7 @@ if art:
         ok('Build artifacts workflow is manual-only')
 
     expected_jobs = {
-        'validate','source','windows-x64','windows-arm64','linux-portable',
+        'validate','source','windows-x64','windows-x64-avx2','windows-arm64','linux-portable',
         'linux-native','macos','android','android-universal','apple-mobile'
     }
     actual_jobs = set((art.get('jobs') or {}).keys())
@@ -200,8 +200,11 @@ installer_required = [
     'installer/config/installer_logo.png',
     'installer/config/installer_pagelist.png',
     'installer/config/style.qss',
+    'installer/config/control.qs',
     'installer/packages/xyz.younglion.leominigames/meta/package.xml',
     'installer/packages/xyz.younglion.leominigames/meta/installscript.qs',
+    'installer/packages/xyz.younglion.leominigames/meta/existinginstallation.ui',
+    'installer/packages/xyz.younglion.leominigames/meta/installoptions.ui',
     'installer/packages/xyz.younglion.leominigames/meta/LICENSE.txt',
 ]
 for rel in installer_required: require(rel)
@@ -214,30 +217,61 @@ try:
         ok(f'QtIFW version {expected_version}')
     else:
         err('QtIFW version mismatch')
-    if pkg.findtext('ForcedInstallation') == 'true' and pkg.findtext('Essential') == 'true' and pkg.findtext('Checkable') == 'false':
-        ok('QtIFW application component cannot degrade to maintainer-only install')
+    if pkg.findtext('ForcedInstallation') == 'true' and pkg.findtext('Essential') == 'true':
+        ok('QtIFW application component is forced/essential so the install summary cannot collapse to an empty optional tree')
     else:
         err('QtIFW application component selection contract incomplete')
-    if pkg.find('Default') is None or pkg.find('Checkable') is None:
-        ok('QtIFW package avoids mutually-exclusive Default + Checkable metadata')
+    if pkg.find('Checkable') is None:
+        ok('QtIFW package does not hide the only component behind Checkable=false')
     else:
-        err('QtIFW package must not contain both Default and Checkable')
+        err('QtIFW package still overrides Checkable on the only application component')
     expected = {
         'InstallerApplicationIcon':'leominigames_installer',
         'InstallerWindowIcon':'installer_window_icon.png',
-        'Logo':'installer_logo.png',
-        'PageListPixmap':'installer_pagelist.png',
         'StyleSheet':'style.qss',
-        'WizardStyle':'Modern',
+        'ControlScript':'control.qs',
+        'WizardStyle':'Classic',
+        'WizardShowPageList':'true',
+        'InstallActionColumnVisible':'true',
+        'SupportsModify':'true',
     }
     for key, value in expected.items():
         (ok if config.findtext(key) == value else err)(f'QtIFW {key} configured')
+    if config.find('Logo') is None and config.find('PageListPixmap') is None:
+        ok('QtIFW avoids duplicate logo/page-list artwork that previously compressed the content pane')
+    else:
+        err('QtIFW still references Logo/PageListPixmap in the page-list layout')
+    ui_names = [x.text for x in pkg.findall('./UserInterfaces/UserInterface') if x.text]
+    for ui in {'existinginstallation.ui','installoptions.ui'}:
+        (ok if ui in ui_names else err)(f'QtIFW custom page registered: {ui}')
+    for ui in ui_names:
+        ET.parse(ROOT/'installer/packages/xyz.younglion.leominigames/meta'/ui)
+        ok(f'QtIFW UI XML parses: {ui}')
 except Exception as ex:
     err(f'QtIFW XML invalid: {ex}')
 
 iscript = read('installer/packages/xyz.younglion.leominigames/meta/installscript.qs')
-for token in ['iconPath=@TargetDir@/LeoMiniGames.exe','workingDirectory=@TargetDir@','@DesktopDir@/LeoMiniGames.lnk']:
-    (ok if token in iscript else err)(f'Installer shortcut semantic {token}')
+for token in ['iconPath=@TargetDir@/LeoMiniGames.exe','workingDirectory=@TargetDir@','@DesktopDir@/LeoMiniGames.lnk',
+              'DesktopShortcutCheckBox','StartMenuShortcutCheckBox','MaintenanceShortcutCheckBox',
+              'ExistingInstallationPage','InstallOptionsPage','GlobalConfig','__LMG_WINDOWS_CPU_PROFILE__']:
+    (ok if token in iscript else err)(f'Installer script semantic {token}')
+control = read('installer/config/control.qs')
+for token in ['LMGExistingInstallDir','LeoMiniGamesMaintenance.exe','--start-updater','--start-package-manager',
+              '--start-uninstaller','ReadyForInstallationPageCallback','InstallMsgLabel','InstallComponentsTreeview',
+              'Get-CimInstance Win32_Processor','gui.rejectWithoutPrompt','__LMG_WINDOWS_BUILD_LABEL__']:
+    (ok if token in control else err)(f'Installer control semantic {token}')
+win_pack_installer = read('tools/package/package_windows.ps1')
+for token in ['LMG_WINDOWS_ARCH','LMG_WINDOWS_CPU_PROFILE','x86_64-AVX2','__LMG_WINDOWS_BUILD_LABEL__',
+              '__LMG_UPDATE_REPOSITORY_URL__','build-info.json','Unresolved installer placeholder']:
+    (ok if token in win_pack_installer else err)(f'Windows packager semantic {token}')
+if '-A Win32' in arts or 'win32_msvc' in arts.lower():
+    err('Artifact workflow must not claim an unsupported Qt 6 Windows x86 32-bit release')
+else:
+    ok('Artifact workflow does not claim unsupported Qt 6 Windows x86 32-bit release')
+if 'windows-x64-avx2:' in arts and '-DLEOMINIGAMES_WINDOWS_CPU_PROFILE=avx2' in arts and 'LMG_PLATFORM_SUFFIX: x86_64-AVX2' in arts:
+    ok('Artifact workflow provides a real AVX2-optimized Windows x64 lane')
+else:
+    err('Artifact workflow AVX2 Windows lane incomplete')
 
 ifw_helper = require('tools/install_qtifw_windows.ps1')
 if ifw_helper.is_file():
@@ -254,6 +288,8 @@ for token in ['QT_ANDROID_APP_ICON "ic_launcher"','MACOSX_BUNDLE_ICON_FILE "leom
     (ok if token in cmake else err)(f'CMake app icon semantic {token}')
 for token in ['if(APPLE AND NOT IOS)','if(IOS)','XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY','qt_add_ios_ffmpeg_libraries']:
     (ok if token in cmake else err)(f'CMake Apple-mobile semantic {token}')
+for token in ['LEOMINIGAMES_WINDOWS_CPU_PROFILE','/arch:AVX2','LMG_WINDOWS_X64_AVX2=1','CMAKE_SIZEOF_VOID_P EQUAL 4']:
+    (ok if token in cmake else err)(f'CMake Windows CPU/build semantic {token}')
 
 # Packaging -----------------------------------------------------------------
 package_files = [
@@ -274,7 +310,7 @@ if all(x in native_pack for x in ['LMG_PLATFORM_SUFFIX','NOTICE','COPYRIGHT','LI
 else: err('Linux native packaging contract incomplete')
 
 win_pack = read('tools/package/package_windows.ps1')
-if all(x in win_pack for x in ['windeployqt','binarycreator','LMG_PLATFORM_SUFFIX','NOTICE','COPYRIGHT','LICENSE_HISTORY.md','LICENSE_METADATA.json','YOUNGLION_LMG_SDK_LICENSE_1.0.txt','YOUNGLION_PACKAGE_LICENSE_1.0.txt']):
+if all(x in win_pack for x in ['windeployqt','binarycreator','LMG_PLATFORM_SUFFIX','LMG_WINDOWS_CPU_PROFILE','build-info.json','NOTICE','COPYRIGHT','LICENSE_HISTORY.md','LICENSE_METADATA.json','YOUNGLION_LMG_SDK_LICENSE_1.0.txt','YOUNGLION_PACKAGE_LICENSE_1.0.txt']):
     ok('Windows portable/installer packaging is architecture-aware and carries legal notices')
 else: err('Windows deployment/installer tooling incomplete')
 

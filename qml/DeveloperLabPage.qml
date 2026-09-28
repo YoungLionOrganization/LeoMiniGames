@@ -18,7 +18,7 @@ Item {
         const value = root.apiKeyText
         if (value.length === 0)
             return
-        root.developer.verifyApiKey(value)
+        root.developer.verifyApiKey(value, rememberKey.checked)
         root.apiKeyText = ""
     }
 
@@ -68,9 +68,10 @@ Item {
                 spacing: Constants.u12
                 BronzeButton { text: ""; iconName: "back"; width: Constants.u48; height: Constants.u48; onClicked: root.backRequested() }
                 Column {
+                    width: parent.width - Constants.u60
                     anchors.verticalCenter: parent.verticalCenter
                     Text { text: qsTr("Developer Lab"); color: Constants.text; font.pixelSize: Constants.u24; font.bold: true }
-                    Text { text: qsTr("Validate and run local RCC packages without publishing them."); color: Constants.textMuted; font.pixelSize: Constants.u11 }
+                    Text { width: parent.width; wrapMode: Text.WordWrap; text: qsTr("Validate and run local RCC packages without publishing them."); color: Constants.textMuted; font.pixelSize: Constants.u11 }
                 }
             }
 
@@ -78,7 +79,7 @@ Item {
                 width: parent.width - Constants.u32
                 anchors.horizontalCenter: parent.horizontalCenter
                 title: qsTr("Developer account")
-                subtitle: qsTr("The API key is verified for this process only and is never written to QSettings or disk.")
+                subtitle: qsTr("Saved API keys use the system credential store and are verified again when the app starts.")
                 Column {
                     width: parent.width
                     spacing: Constants.u8
@@ -90,11 +91,20 @@ Item {
                         placeholderText: "lmg_…"
                         echoMode: TextInput.Password
                     }
-                    Row {
+                    CheckBox {
+                        id: rememberKey
+                        width: parent.width
+                        visible: !root.developer.authenticated
+                        text: qsTr("Remember API key securely on this device")
+                        checked: true
+                        enabled: !root.developer.verifying
+                    }
+                    Flow {
+                        width: parent.width
                         spacing: Constants.u8
                         BronzeButton { visible: !root.developer.authenticated; text: qsTr("Open Developer Portal"); onClicked: root.developer.openDeveloperPortal() }
                         BronzeButton { visible: !root.developer.authenticated; enabled: !root.developer.verifying && root.apiKeyText.length > 0; text: root.developer.verifying ? qsTr("Verifying…") : qsTr("Verify key"); onClicked: root.verifyApiKeyFromField() }
-                        BronzeButton { visible: root.developer.authenticated; text: qsTr("Log out"); onClicked: root.developer.logout() }
+                        BronzeButton { visible: root.developer.authenticated; text: qsTr("Log out and forget key"); onClicked: root.developer.logout() }
                     }
                     Text { visible: root.developer.lastError.length > 0; width: parent.width; text: root.developer.lastError; color: Constants.danger; wrapMode: Text.WordWrap }
                 }
@@ -109,7 +119,8 @@ Item {
                 Column {
                     width: parent.width
                     spacing: Constants.u8
-                    Row {
+                    Flow {
+                        width: parent.width
                         spacing: Constants.u8
                         BronzeButton { text: qsTr("Import .rcc"); onClicked: root.openImportDialog() }
                         BronzeButton { enabled: Object.keys(root.developer.packageInfo).length > 0; text: qsTr("Run package"); onClicked: root.developer.launchImported() }

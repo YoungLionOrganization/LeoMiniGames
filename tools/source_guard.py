@@ -8,6 +8,8 @@ ROOT = Path(__file__).resolve().parents[1]
 errors = []
 
 for path in list(ROOT.rglob("*.cpp")) + list(ROOT.rglob("*.h")):
+    if "third_party" in path.relative_to(ROOT).parts:
+        continue  # Upstream vendored code follows its own style rules.
     text = path.read_text(encoding="utf-8")
     for lineno, line in enumerate(text.splitlines(), 1):
         if re.search(r"=\s*\{\s*\}\s*;", line):

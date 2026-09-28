@@ -2,6 +2,15 @@
 
 ## 0.7.1 — Release, Update Gateway and Developer Lab Servicing
 
+### Windows installer / CPU packaging
+- Reworked the QtIFW wizard layout to remove the duplicate top logo + page-list artwork combination that compressed the content pane. The installer now uses a single Classic-style page list with the branded dark stylesheet.
+- Added an existing-installation flow that detects LeoMiniGames, shows Update / Repair-Reinstall / Modify / Uninstall choices, and delegates online maintenance actions to the installed `LeoMiniGamesMaintenance.exe`.
+- Added a Windows integration page with separate Desktop, Start Menu, and Update/Repair shortcut choices.
+- Explicitly populates the Ready page's `You are installing` summary and keeps the forced application component visible.
+- Added three supported Windows release profiles: x86_64 baseline (Intel/AMD), x86_64 AVX2 optimized (Intel/AMD), and ARM64. The Qt 6 host does not advertise an unsupported 32-bit Windows x86 release.
+- AVX2 installations retain a distinct `x86_64-avx2` update identity and QtIFW repository so in-app/Maintenance updates cannot silently replace them with the baseline build.
+
+
 ### Fixed
 - Developer Lab no longer validates API keys by calling the publisher content-list endpoint. It uses the dedicated backend `GET /api/v1/developer/auth/verify` contract, preventing valid keys from being rejected because onboarding or `content:read` publication gates are unrelated to local RCC testing.
 - Developer Lab sends the current application version in its User-Agent and validates an explicit `authenticated/key/developer` response contract while preserving redirect, timeout and response-size protections.

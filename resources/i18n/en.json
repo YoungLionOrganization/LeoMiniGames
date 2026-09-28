@@ -10,5 +10,8 @@
   "The update service could not resolve an update.": "The update service could not resolve an update.",
   "The update service returned an unsupported metadata contract.": "The update service returned an unsupported metadata contract.",
   "The update download URL failed validation.": "The update download URL failed validation.",
-  "The maintenance repository URL failed validation.": "The maintenance repository URL failed validation."
+  "The maintenance repository URL failed validation.": "The maintenance repository URL failed validation.",
+  "Remember API key securely on this device": "Remember API key securely on this device",
+  "Log out and forget key": "Log out and forget key",
+  "Saved API keys use the system credential store and are verified again when the app starts.": "Saved API keys use the system credential store and are verified again when the app starts."
 }

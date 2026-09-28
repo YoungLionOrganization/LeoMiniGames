@@ -1,14 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Package>
-    <DisplayName>LeoMiniGames</DisplayName>
-    <Description>LeoMiniGames application and runtime.</Description>
-    <Version>0.7.1</Version>
+    <DisplayName>LeoMiniGames Application</DisplayName>
+    <Description>LeoMiniGames game platform, runtime, bundled games and Maintenance Tool integration.</Description>
+    <Version>0.7.2</Version>
     <ReleaseDate>2026-09-20</ReleaseDate>
     <Name>xyz.younglion.leominigames</Name>
     <ForcedInstallation>true</ForcedInstallation>
     <Essential>true</Essential>
-    <Checkable>false</Checkable>
+    <UpdateText>Updates LeoMiniGames while preserving installed content and user data.</UpdateText>
     <Script>installscript.qs</Script>
+    <UserInterfaces>
+        <UserInterface>existinginstallation.ui</UserInterface>
+        <UserInterface>installoptions.ui</UserInterface>
+    </UserInterfaces>
     <Licenses>
         <License name="LeoMiniGames Source-Available Publisher Ecosystem License 1.0" file="LICENSE.txt" />
     </Licenses>

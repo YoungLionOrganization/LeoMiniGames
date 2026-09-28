@@ -77,6 +77,39 @@ def main() -> int:
     require("LeoMiniGamesMaintenance" in package_windows or "LeoMiniGamesMaintenance" in config_xml,
             "Maintenance Tool configuration missing")
 
+    control_qs = text("installer/config/control.qs")
+    installer_script = text("installer/packages/xyz.younglion.leominigames/meta/installscript.qs")
+    require("<ControlScript>control.qs</ControlScript>" in config_xml and "<WizardStyle>Classic</WizardStyle>" in config_xml,
+            "QtIFW installer control script / stable Classic layout missing")
+    require("<Logo>" not in config_xml and "<PageListPixmap>" not in config_xml,
+            "QtIFW installer still stacks redundant logo/page-list artwork")
+    require("existinginstallation.ui" in package_xml and "installoptions.ui" in package_xml,
+            "QtIFW existing-install/options pages missing")
+    require("<Checkable>false</Checkable>" not in package_xml and "<ForcedInstallation>true</ForcedInstallation>" in package_xml,
+            "QtIFW single application component must remain visible/forced in install summary")
+    require("LMGExistingInstallDir" in control_qs and "LeoMiniGamesMaintenance.exe" in control_qs
+            and "--start-updater" in control_qs and "--start-package-manager" in control_qs and "--start-uninstaller" in control_qs,
+            "existing-install Upgrade/Modify/Uninstall detection flow missing")
+    require("ReadyForInstallationPageCallback" in control_qs and "InstallMsgLabel" in control_qs,
+            "Ready page does not explicitly populate the You are installing summary")
+    require("DesktopShortcutCheckBox" in installer_script and "StartMenuShortcutCheckBox" in installer_script
+            and "MaintenanceShortcutCheckBox" in installer_script,
+            "Windows integration choices missing from installer")
+    require("LEOMINIGAMES_WINDOWS_CPU_PROFILE" in cmake and "/arch:AVX2" in cmake
+            and "LMG_WINDOWS_X64_AVX2=1" in cmake and "CMAKE_SIZEOF_VOID_P EQUAL 4" in cmake,
+            "Windows baseline/AVX2/64-bit-only build contract missing")
+    require("windows-x64-avx2:" in build_workflow and "LMG_PLATFORM_SUFFIX: x86_64-AVX2" in build_workflow,
+            "Windows x64 AVX2 release lane missing")
+    require("-A Win32" not in build_workflow and "win32_msvc" not in build_workflow.lower(),
+            "unsupported Windows x86 32-bit release lane must not be advertised")
+    require("x86_64-avx2" in update_cpp,
+            "AVX2 build does not preserve its architecture identity in update checks")
+    require("windows/x86_64-AVX2/Updates.xml" in publish_workflow,
+            "Publish preflight does not require the AVX2 QtIFW repository")
+    asset_ids = {entry.get("id") for entry in assets.get("assets", [])}
+    require({"windows-x64-avx2-portable","windows-x64-avx2-setup"}.issubset(asset_ids),
+            "public release asset policy does not include AVX2 Windows ZIP/Setup")
+
     require("class UpdateService" in update_h, "UpdateService declaration missing")
     require("https://leominigames.younglion.xyz/api/v1/updates/v1/check" in update_cpp,
             "UpdateService backend gateway endpoint missing")
