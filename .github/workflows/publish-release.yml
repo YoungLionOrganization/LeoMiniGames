@@ -55,6 +55,9 @@ jobs:
           missing = [key for key in required if not data.get(key)]
           if missing:
               raise SystemExit(f"release/release.json missing: {missing}")
+          notes = Path(data['release_notes_path'])
+          if notes.is_absolute() or '..' in notes.parts or not notes.is_file() or not notes.read_text(encoding='utf-8').strip():
+              raise SystemExit(f"release notes missing, empty or unsafe: {notes}")
           print(f"version={data['version']}")
           print(f"tag={data['tag']}")
           print(f"title={data['title']}")
@@ -366,6 +369,9 @@ jobs:
           # Do not use tag-based release CLI upload or a post-create list lookup here.
           # Draft tag lookup/listing can lag immediately after creation. The REST
           # create response gives the immutable numeric release id and upload URL.
+          # Read the body before listing/deleting any existing draft releases.
+          [[ -s "$NOTES" ]] || { echo "Release notes missing or empty: $NOTES" >&2; exit 24; }
+          body="$(cat "$NOTES")"
 
           releases_json="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100")"
           plan="$(RELEASES_JSON="$releases_json" TAG="$TAG" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'
@@ -400,7 +406,6 @@ jobs:
           PY
           )"
 
-          body="$(cat "$NOTES")"
           if [[ -n "$RELEASE_ID" ]]; then
             echo "Recovering existing draft release id=$RELEASE_ID for $TAG"
             patch_payload="$(TITLE="$TITLE" BODY="$body" PRERELEASE="$PRERELEASE" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'

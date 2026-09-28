@@ -8,7 +8,7 @@ LeoMiniGames uses `MAJOR.MINOR.PATCH` application versions. Patch releases may c
 
 Releases are not created merely by pushing a tag. `build-artifacts.yml` manually builds and aggregates artifacts; `publish-release.yml` is a separate guarded manual workflow. Its default `validate` mode performs release preflight only. Actual publication requires `mode=publish`, an authorized publisher and any configured approval on the protected GitHub `release` Environment.
 
-## v0.7.2 — transport, persistence and package safety
+## v0.7.2 — installer, transport, persistence and package safety
 
 This patch stores an opted-in Developer Lab API key in the operating-system
 keychain and rechecks it on restore. Logging out invalidates pending responses.
@@ -24,12 +24,23 @@ checks. See `V072_VALIDATION.md` in each source archive for verification status.
 
 A Windows installer follow-up routes already-installed products through their
 Maintenance Tool and guards optional page controls; details and remaining
-Windows test gates are in `INSTALLER_FIX_VALIDATION.md`.
+Windows test gates are in `INSTALLER_FIX_VALIDATION.md`. The previously broken
+occupied-directory Update path and empty installation summary were confirmed
+working by the user after those fixes.
 
-Native Linux Qt and PHP checks passed locally. Android APK/AAB and the hosted
-backend were not built or exercised in this environment; signing, cross-build
-and production transport must be verified on the release runner/host before a
-public release.
+The candidate's CI and Build Release Artifacts workflows succeeded at
+`a020647bfd7dacb49727b4683bede6807eec7d67`, including 27 validated public
+assets. Publish Release then failed because the descriptor named the absent
+`release/notes/v0.7.2.md`. This source adds the notes and checks them before
+publication changes. After this source is committed, CI and Build Release
+Artifacts must succeed for the **new** SHA. Physical device coverage, Apple
+signing/notarization and separately deploying and checking the hosted backend
+are distinct operator tasks.
+
+Only Windows QtIFW Setup installs use the `updates` branch maintenance
+repository. Linux, macOS, Android and portable Windows builds discover updates
+through the backend and open a package download or release page. They do not
+have a QtIFW in-place updater; see `docs/UPDATES.md`.
 
 ## v0.7.1 — release, maintenance and update infrastructure
 

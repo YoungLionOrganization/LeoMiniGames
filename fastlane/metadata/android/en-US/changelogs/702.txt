@@ -1,2 +1,6 @@
 LeoMiniGames 0.7.2
-Android TLS packaging, secure Developer Lab credentials, bounded network responses, and save-slot protection. Existing RCC APIs remain compatible.
+
+- Improves save-slot safety and optional Developer Lab credential storage.
+- Bounds catalog and update network responses.
+- Verifies Android signing and packaged native libraries.
+- Preserves compatibility with existing RCC games and mods.

@@ -42,6 +42,11 @@ def main() -> int:
     require(release.get("update_track") in {"stable", "preview"}, "invalid update track")
     require(bool(publishers.get("publishers")), "authorized publisher allowlist must not be empty")
     require(assets.get("version") == release.get("version"), "release/assets.json version mismatch")
+    notes_path = Path(str(release.get("release_notes_path", "")))
+    safe_notes = not notes_path.is_absolute() and ".." not in notes_path.parts
+    notes_file = ROOT / notes_path if safe_notes else None
+    require(bool(notes_file and notes_file.is_file() and notes_file.read_text(encoding="utf-8").strip()),
+            "release notes missing, empty or unsafe")
 
     cmake = text("CMakeLists.txt")
     main_cpp = text("src/main.cpp")

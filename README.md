@@ -3,18 +3,18 @@
 [![CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml/badge.svg)](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml)
 [![Qt](https://img.shields.io/badge/Qt-6.5%2B-41CD52?logo=qt&logoColor=white)](https://www.qt.io/)
 [![License](https://img.shields.io/badge/license-Source--Available%20SAPEL--1.0-orange)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.7.1-B8860B)](RELEASES.md)
+[![Version](https://img.shields.io/badge/version-0.7.2-B8860B)](RELEASES.md)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20iOS%20%7C%20macOS-informational)](#platform-and-architecture-matrix)
 
 **LeoMiniGames** is a modular, cross-platform Qt 6 / Qt Quick mini-game launcher, runtime and content ecosystem. Games, mods and themes are designed to remain as independent from the host application as practical while reusing a common service layer for theme, save, localization, audio, haptics, input, lifecycle, statistics, achievements, package management and developer tooling.
 
-**v0.7.1** is a servicing release focused on reliable release automation, Windows maintenance/update delivery and an in-app update checker. It keeps the v0.7.0 compatibility/security contract: supported v0.5/v0.6 RCC games continue to run through compatibility adapters rather than being rejected merely because they predate the current API negotiation model.
+**v0.7.2** improves Windows installer upgrades, save and credential handling, Android packaging and release safety. It keeps the v0.7.0 compatibility/security contract: supported v0.5/v0.6 RCC games continue to run through compatibility adapters rather than being rejected merely because they predate the current API negotiation model.
 
 > **Project rule:** reliability and backward compatibility take priority over forcing old content to migrate. New security boundaries are introduced through scoped adapters, validation and trust provenance rather than by deleting legacy public APIs.
 
 ## Contents
 
-- [v0.7.1 highlights](#v071-highlights)
+- [v0.7.2 highlights](#v072-highlights)
 - [v0.7.0 compatibility baseline](#v070-compatibility-baseline)
 - [Built-in games](#built-in-games)
 - [Architecture](#architecture)
@@ -39,7 +39,11 @@
 - [Repository layout](#repository-layout)
 - [Contributing and licensing](#contributing-and-licensing)
 
-## v0.7.1 highlights
+## v0.7.2 highlights
+
+Windows Setup sends an existing installation's Update, Modify and Uninstall actions to its Maintenance Tool before the occupied-directory check; its required component and installation summary are shown. Developer Lab credential storage is opt-in and uses the system keychain. Save-slot creation avoids overwrites, network responses have size and time limits, and Android release packaging checks signing and native libraries. See [v0.7.2 release notes](release/notes/v0.7.2.md) and [release validation](V072_VALIDATION.md).
+
+The `updates` branch carries **Windows QtIFW Maintenance Tool payloads only**. Linux, macOS, Android and portable Windows builds use the in-app backend update check to open a package download or release page; they do not perform QtIFW in-place updates. See [update delivery](docs/UPDATES.md).
 
 ### Release engineering
 
@@ -51,9 +55,9 @@
 ### Installer and application updates
 
 - Windows QtIFW packages use `LeoMiniGamesMaintenance` for update, repair/modify and uninstall operations.
-- Installed Windows builds use the QtIFW repository published to the `updates` branch; portable/other builds use the GitHub Release checker.
+- Installed Windows builds use the QtIFW repository published to the `updates` branch; portable/other builds use the backend update gateway to find release downloads.
 - Stable and Preview channels are SemVer-aware, including `alpha`, `beta` and `rc` prereleases.
-- Update metadata is HTTPS-only, bounded and restricted to approved GitHub hosts.
+- Update metadata is HTTPS-only, bounded and restricted to the LeoMiniGames backend host.
 
 ### Compatibility
 
@@ -165,7 +169,7 @@ The application target set remains Windows, Linux, Android, iOS and macOS. GitHu
 | Android | armeabi-v7a | APK build | signed APK |
 | Android | x86_64 | APK build | signed APK |
 | Android | x86 | APK build | signed APK |
-| iOS Simulator | arm64 | unsigned build | test ZIP |
+| iOS device | arm64 | unsigned build | test ZIP |
 | iOS Simulator | x86_64 | unsigned build | test ZIP |
 
 A configured matrix is not the same as physical-device verification. Hardware QA is tracked separately in `GAMER_AUDIT.md` and `BUILD_MATRIX.md`.
@@ -349,7 +353,7 @@ Application update discovery and downloads are resolved through `https://leomini
 - `release-assets` — the validated public Release payload;
 - `update-repositories` — the Windows QtIFW repositories used by Maintenance Tool.
 
-The public asset allowlist for v0.7.1 contains 27 files: the source ZIP; Windows x86_64 baseline, x86_64 AVX2 and ARM64 portable ZIPs and Setup EXEs; three Linux portable tarballs, three AppImages and three native tarballs; three macOS ZIPs and three DMGs; and five Android APKs. AABs, unsigned Apple test bundles, checksum sidecars, legal sidecars and QtIFW repository internals are intentionally excluded from the public GitHub Release asset set.
+The public asset allowlist for v0.7.2 contains 27 files: the source ZIP; Windows x86_64 baseline, x86_64 AVX2 and ARM64 portable ZIPs and Setup EXEs; three Linux portable tarballs, three AppImages and three native tarballs; three macOS ZIPs and three DMGs; and five Android APKs. AABs, unsigned Apple test bundles, checksum sidecars, legal sidecars and QtIFW repository internals are intentionally excluded from the public GitHub Release asset set.
 
 Windows packaging runs `windeployqt` before creating the portable archive. QtIFW produces hybrid installers so the installed Maintenance Tool can later consume the published update repository.
 

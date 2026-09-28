@@ -1,13 +1,13 @@
 # GitHub Releases and release operator guide
 
-This document describes the v0.7.1 release pipeline. The pipeline is intentionally manual at the publication boundary, but asset collection, validation and GitHub Release publication are automated after the maintainer selects publish mode and approves the protected environment.
+This document describes the v0.7.2 release pipeline. The pipeline is intentionally manual at the publication boundary, but asset collection, validation and GitHub Release publication are automated after the maintainer selects publish mode and approves the protected environment.
 
 ## Pipeline overview
 
 | Workflow | Trigger | Purpose | Publishes a Release? |
 | --- | --- | --- | --- |
 | `ci.yml` | push / PR / manual | Static validation plus cross-platform compile/test coverage | No |
-| `build-artifacts.yml` | manual | Builds the exact v0.7.1 artifacts, `release-assets` and QtIFW `update-repositories` | No |
+| `build-artifacts.yml` | manual | Builds the exact v0.7.2 artifacts, `release-assets` and QtIFW `update-repositories` | No |
 | `publish-release.yml` | manual | Validates release gates; in publish mode creates and publishes the GitHub Release | Yes, only in `publish` mode |
 
 Release metadata comes from `release/release.json`. The public asset contract comes from `release/assets.json`. Authorized release publishers come from `release/authorized_publishers.json`.
@@ -23,7 +23,7 @@ Confirm all of the following:
 - the operator is listed in `release/authorized_publishers.json`;
 - Android signing secrets are configured when signed Android artifacts are required.
 
-For v0.7.1 the authorized publisher is `Cavanshirpro`.
+For v0.7.2 the authorized publisher is `Cavanshirpro`.
 
 ## Step 1 — get the exact `main` SHA green
 
@@ -37,7 +37,7 @@ Open:
 
 **GitHub → LeoMiniGames → Actions → Build Release Artifacts → Run workflow**
 
-Select branch **main** and run it. v0.7.1's workflow does not ask for a version input; `LMG_VERSION`, CMake and `release/release.json` are checked against one another.
+Select branch **main** and run it. v0.7.2's workflow does not ask for a version input; `LMG_VERSION`, CMake and `release/release.json` are checked against one another.
 
 Wait until the whole workflow is green. In addition to per-platform artifacts it must produce:
 
@@ -96,14 +96,15 @@ After approval, the workflow:
 7. publishes the QtIFW Windows repository to the `updates` branch under the configured track;
 8. makes the draft public only after those checks succeed.
 
-For stable v0.7.1, the Windows update repository is published below:
+For stable v0.7.2, the Windows update repository is published below:
 
 ```text
 stable/windows/x86_64
+stable/windows/x86_64-AVX2
 stable/windows/ARM64
 ```
 
-Preview releases use the corresponding `preview/windows/...` paths.
+Preview releases use the corresponding `preview/windows/...` paths. These are QtIFW Maintenance Tool repositories for Windows. Other platforms use the backend update check and download their public release assets, without an `updates` branch repository.
 
 If the GitHub Release publication step fails after the update repository was pushed, the workflow attempts to roll the `updates` branch back to its previous state.
 
@@ -151,18 +152,13 @@ $bytes = [IO.File]::ReadAllBytes("C:\path\to\your-upload-key.jks")
 
 Retain the correct signing/upload key for application update continuity. If Google Play App Signing is enabled, CI normally uses the registered upload key rather than Google's protected app-signing key.
 
-## Current v0.7.1 state
+## Current v0.7.2 state
 
-The most recent inspected release candidate before this workflow fix was commit `bd9bd54833850a0a74cf5d9fd504c6833a15f522` on 2026-09-22:
+At candidate `a020647bfd7dacb49727b4683bede6807eec7d67`, CI and Build Release Artifacts succeeded, with 27 public assets validated. [Publish Release run 36470448493](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/36470448493) failed during `Prepare draft and upload exact asset set`: `cat: release/notes/v0.7.2.md: No such file or directory`. No public v0.7.2 release was created.
 
-- LeoMiniGames CI #23: **success**
-- Build Release Artifacts #10: **success**
-- Publish Release #3 preflight: **success**
-- Publish Release #3 publish job: **failed after draft creation/upload** because the workflow tried to resolve the still-draft release through `releases/tags/v0.7.1`, which returned HTTP 404.
+The notes file is now present, and preflight checks it before the publisher can delete a stale draft. A new source commit requires successful CI and **Build Release Artifacts** on the new exact SHA, followed by `mode=validate` and `mode=publish`. Do not select the old build run ID.
 
-The corrected workflow carries the numeric draft release ID instead. After this fix is committed, the commit SHA changes, so CI and **Build Release Artifacts** must be run again for the new exact SHA before `Publish Release` is run in `publish` mode.
-
-## v0.7.1 draft-release retry behavior
+## Draft-release retry behavior
 
 The publish transaction is retry-safe. GitHub does not expose a draft release through the normal `releases/tags/{tag}` REST lookup used for published releases. A failed publish can therefore leave an `untagged-*` draft even though the final tag does not exist yet. The workflow resolves drafts from the release collection, recovers a draft that targets the exact current `main` SHA, removes any partial asset set, re-uploads the validated assets, and carries the numeric release ID into the final publish step. If a draft with the same tag targets an older SHA, the authorized publish transaction deletes that stale draft and creates a fresh draft for the current exact SHA.
 

@@ -1,6 +1,6 @@
 # LeoMiniGames application updates
 
-## v0.7.1 update boundary
+## v0.7.2 update boundary
 
 LeoMiniGames clients do **not** consume GitHub Releases or `raw.githubusercontent.com` directly.
 The only public update authority used by the application is:
@@ -53,6 +53,8 @@ Windows Qt Installer Framework installations use only backend repository URLs:
 
 `Updates.xml`, `.7z` payloads and `.sha1` files are proxied by the backend from the configured upstream provider. The installer and Maintenance Tool therefore do not embed a GitHub repository URL.
 
+Other platforms do not use a QtIFW repository. Their in-app update check opens the recommended backend download or release page, after which the platform package is installed by its usual method. The `updates` branch is not a mirror of all public assets.
+
 The guarded `Publish Release` workflow still publishes the generated QtIFW repository to the repository's internal `updates` branch while GitHub remains the configured upstream. Moving that storage later does not require a LeoMiniGames client update as long as the backend routes above remain stable.
 
 ## Stable and Preview
@@ -72,4 +74,4 @@ The backend metadata layer uses a short cache and can serve a bounded stale cach
 
 ## Release workflow recovery
 
-`Publish Release` identifies draft releases by numeric release ID, not by the published-tag endpoint. This is intentional: a GitHub draft may use an `untagged-*` page and return 404 from `releases/tags/{tag}` until it is published. A retry for the same exact source SHA reuses the matching draft, deletes partial assets, uploads the validated 25-file public asset set again, publishes the QtIFW repository, and only then flips the draft public. If the matching draft belongs to an older SHA, the authorized workflow replaces that stale draft before creating the current release transaction.
+`Publish Release` identifies draft releases by numeric release ID, not by the published-tag endpoint. This is intentional: a GitHub draft may use an `untagged-*` page and return 404 from `releases/tags/{tag}` until it is published. A retry for the same exact source SHA reuses the matching draft, deletes partial assets, uploads the validated 27-file public asset set again, publishes the QtIFW repository, and only then flips the draft public. If the matching draft belongs to an older SHA, the authorized workflow replaces that stale draft before creating the current release transaction.

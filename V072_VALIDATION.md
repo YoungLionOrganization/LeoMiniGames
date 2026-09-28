@@ -27,7 +27,10 @@ instructions and tests. It is not a signed installer, APK or AAB.
   `python3 tools/package/package_source.py`; all must pass before this ZIP is
   emitted.
 
-An Android SDK/NDK and signing identity were not available in the local
-verification environment. The Android cross-build, package verifier and a
-device HTTPS test remain release gates. The backend must be deployed from its
-separate archive before production integration tests.
+The local environment did not have an Android SDK/NDK or signing identity. On
+2026-09-28, CI and Build Release Artifacts completed successfully at commit
+`a020647bfd7dacb49727b4683bede6807eec7d67` and the release preflight
+validated 27 public assets. The subsequent publish job failed on the missing
+`release/notes/v0.7.2.md`; this source adds that file and validates its presence.
+The updated source needs fresh exact-commit CI/build runs. Device HTTPS checks
+and deployment of the separate backend remain production integration steps.

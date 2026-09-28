@@ -1,10 +1,10 @@
-# LeoMiniGames v0.7.1 Build Matrix
+# LeoMiniGames v0.7.2 Build Matrix
 
 This matrix distinguishes **configured CI coverage** from **physically verified release behavior**. A successful GitHub Actions job proves that the source builds/packages on that runner; it does not replace real-device QA.
 
 ## Current GitHub evidence
 
-As of 2026-09-22, **LeoMiniGames CI #21** and **Build Release Artifacts #9** both completed successfully for exact commit `9943b5c1824b81fad87f2d67741fefd714c869f6`. The first `Publish Release` run completed preflight successfully in validation mode; its publish job was intentionally skipped because `mode=publish` was not selected.
+On 2026-09-28, **LeoMiniGames CI** run `36463250529` and **Build Release Artifacts** run `36463284261` both completed successfully for exact commit `a020647bfd7dacb49727b4683bede6807eec7d67`. The subsequent Publish Release run `36470448493` passed preflight but failed when its publish job tried to read the absent v0.7.2 release notes file. This source fixes that failure; successful CI and Build Release Artifacts runs are required on the new commit before another publish attempt.
 
 This is CI/build evidence only. It does not convert any platform row into a physical-device verification claim.
 
@@ -16,7 +16,7 @@ This is CI/build evidence only. It does not convert any platform row into a phys
 | Debian 13 | x86_64 | distro Qt 6.8.x | build + CTest | native tar.gz |
 | Debian 13 | arm64 | native ARM runner + distro Qt 6.8.x | build + CTest | native tar.gz |
 | Arch Linux | x86_64 | official `archlinux:latest` container | build + CTest | native tar.gz |
-| Windows | x86_64 | MSVC 2022 | build + CTest | ZIP + QtIFW Setup EXE |
+| Windows | x86_64 baseline and AVX2 | MSVC 2022 | build + CTest | ZIP + QtIFW Setup EXE for each CPU profile |
 | Windows | x86_64 | LLVM-MinGW | build + CTest | compatibility lane |
 | Windows | ARM64 | native MSVC 2022 ARM runner | build | ZIP + QtIFW Setup EXE |
 | macOS | arm64 | macOS 15 | build + CTest | ZIP + DMG |
@@ -63,3 +63,5 @@ Windows/Linux desktop and Android/iOS/iPadOS/macOS hardware behavior must still 
 | Windows x86 32-bit | not a supported Qt 6 Windows release target | not produced | not advertised |
 
 The AVX2 lane is a real MSVC `/arch:AVX2` build, not a renamed baseline archive. Physical execution of the newly generated installer variants still requires the next Windows GitHub Actions build / Windows QA run and is not claimed by this source audit.
+
+For v0.7.2 the user confirmed the previously failing existing-installation Update route and Setup screens work. The other variants and platform operations still need their own hardware checks.
