@@ -64,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install Qt
-        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
         with:
           version: ${{ env.QT_CI_VERSION }}
           host: ${{ matrix.host }}
@@ -132,7 +132,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v7
-      - uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
+      - uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
         with:
           version: ${{ env.QT_CI_VERSION }}
           arch: win64_msvc2022_64
@@ -149,7 +149,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v7
-      - uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
+      - uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
         with:
           version: ${{ env.QT_CI_VERSION }}
           arch: win64_llvm_mingw
@@ -172,7 +172,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install native Windows ARM64 Qt
-        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
         with:
           version: ${{ env.QT_CI_VERSION }}
           host: windows_arm64
@@ -202,7 +202,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
-      - uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
+      - uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
         with:
           version: ${{ env.QT_CI_VERSION }}
           modules: qtmultimedia
@@ -243,7 +243,7 @@ jobs:
             "build-tools;${ANDROID_BUILD_TOOLS}" "ndk;${ANDROID_NDK_VERSION}"
           echo "ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
       - name: Install Qt for Android
-        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
         with:
           version: ${{ env.QT_CI_VERSION }}
           host: all_os
@@ -362,7 +362,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install Qt for Apple mobile
-        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
         with:
           version: ${{ env.QT_CI_VERSION }}
           host: mac
