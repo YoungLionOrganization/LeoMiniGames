@@ -3,8 +3,9 @@
 
 #include <array>
 #include "sdk/GameLocalStats.h"
+#include "sdk/BuiltinState.h"
 
-XoxGame::XoxGame(QObject *parent) : QObject(parent)
+XoxGame::XoxGame(QObject *parent) : BuiltinGame(parent)
 {
     GameLocalStats::migrateLegacy(QStringLiteral("xox"), {
         {QStringLiteral("games/xox/xWins"), QStringLiteral("counter/xWins")},
@@ -48,7 +49,7 @@ bool XoxGame::isFull() const
 
 bool XoxGame::play(int index)
 {
-    if (m_gameOver || index < 0 || index >= m_board.size() || !m_board[index].isEmpty())
+    if (suspended() || m_gameOver || index < 0 || index >= m_board.size() || !m_board[index].isEmpty())
         return false;
 
     const QString played = m_currentPlayer;
@@ -86,6 +87,7 @@ bool XoxGame::play(int index)
 
 void XoxGame::newRound()
 {
+    if (suspended()) return;
     m_board.fill(QString(), 9);
     m_currentPlayer = QStringLiteral("X");
     m_status = QStringLiteral("turn");
@@ -98,6 +100,7 @@ void XoxGame::newRound()
 
 void XoxGame::resetScore()
 {
+    if (suspended()) return;
     m_xWins = m_oWins = m_draws = 0;
     saveScore();
     emit scoreChanged();
@@ -111,4 +114,30 @@ void XoxGame::saveScore() const
         {QStringLiteral("counter/oWins"), m_oWins},
         {QStringLiteral("counter/draws"), m_draws}
     });
+}
+
+QVariantMap XoxGame::snapshot() const { return {{QStringLiteral("board"), m_board}}; }
+bool XoxGame::restoreSnapshot(const QVariantMap &state) {
+    const QVariantList cells = state.value(QStringLiteral("board")).toList();
+    if (cells.size() != 9) return false;
+    QStringList board; int xs = 0, os = 0;
+    for (const QVariant &cell : cells) {
+        if (cell.metaType().id() != QMetaType::QString) return false;
+        const QString value = cell.toString();
+        if (value != "X" && value != "O" && !value.isEmpty()) return false;
+        board.append(value); xs += value == "X"; os += value == "O";
+    }
+    if (xs < os || xs > os + 1) return false;
+    const auto winner = [&board](const QString &symbol) {
+        for (const auto &line : std::array<std::array<int,3>,8>{{{{0,1,2}},{{3,4,5}},{{6,7,8}},{{0,3,6}},{{1,4,7}},{{2,5,8}},{{0,4,8}},{{2,4,6}}}})
+            if (board[line[0]] == symbol && board[line[1]] == symbol && board[line[2]] == symbol) return true;
+        return false;
+    };
+    const bool xwin = winner("X"), owin = winner("O");
+    if ((xwin && owin) || (xwin && xs != os+1) || (owin && xs != os)) return false;
+    m_board = board; m_gameOver = xwin || owin || xs+os == 9;
+    m_currentPlayer = xwin ? "X" : owin ? "O" : xs+os == 9 ? "X" : xs == os ? "X" : "O";
+    m_status = xwin || owin ? "win" : m_gameOver ? "draw" : "turn";
+    emit boardChanged(); emit currentPlayerChanged(); emit statusChanged(); emit gameOverChanged();
+    return true;
 }

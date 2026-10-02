@@ -7,7 +7,7 @@ Item {
     property var game: App.currentGame
     property bool flagMode: false
 
-    function playSfx(name) { Audio.play(name) }
+    function playSfx(name) { GameAudio.playEffect("qrc:/sfx/" + name + ".wav") }
 
     function statusText() {
         if (!game) return ""
@@ -21,8 +21,8 @@ Item {
     Connections {
         target: game
         function onStatusChanged() {
-            if (game.status === "mine_hit") Audio.play("lose")
-            else if (game.status === "cleared") Audio.play("win")
+            if (game.status === "mine_hit") GameAudio.playEffect("qrc:/sfx/lose.wav")
+            else if (game.status === "cleared") GameAudio.playEffect("qrc:/sfx/win.wav")
         }
     }
 

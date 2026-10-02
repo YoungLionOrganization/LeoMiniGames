@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(LeoMiniGames VERSION 0.7.2 LANGUAGES CXX)
+project(LeoMiniGames VERSION 0.7.3 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -7,12 +7,15 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Network Svg)
-find_package(Qt6 6.5 QUIET COMPONENTS Multimedia)
-qt_standard_project_setup(REQUIRES 6.5)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Network Svg)
+option(LEOMINIGAMES_ENABLE_AUDIO "Enable host audio (required for normal/release builds)" ON)
+if(LEOMINIGAMES_ENABLE_AUDIO)
+    find_package(Qt6 6.8 REQUIRED COMPONENTS Multimedia)
+endif()
+qt_standard_project_setup(REQUIRES 6.8)
 include(CTest)
 
-set(LEOMINIGAMES_ANDROID_VERSION_CODE 702)
+set(LEOMINIGAMES_ANDROID_VERSION_CODE 703)
 option(LEOMINIGAMES_PRIVACY_BUILD "Build the tracker-free/privacy-focused variant" OFF)
 set(LEOMINIGAMES_APPLE_MOBILE_DEVICE_FAMILY "1,2" CACHE STRING
     "Apple mobile device family: 1=iPhone/iOS, 2=iPad/iPadOS, 1,2=universal")
@@ -75,9 +78,12 @@ file(GLOB LMG_CORE_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.h"
 )
 
+add_library(lmg_core STATIC ${LMG_CORE_SOURCES})
+target_include_directories(lmg_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(lmg_core PUBLIC Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::Svg qt6keychain)
+
 qt_add_executable(LeoMiniGames
     src/main.cpp
-    ${LMG_CORE_SOURCES}
     src/sdk/GameLocalStats.h
     src/sdk/IGamePlugin.h
     resources/resources.qrc
@@ -88,6 +94,7 @@ target_include_directories(LeoMiniGames PRIVATE
 )
 
 target_link_libraries(LeoMiniGames PRIVATE
+    lmg_core
     Qt6::Core
     Qt6::Gui
     Qt6::Qml
@@ -98,15 +105,15 @@ target_link_libraries(LeoMiniGames PRIVATE
     qt6keychain
 )
 
-if(TARGET Qt6::Multimedia)
-    target_link_libraries(LeoMiniGames PRIVATE Qt6::Multimedia)
-    target_compile_definitions(LeoMiniGames PRIVATE LMG_HAS_MULTIMEDIA=1)
+if(LEOMINIGAMES_ENABLE_AUDIO AND TARGET Qt6::Multimedia)
+    target_link_libraries(lmg_core PUBLIC Qt6::Multimedia)
+    target_compile_definitions(lmg_core PUBLIC LMG_HAS_MULTIMEDIA=1)
 else()
-    message(STATUS "Qt Multimedia not found: audio services will use a silent capability fallback")
+    message(STATUS "Audio explicitly disabled: audio services report unavailable")
 endif()
 
 if(LEOMINIGAMES_PRIVACY_BUILD)
-    target_compile_definitions(LeoMiniGames PRIVATE LMG_PRIVACY_BUILD=1)
+    target_compile_definitions(lmg_core PUBLIC LMG_PRIVACY_BUILD=1)
 endif()
 
 add_subdirectory(plugins/builtin/Xox)
@@ -130,6 +137,10 @@ target_link_libraries(LeoMiniGames PRIVATE
 )
 
 if(ANDROID)
+    if(NOT TARGET Qt6::QTlsBackendOpenSSLPlugin)
+        message(FATAL_ERROR "The Android Qt kit must include the OpenSSL TLS backend plugin.")
+    endif()
+    qt_import_plugins(LeoMiniGames INCLUDE Qt6::QTlsBackendOpenSSLPlugin)
     set(LMG_ANDROID_OPENSSL_ROOT "$ENV{LMG_ANDROID_OPENSSL_ROOT}" CACHE PATH "Root of verified OpenSSL 3 Android libraries, with one subfolder per ABI")
     foreach(ssl_lib IN ITEMS crypto ssl)
         set(ssl_file "${LMG_ANDROID_OPENSSL_ROOT}/${CMAKE_ANDROID_ARCH_ABI}/lib${ssl_lib}_3.so")

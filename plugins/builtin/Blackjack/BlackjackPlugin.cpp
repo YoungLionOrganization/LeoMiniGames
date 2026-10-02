@@ -9,7 +9,7 @@ GamePluginInfo BlackjackPlugin::info() const
         QStringLiteral("Blackjack"),
         QStringLiteral("Reach 21 without going over. Dealer stands on 17."),
         QStringLiteral("Cards"),
-        QStringLiteral("1.0.0"),
+        QStringLiteral("1.1.0"),
         QStringLiteral("YoungLion"),
         QStringLiteral("21"),
         QUrl(QStringLiteral("qrc:/qt/qml/LeoMiniGames/BlackjackPage.qml")),

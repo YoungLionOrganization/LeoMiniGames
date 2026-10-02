@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #pragma once
 
-#include <QObject>
+#include "core/BuiltinGame.h"
 #include <QStringList>
 #include <vector>
 
-class BlackjackGame final : public QObject
+class BlackjackGame final : public BuiltinGame
 {
     Q_OBJECT
     Q_PROPERTY(QStringList playerCards READ playerCards NOTIFY cardsChanged)
@@ -35,10 +35,14 @@ public:
     int losses() const;
     int pushes() const;
 
+    Q_INVOKABLE void start() override;
     Q_INVOKABLE void newRound();
     Q_INVOKABLE void hit();
     Q_INVOKABLE void stand();
     Q_INVOKABLE void resetScore();
+
+    QVariantMap snapshot() const override;
+    bool restoreSnapshot(const QVariantMap &state) override;
 
 signals:
     void cardsChanged();

@@ -1,40 +1,30 @@
 import QtQuick
-
-Rectangle {
+import QtQuick.Controls
+Button {
     id: root
-    property alias text: label.text
     property bool primary: false
     signal activated()
-
-    implicitHeight: GameTheme.number("alias.button.height")
-    radius: GameTheme.number("alias.button.radius")
-    color: pointer.pressed
-           ? GameTheme.color("alias.button.background.pressed")
-           : pointer.containsMouse
-             ? GameTheme.color("alias.button.background.hover")
-             : (primary ? GameTheme.color("alias.button.accent.normal")
-                        : GameTheme.color("alias.button.background.normal"))
-    border.color: pointer.activeFocus
-                  ? GameTheme.color("alias.button.border.focus")
-                  : GameTheme.color("alias.button.border.normal")
-    border.width: pointer.activeFocus
-                  ? GameTheme.number("alias.button.checkedBorderWidth")
-                  : GameTheme.number("alias.button.borderWidth")
-
-    Text {
-        id: label
-        anchors.centerIn: parent
-        color: root.primary
-               ? GameTheme.color("color.espresso.950")
-               : GameTheme.color("alias.button.text.normal")
-        font.pixelSize: GameTheme.number("alias.button.fontSize")
-        font.weight: Font.DemiBold
+    function n(token) { let revision = GameTheme.revision; return GameTheme.number(token) }
+    function c(token) { let revision = GameTheme.revision; return GameTheme.color(token) }
+    implicitHeight: n("alias.button.height")
+    focusPolicy: Qt.StrongFocus
+    onClicked: activated()
+    background: Rectangle {
+        radius: root.n("alias.button.radius")
+        color: root.down ? root.c("alias.button.background.pressed")
+                        : root.hovered ? root.c("alias.button.background.hover")
+                        : root.primary ? root.c("alias.button.accent.normal") : root.c("alias.button.background.normal")
+        border.color: root.activeFocus ? root.c("alias.button.border.focus") : root.c("alias.button.border.normal")
+        border.width: root.activeFocus ? root.n("alias.button.checkedBorderWidth") : root.n("alias.button.borderWidth")
+        opacity: root.enabled ? 1 : 0.5
     }
-
-    MouseArea {
-        id: pointer
-        anchors.fill: parent
-        hoverEnabled: true
-        onClicked: root.activated()
+    contentItem: Text {
+        text: root.text
+        color: root.primary ? root.c("color.espresso.950") : root.c("alias.button.text.normal")
+        font.pixelSize: root.n("alias.button.fontSize")
+        font.weight: Font.DemiBold
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
+        elide: Text.ElideRight
     }
 }

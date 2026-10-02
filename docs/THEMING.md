@@ -1,4 +1,4 @@
-# LeoMiniGames Theme System (0.6.2)
+# LeoMiniGames Theme System (0.7.3)
 
 LeoMiniGames uses one runtime design-token contract for the application shell and theme-aware games. A theme can replace presentation values and surface specifications without replacing application/game code.
 
@@ -22,7 +22,7 @@ The built-in Bronze Espresso theme contains 300+ base color tokens, 1,600+ total
 
 ## Runtime architecture
 
-- `ThemeManager` is exposed as `ThemeRuntime` and `GameTheme`.
+- `ThemeManager` is exposed to the host as `ThemeRuntime`; games receive the compatible `GameTheme` facade.
 - `Constants.qml` is the Qt Design Studio-style singleton API used by QML.
 - `Theme.qml` remains only as a backwards-compatibility facade.
 - `ThemeSurface` resolves solid/gradient/texture surface specifications.
@@ -87,7 +87,11 @@ Standard surfaces include app, card, control and game presentation roles. A surf
 - border color/width;
 - optional shape-related metadata understood by reusable components.
 
-If an external theme omits a surface or token, the built-in theme provides the fallback. Fallback assets are resolved against the built-in asset root rather than the external theme root.
+If an external theme omits a surface or token, the built-in theme provides the fallback. Fallback assets are resolved against the built-in asset root rather than the external theme root. Partial surface definitions inherit missing fields, including nested gradient stops, from the built-in surface. Explicit overrides (including an empty texture string) still take precedence. Relative `./assets/...` strings in tokens, aliases and surfaces resolve against the RCC that owns the value.
+
+The runtime rejects cyclic/deeper-than-32 effective token/alias chains, invalid version strings, non-object alias/surface sections and unsupported or incorrectly typed theme API versions before replacing an installed theme. The alias graph includes built-in fallback values so an override cannot introduce a cycle through an inherited alias. Older packages may omit `theme_api_version` and `version`, retaining defaults 1 and 1.0.0.
+
+Allowed font files are package data; automatic registration of packaged fonts and a font-family token/loading policy are not currently implemented. Treat that as a future host feature; merely including a TTF/OTF/WOFF2 does not change the application font.
 
 ## Game developer API
 

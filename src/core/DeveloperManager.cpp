@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "DeveloperManager.h"
+#include "CredentialStore.h"
+#include "PackageCompatibility.h"
+#include <QScopeGuard>
 #include "NetworkSafety.h"
 #include <qtkeychain/keychain.h>
 #include <QTimer>
@@ -23,13 +26,42 @@
 #include <QRegularExpression>
 #include <QtGlobal>
 namespace { constexpr qint64 kMaxRccBytes=64LL*1024LL*1024LL; constexpr qint64 kMaxAuthResponse=512LL*1024LL; const QUrl kPortal(QStringLiteral("https://leominigames.younglion.xyz/developer/")); const QUrl kVerify(QStringLiteral("https://leominigames.younglion.xyz/api/v1/developer/auth/verify")); }
+namespace {
+const QString kCredentialService = QStringLiteral("xyz.younglion.leominigames.developer");
+const QString kCredentialKey = QStringLiteral("developer-api-key");
+void configureCredentialJob(QKeychain::Job *job) {
+    job->setKey(kCredentialKey);
+    job->setInsecureFallback(false);
+}
+class SystemCredentialStore final : public CredentialStore {
+public:
+    using CredentialStore::CredentialStore;
+    void read(Callback callback) override {
+        auto *job = new QKeychain::ReadPasswordJob(kCredentialService, this); configureCredentialJob(job);
+        connect(job, &QKeychain::Job::finished, this, [job, callback] { callback({job->error()==QKeychain::NoError, job->error()==QKeychain::EntryNotFound, job->textData()}); });
+        job->start();
+    }
+    void write(const QString &value, Callback callback) override {
+        auto *job = new QKeychain::WritePasswordJob(kCredentialService, this); configureCredentialJob(job); job->setTextData(value);
+        connect(job, &QKeychain::Job::finished, this, [job, callback] { callback({job->error()==QKeychain::NoError, false, QString{}}); });
+        job->start();
+    }
+    void erase(Callback callback) override {
+        auto *job = new QKeychain::DeletePasswordJob(kCredentialService, this); configureCredentialJob(job);
+        connect(job, &QKeychain::Job::finished, this, [job, callback] { callback({job->error()==QKeychain::NoError, job->error()==QKeychain::EntryNotFound, QString{}}); });
+        job->start();
+    }
+};
+}
+
 DeveloperManager::DeveloperManager(AppPaths *paths, GameRegistry *games, PluginDiagnostics *diagnostics,
-                                   QObject *parent, QNetworkAccessManager *network)
+                                   QObject *parent, QNetworkAccessManager *network, CredentialStore *credentials)
     : QObject(parent), m_paths(paths), m_games(games), m_diagnostics(diagnostics),
-      m_network(network ? network : new QNetworkAccessManager(this)), m_useCredentialStore(network == nullptr)
+      m_network(network ? network : new QNetworkAccessManager(this)), m_useCredentialStore(network == nullptr || credentials != nullptr)
 {
     setStatus(tr("Developer Mode is locked."));
     // Injected transports are for isolated tests and must not touch real credentials.
+    m_credentials = credentials ? credentials : new SystemCredentialStore(this);
     if (m_useCredentialStore) QTimer::singleShot(0, this, &DeveloperManager::restoreSavedKey);
 }
 
@@ -45,73 +77,70 @@ void DeveloperManager::selectDeviceProfile(int index){const int max=deviceProfil
 void DeveloperManager::setError(const QString&m){m_error=m;if(!m.isEmpty()&&m_diagnostics)m_diagnostics->log(QStringLiteral("error"),m,QStringLiteral("DeveloperManager"),0);emit changed();} void DeveloperManager::setStatus(const QString&m){m_status=m;emit changed();}
 void DeveloperManager::openDeveloperPortal(){QDesktopServices::openUrl(kPortal);}
 bool DeveloperManager::safeKeyFormat(const QString&key){static const QRegularExpression re(QStringLiteral("^lmg_[0-9a-f]{12}_[A-Za-z0-9_-]{40,60}$"));return re.match(key).hasMatch();}
-namespace {
-const QString kCredentialService = QStringLiteral("xyz.younglion.leominigames.developer");
-const QString kCredentialKey = QStringLiteral("developer-api-key");
-void configureCredentialJob(QKeychain::Job *job) {
-    job->setKey(kCredentialKey);
-    job->setInsecureFallback(false);
+void DeveloperManager::enqueueCredentialOperation(std::function<void()> operation)
+{
+    m_credentialOperations.enqueue(std::move(operation));
+    if (m_credentialBusy) return;
+    m_credentialBusy = true;
+    m_credentialOperations.dequeue()();
 }
+void DeveloperManager::finishCredentialOperation()
+{
+    m_credentialBusy = false;
+    if (m_credentialOperations.isEmpty()) return;
+    m_credentialBusy = true;
+    m_credentialOperations.dequeue()();
 }
 
 void DeveloperManager::restoreSavedKey()
 {
     if (!m_useCredentialStore || m_verifying || m_authenticated) return;
     const quint64 generation = ++m_authGeneration;
-    m_verifying = true;
-    emit changed();
-    auto *job = new QKeychain::ReadPasswordJob(kCredentialService, this);
-    configureCredentialJob(job);
-    connect(job, &QKeychain::Job::finished, this, [this, job, generation] {
-        if (generation != m_authGeneration) return;
-        m_verifying = false;
-        if (job->error() == QKeychain::NoError && safeKeyFormat(job->textData())) {
-            m_hasSavedKey = true;
-            verifyApiKey(job->textData(), false); // Always revalidate against server.
-        } else {
-            m_hasSavedKey = false;
-            emit changed();
-        }
+    m_verifying = true; emit changed();
+    enqueueCredentialOperation([this, generation] {
+        m_credentials->read([this, generation, lifetime = QPointer<DeveloperManager>(this)](CredentialResult result) {
+            if (!lifetime) return;
+            auto done = qScopeGuard([this] { finishCredentialOperation(); });
+            if (generation != m_authGeneration) return;
+            m_verifying = false;
+            if (result.ok && safeKeyFormat(result.value)) {
+                m_hasSavedKey = true; verifyApiKey(result.value, false);
+            } else { m_hasSavedKey = false; emit changed(); }
+        });
     });
-    job->start();
 }
-
 void DeveloperManager::saveVerifiedKey(const QString &key, quint64 generation)
 {
     if (!m_useCredentialStore) return;
-    auto *job = new QKeychain::WritePasswordJob(kCredentialService, this);
-    configureCredentialJob(job);
-    job->setTextData(key);
-    m_verifying = true;
-    emit changed();
-    connect(job, &QKeychain::Job::finished, this, [this, job, generation] {
-        if (generation != m_authGeneration) return;
-        m_verifying = false;
-        if (job->error() == QKeychain::NoError) {
-            m_hasSavedKey = true;
-            setStatus(tr("Developer Mode active. API key saved in the system credential store."));
-        } else {
-            setError(tr("Developer Mode is active, but the system credential store could not save the key. Unlock your keyring and try again."));
-        }
-        emit changed();
+    m_verifying = true; emit changed();
+    enqueueCredentialOperation([this, key, generation] {
+        if (generation != m_authGeneration) { finishCredentialOperation(); return; }
+        m_credentials->write(key, [this, generation, lifetime = QPointer<DeveloperManager>(this)](CredentialResult result) {
+            if (!lifetime) return;
+            auto done = qScopeGuard([this] { finishCredentialOperation(); });
+            if (generation != m_authGeneration) return;
+            m_verifying = false;
+            if (result.ok) {
+                m_hasSavedKey = true;
+                setStatus(tr("Developer Mode active. API key saved in the system credential store."));
+            } else setError(tr("Developer Mode is active, but the system credential store could not save the key. Unlock your keyring and try again."));
+            emit changed();
+        });
     });
-    job->start();
 }
-
 void DeveloperManager::forgetSavedKey()
 {
     if (!m_useCredentialStore) return;
-    auto *job = new QKeychain::DeletePasswordJob(kCredentialService, this);
-    configureCredentialJob(job);
-    connect(job, &QKeychain::Job::finished, this, [this, job] {
-        if (job->error() == QKeychain::NoError || job->error() == QKeychain::EntryNotFound) {
-            m_hasSavedKey = false;
-            emit changed();
-        } else {
-            setError(tr("The saved key could not be removed. Unlock your system keyring and try again."));
-        }
+    const quint64 generation = m_authGeneration;
+    enqueueCredentialOperation([this, generation] {
+        m_credentials->erase([this, generation, lifetime = QPointer<DeveloperManager>(this)](CredentialResult result) {
+            if (!lifetime) return;
+            auto done = qScopeGuard([this] { finishCredentialOperation(); });
+            if (generation != m_authGeneration) return;
+            if (result.ok || result.notFound) { m_hasSavedKey = false; emit changed(); }
+            else setError(tr("The saved key could not be removed. Unlock your system keyring and try again."));
+        });
     });
-    job->start();
 }
 
 void DeveloperManager::verifyApiKey(const QString &apiKey, bool remember)
@@ -172,19 +201,28 @@ bool DeveloperManager::importRcc(const QUrl &sourceFile)
     if(!m_authenticated){setError(QStringLiteral("Authenticate a developer account before importing local RCC packages."));return false;}if(!sourceFile.isLocalFile()){setError(QStringLiteral("Developer Lab accepts local RCC files only."));return false;}const QString source=sourceFile.toLocalFile();const QFileInfo info(source);if(!info.isFile()||info.size()<=0||info.size()>kMaxRccBytes){setError(QStringLiteral("RCC file is missing, empty, or exceeds 64 MiB."));return false;}
     clearImported();const QString digest=sha256File(source);if(digest.size()!=64){setError(QStringLiteral("Could not hash local RCC package."));return false;}const QString dir=m_paths->cache()+QStringLiteral("/developer-lab");QDir().mkpath(dir);const QString copy=dir+QLatin1Char('/')+digest+QStringLiteral(".rcc");if(QFileInfo::exists(copy))QFile::remove(copy);if(!QFile::copy(source,copy)||sha256File(copy)!=digest){QFile::remove(copy);setError(QStringLiteral("Could not create a verified session copy of the RCC package."));return false;}
     RccPackageInspection inspection=RccPackageInspector::inspect(copy);if(!inspection.valid){QFile::remove(copy);setError(QStringLiteral("RCC validation failed: %1").arg(inspection.error));return false;}
-    {
-        const QJsonObject manifest=inspection.manifest;
-        QStringList required;
-        for(const QJsonValue &value:manifest.value(QStringLiteral("required_capabilities")).toArray()) required.append(value.toString());
-        GameRuntime runtime;
-        const QVariantMap compatibility=runtime.checkCompatibility(manifest.value(QStringLiteral("api_version")).toString(),manifest.value(QStringLiteral("min_api_version")).toString(),required);
-        if(!compatibility.value(QStringLiteral("ok")).toBool()){QFile::remove(copy);setError(QStringLiteral("RCC API compatibility failed: %1").arg(compatibility.value(QStringLiteral("error")).toString()));return false;}
-    }
+    const QString compatibilityError = PackageCompatibility::error(inspection.manifest);
+    if (!compatibilityError.isEmpty()) { QFile::remove(copy); setError(QStringLiteral("RCC API compatibility failed: %1").arg(compatibilityError)); return false; }
     if(m_games&&!m_games->versionFor(inspection.packageId).isEmpty()){QFile::remove(copy);setError(QStringLiteral("Local package id collides with an installed or built-in game."));return false;}if(!RccPackageInspector::mount(copy,inspection)){QFile::remove(copy);setError(QStringLiteral("Validated RCC could not be mounted."));return false;}
     m_rccFile=copy;m_inspection=inspection;const QJsonObject m=inspection.manifest;QStringList locales;for(const QJsonValue&v:m.value(QStringLiteral("locales")).toArray())locales<<v.toString();QStringList capabilities;for(const QJsonValue&v:m.value(QStringLiteral("capabilities")).toArray())capabilities<<v.toString();m_packageInfo={{QStringLiteral("id"),inspection.packageId},{QStringLiteral("version"),m.value(QStringLiteral("version")).toString(QStringLiteral("dev"))},{QStringLiteral("packageFormat"),m.value(QStringLiteral("package_format")).toString(QStringLiteral("rcc-v1"))},{QStringLiteral("entry"),inspection.entryPath},{QStringLiteral("apiVersion"),m.value(QStringLiteral("api_version")).toString(QStringLiteral("legacy"))},{QStringLiteral("minApiVersion"),m.value(QStringLiteral("min_api_version")).toString()},{QStringLiteral("capabilities"),capabilities},{QStringLiteral("publisher"),m.value(QStringLiteral("publisher")).toString(m.value(QStringLiteral("author")).toString(QStringLiteral("Local developer")))},{QStringLiteral("publisherTrust"),QStringLiteral("local-unverified")},{QStringLiteral("mountMode"),inspection.legacyLayout?QStringLiteral("legacy"):QStringLiteral("canonical")},{QStringLiteral("resourceCount"),inspection.resources.size()},{QStringLiteral("locales"),locales},{QStringLiteral("defaultLocale"),m.value(QStringLiteral("default_locale")).toString(QStringLiteral("en"))},{QStringLiteral("saveVersion"),qMax(1,m.value(QStringLiteral("save_version")).toInt(1))},{QStringLiteral("nativeRequested"),m.value(QStringLiteral("native")).toBool(false)||m.value(QStringLiteral("plugin_level")).toInt(1)>=3},{QStringLiteral("nativeGranted"),false},{QStringLiteral("sha256"),digest}};m_error.clear();setStatus(QStringLiteral("Local RCC validated and mounted for this session."));emit packageChanged();return true;
 }
 bool DeveloperManager::launchImported(){if(!m_authenticated){setError(tr("Authenticate before running a local package."));return false;}if(m_rccFile.isEmpty()||!m_inspection.valid){setError(QStringLiteral("Import a valid RCC first."));return false;}emit launchRequested(m_inspection.packageId,QUrl(QStringLiteral("qrc:/mods/%1/%2").arg(m_inspection.packageId,m_inspection.entryPath)),m_packageInfo.value(QStringLiteral("version")).toString());return true;}
-void DeveloperManager::clearImported(){if(!m_rccFile.isEmpty()&&m_inspection.valid)RccPackageInspector::unmount(m_rccFile,m_inspection);if(!m_rccFile.isEmpty())QFile::remove(m_rccFile);m_rccFile.clear();m_inspection=RccPackageInspection{};m_packageInfo.clear();emit packageChanged();}
+void DeveloperManager::clearImported()
+{
+    if (m_clearing) return;
+    m_clearing = true;
+    if (m_inspection.valid) emit packageClosing(m_inspection.packageId);
+    const QString file = m_rccFile;
+    const RccPackageInspection inspection = m_inspection;
+    if (!file.isEmpty()) QTimer::singleShot(0, QCoreApplication::instance(), [file, inspection] {
+        if (inspection.valid) RccPackageInspector::unmount(file, inspection);
+        QFile::remove(file);
+    });
+    m_rccFile.clear(); m_inspection=RccPackageInspection{}; m_packageInfo.clear();
+    m_clearing = false;
+    emit packageChanged();
+}
+
 void DeveloperManager::logout()
 {
     ++m_authGeneration; // Invalidate any pending network/keychain completion first.

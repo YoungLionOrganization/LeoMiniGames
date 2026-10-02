@@ -10,7 +10,7 @@ QString AppController::currentGameSource() const{return m_currentGameSource;}
 bool AppController::openGame(const QString &id)
 {
     if (!m_registry) return false;
-    closeGame();
+    if (m_closing) return false;
     const QUrl url=m_registry->entryUrl(id);
     const QString source=m_registry->sourceFor(id);
     QObject *game=m_registry->createGame(id,this);
@@ -18,11 +18,24 @@ bool AppController::openGame(const QString &id)
     if(!url.isValid()||url.isEmpty()||(needsNativeObject&&!game)){
         if(game)game->deleteLater();emit openFailed(QStringLiteral("Could not open game: %1").arg(id));return false;
     }
+    closeGame();
     m_currentGame=game;m_currentGameUrl=url;m_currentGameId=id;m_currentGameVersion=m_registry->versionFor(id);m_currentGameSource=source;emit currentGameChanged();emit gameOpened();return true;
 }
 bool AppController::openExternalSession(const QString &id,const QUrl &url,const QString &version)
 {
-    if(id.isEmpty()||!url.isValid()||url.scheme()!=QStringLiteral("qrc"))return false;
+    if(m_closing||id.isEmpty()||!url.isValid()||url.scheme()!=QStringLiteral("qrc"))return false;
     closeGame();m_currentGame.clear();m_currentGameUrl=url;m_currentGameId=id;m_currentGameVersion=version.isEmpty()?QStringLiteral("dev"):version;m_currentGameSource=QStringLiteral("DeveloperRcc");emit currentGameChanged();emit gameOpened();return true;
 }
-void AppController::closeGame(){if (!m_currentGame && m_currentGameId.isEmpty()) return;if(m_currentGame)m_currentGame->deleteLater();m_currentGame.clear();m_currentGameUrl=QUrl{};m_currentGameId.clear();m_currentGameVersion.clear();m_currentGameSource.clear();emit currentGameChanged();emit gameClosed();}
+void AppController::closeGame()
+{
+    if (m_closing || (!m_currentGame && m_currentGameId.isEmpty())) return;
+    m_closing = true;
+    emit gameClosing();
+    emit gameRetiring();
+    if (m_currentGame) m_currentGame->deleteLater();
+    m_currentGame.clear(); m_currentGameUrl = QUrl{};
+    m_currentGameId.clear(); m_currentGameVersion.clear(); m_currentGameSource.clear();
+    emit currentGameChanged();
+    emit gameClosed();
+    m_closing = false;
+}

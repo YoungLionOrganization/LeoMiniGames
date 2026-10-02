@@ -3,10 +3,12 @@
 
 #include <QRandomGenerator>
 #include "sdk/GameLocalStats.h"
+#include "sdk/BuiltinState.h"
 #include <algorithm>
 #include <random>
+#include <QSet>
 
-BlackjackGame::BlackjackGame(QObject *parent) : QObject(parent)
+BlackjackGame::BlackjackGame(QObject *parent) : BuiltinGame(parent)
 {
     GameLocalStats::migrateLegacy(QStringLiteral("blackjack"), {
         {QStringLiteral("games/blackjack/wins"), QStringLiteral("counter/wins")},
@@ -17,7 +19,6 @@ BlackjackGame::BlackjackGame(QObject *parent) : QObject(parent)
     m_losses = GameLocalStats::value(QStringLiteral("blackjack"), QStringLiteral("counter/losses"), 0).toInt();
     m_pushes = GameLocalStats::value(QStringLiteral("blackjack"), QStringLiteral("counter/pushes"), 0).toInt();
     rebuildDeck();
-    newRound();
 }
 
 QStringList BlackjackGame::playerCards() const { return labels(m_player, false); }
@@ -26,8 +27,8 @@ int BlackjackGame::playerValue() const { return handValue(m_player); }
 int BlackjackGame::dealerValue() const { return m_roundOver ? handValue(m_dealer) : (m_dealer.empty() ? 0 : handValue(std::vector<Card>{m_dealer.front()})); }
 QString BlackjackGame::message() const { return m_message; }
 bool BlackjackGame::roundOver() const { return m_roundOver; }
-bool BlackjackGame::canHit() const { return !m_roundOver; }
-bool BlackjackGame::canStand() const { return !m_roundOver; }
+bool BlackjackGame::canHit() const { return !suspended() && !m_roundOver; }
+bool BlackjackGame::canStand() const { return !suspended() && !m_roundOver; }
 int BlackjackGame::wins() const { return m_wins; }
 int BlackjackGame::losses() const { return m_losses; }
 int BlackjackGame::pushes() const { return m_pushes; }
@@ -98,6 +99,7 @@ QStringList BlackjackGame::labels(const std::vector<Card> &hand, bool hideHole) 
 
 void BlackjackGame::newRound()
 {
+    if (suspended()) return;
     if (m_deck.size() < 15)
         rebuildDeck();
     m_player.clear();
@@ -138,7 +140,7 @@ void BlackjackGame::resolveNaturals()
 
 void BlackjackGame::hit()
 {
-    if (m_roundOver)
+    if (suspended() || m_roundOver)
         return;
     m_player.push_back(draw());
     emit cardDealt(QStringLiteral("player"));
@@ -159,7 +161,7 @@ void BlackjackGame::hit()
 
 void BlackjackGame::stand()
 {
-    if (m_roundOver)
+    if (suspended() || m_roundOver)
         return;
     while (handValue(m_dealer) < 17) {
         m_dealer.push_back(draw());
@@ -192,6 +194,7 @@ void BlackjackGame::finishRound()
 
 void BlackjackGame::resetScore()
 {
+    if (suspended()) return;
     m_wins = m_losses = m_pushes = 0;
     saveScore();
     emit scoreChanged();
@@ -205,4 +208,33 @@ void BlackjackGame::saveScore() const
         {QStringLiteral("counter/losses"), m_losses},
         {QStringLiteral("counter/pushes"), m_pushes}
     });
+}
+
+void BlackjackGame::start() { if (m_player.empty()) newRound(); }
+QVariantMap BlackjackGame::snapshot() const {
+    const auto encode=[](const std::vector<Card> &cards) { QVariantList out; for (const auto &card:cards) out.append(card.suit*13+card.rank-1); return out; };
+    return {{"deck",encode(m_deck)}, {"player",encode(m_player)}, {"dealer",encode(m_dealer)}, {"roundOver",m_roundOver}, {"message",m_message}};
+}
+bool BlackjackGame::restoreSnapshot(const QVariantMap &state) {
+    std::vector<Card> deck,player,dealer; QSet<int> seen;
+    const auto decode=[&seen](const QVariant &value,std::vector<Card> &out) {
+        if (value.metaType()!=QMetaType::fromType<QVariantList>()) return false;
+        const QVariantList cards=value.toList(); if (cards.size()>52) return false;
+        for (const auto &item:cards) { int token; if (!BuiltinState::integer({{"value",item}},"value",0,51,token) || seen.contains(token)) return false; seen.insert(token); out.push_back({token%13+1,token/13}); }
+        return true;
+    };
+    bool over;
+    const QString message=state.value("message").toString();
+    const QStringList messages{"your_turn","push_both_blackjack","blackjack_win","dealer_blackjack","bust","you_win","dealer_win","push"};
+    if (!decode(state.value("deck"),deck) || !decode(state.value("player"),player) || !decode(state.value("dealer"),dealer) || player.size()<2 || dealer.size()<2 || !BuiltinState::boolean(state,"roundOver",over) || !messages.contains(message)) return false;
+    const int playerValue=handValue(player), dealerValue=handValue(dealer);
+    const bool playerNatural=playerValue==21 && player.size()==2, dealerNatural=dealerValue==21 && dealer.size()==2;
+    if (!over) {
+        if (message!="your_turn" || playerValue>=21 || dealerNatural || dealer.size()!=2 || deck.empty()) return false;
+    } else {
+        const QString expected=playerNatural && dealerNatural?"push_both_blackjack":playerNatural?"blackjack_win":dealerNatural?"dealer_blackjack":playerValue>21?"bust":dealerValue>21 || playerValue>dealerValue?"you_win":playerValue<dealerValue?"dealer_win":"push";
+        if (message!=expected || (!playerNatural && !dealerNatural && playerValue<=21 && dealerValue<17)) return false;
+    }
+    m_deck=deck; m_player=player; m_dealer=dealer; m_roundOver=over; m_message=message;
+    emit cardsChanged(); emit stateChanged(); return true;
 }

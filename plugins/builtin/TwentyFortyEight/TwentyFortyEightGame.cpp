@@ -3,10 +3,11 @@
 
 #include <QRandomGenerator>
 #include "sdk/GameLocalStats.h"
+#include "sdk/BuiltinState.h"
 #include <QString>
 #include <vector>
 
-TwentyFortyEightGame::TwentyFortyEightGame(QObject *parent) : QObject(parent)
+TwentyFortyEightGame::TwentyFortyEightGame(QObject *parent) : BuiltinGame(parent)
 {
     GameLocalStats::migrateLegacy(QStringLiteral("2048"), {
         {QStringLiteral("games/2048/bestScore"), QStringLiteral("high/default")}
@@ -41,6 +42,7 @@ QString TwentyFortyEightGame::status() const { return m_status; }
 
 void TwentyFortyEightGame::reset()
 {
+    if (suspended()) return;
     m_tiles.fill(0);
     m_score = 0;
     m_moves = 0;
@@ -143,7 +145,7 @@ bool TwentyFortyEightGame::moveDown()
 
 bool TwentyFortyEightGame::move(const QString &direction)
 {
-    if (m_gameOver)
+    if (suspended() || m_gameOver)
         return false;
 
     bool changed = false;
@@ -221,4 +223,22 @@ void TwentyFortyEightGame::updateState()
     } else {
         m_status = QStringLiteral("playing");
     }
+}
+
+QVariantMap TwentyFortyEightGame::snapshot() const {
+    return {{QStringLiteral("tiles"), tiles()}, {QStringLiteral("score"), m_score}, {QStringLiteral("moves"), m_moves}};
+}
+bool TwentyFortyEightGame::restoreSnapshot(const QVariantMap &state) {
+    const QVariantList tiles = state.value(QStringLiteral("tiles")).toList();
+    int score, moves;
+    if (tiles.size()!=16 || !BuiltinState::integer(state,"score",0,BuiltinState::maxCounter(),score) || !BuiltinState::integer(state,"moves",0,BuiltinState::maxCounter(),moves)) return false;
+    std::array<int,16> board{}; int nonempty=0;
+    for (int i=0; i<16; ++i) {
+        int value;
+        if (!BuiltinState::integer({{"value",tiles[i]}},"value",0,1<<26,value) || (value && (value<2 || (value & (value-1))))) return false;
+        board[i]=value; nonempty += value!=0;
+    }
+    if (nonempty<2) return false;
+    m_tiles=board; m_score=score; m_moves=moves; m_bestScore=qMax(m_bestScore,score); m_gameOver=false; m_won=false;
+    updateState(); emit boardChanged(); emit scoreChanged(); emit stateChanged(); return true;
 }

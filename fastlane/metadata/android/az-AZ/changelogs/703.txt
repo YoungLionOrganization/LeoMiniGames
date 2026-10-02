@@ -1,0 +1,1 @@
+Android TLS açılış düzəlişi, Windows icra mühiti, təhlükəsiz yaddaş bərpası, sessiya və giriş düzəlişləri. API 0.7 uyğunluğu saxlanılır.

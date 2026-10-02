@@ -3,7 +3,11 @@
 // APKs/AABs; the package validator still checks every 64-bit library.
 gradle.beforeProject { project ->
     project.plugins.withId('com.android.application') {
-        project.extensions.getByName('android').packagingOptions.jniLibs.keepDebugSymbols.add('**/*.so')
+        def nativePackaging = project.extensions.getByName('android').packagingOptions.jniLibs
+        // Qt's Android factory loader scans extracted libplugins_tls_*.so files.
+        // AGP's unextracted APK defaults otherwise leave availableBackends empty.
+        nativePackaging.useLegacyPackaging = true
+        nativePackaging.keepDebugSymbols.add('**/*.so')
         project.logger.lifecycle('LeoMiniGames: preserving native ELF alignment during Android packaging')
     }
 }

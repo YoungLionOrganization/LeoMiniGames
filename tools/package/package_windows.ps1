@@ -5,7 +5,7 @@ param(
   [string]$Version = $env:LMG_VERSION
 )
 $ErrorActionPreference = 'Stop'
-if ([string]::IsNullOrWhiteSpace($Version)) { $Version = '0.7.2' }
+if ([string]::IsNullOrWhiteSpace($Version)) { $Version = '0.7.3' }
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $Suffix = if ($env:LMG_PLATFORM_SUFFIX) { $env:LMG_PLATFORM_SUFFIX } else { 'x86_64' }
 $WindowsArch = if ($env:LMG_WINDOWS_ARCH) { $env:LMG_WINDOWS_ARCH.ToLowerInvariant() } elseif ($Suffix -ieq 'ARM64') { 'arm64' } else { 'x86_64' }
@@ -63,8 +63,26 @@ $BuildInfo = [ordered]@{
 $BuildInfo | ConvertTo-Json -Depth 4 | Set-Content -Path (Join-Path $Stage 'build-info.json') -Encoding UTF8
 
 $Deploy = if ($QtBin) { Join-Path $QtBin 'windeployqt.exe' } else { (Get-Command windeployqt.exe -ErrorAction Stop).Source }
-& $Deploy --release --qmldir (Join-Path $Root 'qml') (Join-Path $Stage 'LeoMiniGames.exe')
+& $Deploy --release --no-compiler-runtime --qmldir (Join-Path $Root 'qml') (Join-Path $Stage 'LeoMiniGames.exe')
 if ($LASTEXITCODE -ne 0) { throw "windeployqt failed: $LASTEXITCODE" }
+
+# Portable and installer payloads both need the app-local MSVC runtime.
+$RedistRoot = $env:VCToolsRedistDir
+if (-not $RedistRoot) {
+  $VsWhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+  if (-not (Test-Path $VsWhere)) { throw 'MSVC redistributable location unavailable.' }
+  $VsRoot = & $VsWhere -latest -products '*' -property installationPath
+  $RedistRoot = (Get-ChildItem (Join-Path $VsRoot 'VC/Redist/MSVC') -Directory | Sort-Object Name -Descending | Select-Object -First 1).FullName
+}
+$RedistArch = if ($WindowsArch -eq 'arm64') { 'arm64' } else { 'x64' }
+$Crt = Get-ChildItem (Join-Path $RedistRoot $RedistArch) -Directory -Filter 'Microsoft.VC*.CRT' | Sort-Object Name -Descending | Select-Object -First 1
+if (-not $Crt) { throw "MSVC runtime missing for $RedistArch" }
+Copy-Item (Join-Path $Crt.FullName '*.dll') $Stage -Force
+& python (Join-Path $Root 'tools/validate_windows_runtime.py') $Stage
+if ($LASTEXITCODE -ne 0) { throw 'Packaged MSVC runtime validation failed.' }
+
+& python (Join-Path $Root 'tools/validate_audio_deployment.py') $Stage
+if ($LASTEXITCODE -ne 0) { throw 'Packaged Qt Multimedia backend is missing.' }
 
 $Portable = Join-Path $Dist "LeoMiniGames-v$Version-Windows-$Suffix.zip"
 Compress-Archive -Path (Join-Path $Stage '*') -DestinationPath $Portable -Force

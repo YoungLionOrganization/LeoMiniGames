@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "ThemeCatalogManager.h"
 #include "NetworkSafety.h"
+#include <QScopeGuard>
+#include <QTimer>
 
 #include "AppPaths.h"
 #include "SettingsManager.h"
@@ -64,7 +66,7 @@ QUrl resolveEndpoint(const QString &base, const QString &endpoint)
 bool isOfficialCatalogOrigin(const QString &base)
 {
     const QUrl url(base);
-    if (!url.isValid() || url.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0) return false;
+    if (!url.userInfo().isEmpty() || !url.isValid() || url.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0) return false;
     if (url.host().compare(QStringLiteral("leominigames.younglion.xyz"), Qt::CaseInsensitive) != 0) return false;
     if (url.port(-1) != -1 && url.port(-1) != 443) return false;
     const QString path = QDir::cleanPath(url.path());
@@ -74,30 +76,33 @@ bool isOfficialCatalogOrigin(const QString &base)
 
 struct ThemeCatalogManager::Impl
 {
-    explicit Impl(QObject *owner) : network(owner) {}
+    explicit Impl(QObject *owner, QNetworkAccessManager *injected) : ownedNetwork(owner), network(injected ? injected : &ownedNetwork) {}
 
     struct DownloadJob {
         int row = -1;
         QString id;
         QString partPath;
         QString expectedSha;
+        QString expectedVersion;
+        int expectedThemeApi = 1;
         qint64 expectedSize = 0;
         qint64 received = 0;
         QFile file;
         QCryptographicHash hash{QCryptographicHash::Sha256};
     };
 
-    QNetworkAccessManager network;
+    QNetworkAccessManager ownedNetwork;
+    QNetworkAccessManager *network;
     QHash<QNetworkReply *, std::shared_ptr<DownloadJob>> downloads;
     QSet<QString> activeOperations;
 };
 
-ThemeCatalogManager::ThemeCatalogManager(AppPaths *paths, SettingsManager *settings, ThemeManager *themes, QObject *parent)
+ThemeCatalogManager::ThemeCatalogManager(AppPaths *paths, SettingsManager *settings, ThemeManager *themes, QObject *parent, QNetworkAccessManager *network)
     : QAbstractListModel(parent),
       m_paths(paths),
       m_settings(settings),
       m_themes(themes),
-      m_impl(std::make_unique<Impl>(this))
+      m_impl(std::make_unique<Impl>(this, network))
 {
     if (m_themes) {
         connect(m_themes, &ThemeManager::themesChanged, this, &ThemeCatalogManager::notifyInstallStateChanged);
@@ -272,11 +277,13 @@ void ThemeCatalogManager::refresh()
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::SameOriginRedirectPolicy);
     request.setHeader(QNetworkRequest::UserAgentHeader,
         QStringLiteral("LeoMiniGames/%1").arg(QCoreApplication::applicationVersion()));
-    QNetworkReply *reply = m_impl->network.get(request);
+    QNetworkReply *reply = m_impl->network->get(request);
     NetworkSafety::boundJsonReply(reply, kMaxThemeJsonBytes);
-    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+    const QString catalogOrigin = apiBaseUrl();
+    connect(reply, &QNetworkReply::finished, this, [this, reply, catalogOrigin] {
+        auto loadingGuard = qScopeGuard([this] { setLoading(false); });
+        if (apiBaseUrl() != catalogOrigin) { setError(tr("Catalog origin changed; refresh again.")); reply->deleteLater(); return; }
         std::unique_ptr<QNetworkReply, void(*)(QNetworkReply*)> guard(reply, [](QNetworkReply *r) { r->deleteLater(); });
-        setLoading(false);
         if (reply->error() != QNetworkReply::NoError) {
             setError(QStringLiteral("Theme catalog request failed: %1").arg(reply->errorString()));
             return;
@@ -289,6 +296,8 @@ void ThemeCatalogManager::refresh()
             setError(QStringLiteral("Theme catalog returned invalid JSON."));
             return;
         }
+        if (!document.object().value(QStringLiteral("data")).isArray()) { setError(tr("Theme catalog data must be an array.")); return; }
+        QSet<QString> seenIds;
         QList<Entry> fresh;
         const QJsonArray rows = document.object().value(QStringLiteral("data")).toArray();
         fresh.reserve(rows.size());
@@ -298,9 +307,11 @@ void ThemeCatalogManager::refresh()
             entry.id = object.value(QStringLiteral("id")).toString();
             if (!validId(entry.id))
                 continue;
+            if (seenIds.contains(entry.id)) { setError(tr("Theme catalog contains duplicate IDs.")); return; }
+            seenIds.insert(entry.id);
             entry.name = object.value(QStringLiteral("name")).toString(entry.id);
             entry.description = object.value(QStringLiteral("description")).toString();
-            const bool authoritativeCatalog = isOfficialCatalogOrigin(apiBaseUrl());
+            const bool authoritativeCatalog = isOfficialCatalogOrigin(catalogOrigin);
             const QJsonObject publisherObject = object.value(QStringLiteral("publisher")).toObject();
             entry.publisher = !publisherObject.isEmpty() ? publisherObject.value(QStringLiteral("display_name")).toString(QStringLiteral("Unknown")) : object.value(QStringLiteral("publisher")).toString(QStringLiteral("Unknown"));
             const PublisherTrustDecision publisherTrust = resolvePublisherTrust(object, authoritativeCatalog, true);
@@ -339,12 +350,14 @@ void ThemeCatalogManager::refresh()
 
 void ThemeCatalogManager::install(const QString &id)
 {
+    if (m_loading) return;
     const int row = indexOf(id);
     if (row < 0)
         return;
     Entry &entry = m_entries[row];
     if (entry.state == QStringLiteral("resolving") || entry.state == QStringLiteral("downloading") || entry.state == QStringLiteral("installing"))
         return;
+    if (entry.themeApiVersion != 1) { failEntry(row, tr("Unsupported theme API version.")); return; }
     if (entry.packageFormat != QStringLiteral("theme-rcc-v1")) {
         failEntry(row, QStringLiteral("Unsupported theme package format."));
         return;
@@ -387,7 +400,7 @@ void ThemeCatalogManager::requestDownloadTicket(int row)
         : m_entries.at(row).downloadEndpoint;
     const QUrl baseUrl(apiBaseUrl());
     const QUrl url = resolveEndpoint(apiBaseUrl(), endpoint);
-    if (!url.isValid() || url.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0 || url.host().isEmpty() ||
+    if (!url.userInfo().isEmpty() || !url.isValid() || url.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0 || url.host().isEmpty() ||
         url.scheme().compare(baseUrl.scheme(), Qt::CaseInsensitive) != 0 ||
         url.host().compare(baseUrl.host(), Qt::CaseInsensitive) != 0 || url.port(-1) != baseUrl.port(-1)) {
         failEntry(row, QStringLiteral("Theme download ticket endpoint must remain on the configured catalog origin."));
@@ -397,7 +410,7 @@ void ThemeCatalogManager::requestDownloadTicket(int row)
     request.setRawHeader("Accept", "application/json");
     request.setTransferTimeout(15000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::SameOriginRedirectPolicy);
-    QNetworkReply *reply = m_impl->network.get(request);
+    QNetworkReply *reply = m_impl->network->get(request);
     NetworkSafety::boundJsonReply(reply, kMaxThemeJsonBytes);
     connect(reply, &QNetworkReply::finished, this, [this, reply, entryId] {
         std::unique_ptr<QNetworkReply, void(*)(QNetworkReply*)> guard(reply, [](QNetworkReply *r) { r->deleteLater(); });
@@ -444,6 +457,8 @@ void ThemeCatalogManager::startDownload(int row, const QUrl &url, const QString 
     job->row = row;
     job->id = entry.id;
     job->expectedSha = expectedSha;
+    job->expectedVersion = m_entries.at(row).version;
+    job->expectedThemeApi = m_entries.at(row).themeApiVersion;
     job->expectedSize = expectedSize;
     job->partPath = m_paths->cache() + QStringLiteral("/theme-") + entry.id + QStringLiteral(".rcc.part");
     QFile::remove(job->partPath);
@@ -460,7 +475,11 @@ void ThemeCatalogManager::startDownload(int row, const QUrl &url, const QString 
     request.setRawHeader("Accept", "application/octet-stream");
     request.setTransferTimeout(60000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
-    QNetworkReply *reply = m_impl->network.get(request);
+    QNetworkReply *reply = m_impl->network->get(request);
+    reply->setReadBufferSize(256 * 1024);
+    auto *deadline = new QTimer(reply); deadline->setSingleShot(true);
+    connect(deadline, &QTimer::timeout, reply, &QNetworkReply::abort);
+    connect(reply, &QNetworkReply::finished, deadline, &QTimer::stop); deadline->start(120000);
     m_impl->downloads.insert(reply, job);
 
     connect(reply, &QNetworkReply::downloadProgress, this, [this, job](qint64 received, qint64 total) {
@@ -482,7 +501,7 @@ void ThemeCatalogManager::startDownload(int row, const QUrl &url, const QString 
             return;
         const QByteArray chunk = reply->readAll();
         job->received += chunk.size();
-        if (job->received > kMaxThemeDownloadBytes) {
+        if (job->received > qMin(kMaxThemeDownloadBytes, job->expectedSize)) {
             reply->abort();
             return;
         }
@@ -502,7 +521,7 @@ void ThemeCatalogManager::startDownload(int row, const QUrl &url, const QString 
         if (reply->isOpen() && reply->isReadable() && reply->bytesAvailable() > 0) {
             const QByteArray chunk = reply->readAll();
             job->received += chunk.size();
-            if (job->received > kMaxThemeDownloadBytes) {
+            if (job->received > qMin(kMaxThemeDownloadBytes, job->expectedSize)) {
                 finalWriteOk = false;
             } else {
                 job->hash.addData(chunk);
@@ -520,7 +539,7 @@ void ThemeCatalogManager::startDownload(int row, const QUrl &url, const QString 
             QFile::remove(job->partPath);
             return;
         }
-        if (!finalWriteOk || networkError != QNetworkReply::NoError || job->received > kMaxThemeDownloadBytes) {
+        if (!finalWriteOk || networkError != QNetworkReply::NoError || job->received > qMin(kMaxThemeDownloadBytes, job->expectedSize)) {
             QFile::remove(job->partPath);
             failEntry(currentRow, QStringLiteral("Theme download failed: %1").arg(networkMessage));
             return;
@@ -537,7 +556,7 @@ void ThemeCatalogManager::startDownload(int row, const QUrl &url, const QString 
         entry.state = QStringLiteral("installing");
         entry.progress = 1.0;
         updateRow(currentRow, {StateRole, ProgressRole});
-        const bool installed = m_themes->installThemeRcc(job->partPath, job->expectedSha);
+        const bool installed = m_themes->installThemeRcc(job->partPath, job->expectedSha, job->id, job->expectedVersion, job->expectedThemeApi);
         QFile::remove(job->partPath);
         if (!installed) {
             failEntry(currentRow, m_themes->lastError().isEmpty()

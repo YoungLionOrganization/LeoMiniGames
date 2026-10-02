@@ -12,4 +12,4 @@ target_include_directories(MemoryMatchPlugin PRIVATE
     ${PROJECT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
-target_link_libraries(MemoryMatchPlugin PRIVATE Qt6::Core)
+target_link_libraries(MemoryMatchPlugin PRIVATE lmg_core Qt6::Core)

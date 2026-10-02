@@ -30,4 +30,6 @@ Example trust snapshot:
 }
 ```
 
-`signature` is reserved for a later signed publishing flow. v0.6.0 does not pretend that a signature has been verified when no signature infrastructure exists. Android does not dynamically load Level 3 libraries in this release.
+`signature` is reserved for a later signed publishing flow. v0.7.3 does not pretend that a signature has been verified when no signature infrastructure exists. Android does not dynamically load Level 3 libraries in this release.
+
+For compile-only native example/API and matching-kit requirements see [Native SDK](sdk/NATIVE_API.md). The native IID/ABI stays 1.0; the QML host API is separately 0.7.

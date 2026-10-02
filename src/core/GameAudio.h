@@ -31,6 +31,8 @@ public:
     Q_INVOKABLE void resumeAll();
     Q_INVOKABLE qreal volume(const QString &group) const;
     Q_INVOKABLE void setVolume(const QString &group,qreal value);
+signals:
+    void audioError(const QString &message, const QString &source);
 private:
     struct Impl; std::unique_ptr<Impl> m_impl; AudioManager *m_legacy=nullptr; SettingsManager *m_settings=nullptr;
     QString m_gameId; bool m_restrictedExternal=false;

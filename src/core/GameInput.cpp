@@ -2,8 +2,31 @@
 #include "GameInput.h"
 #include <Qt>
 #include <QtGlobal>
+#include <QCoreApplication>
+#include <QGuiApplication>
+#include <QKeyEvent>
+#include <QQuickItem>
+#include <QQuickWindow>
 
-GameInput::GameInput(QObject *parent) : QObject(parent) {}
+GameInput::GameInput(QObject *parent) : QObject(parent) { if (qApp) qApp->installEventFilter(this); }
+void GameInput::setFocusRoot(QObject *root) { reset(); m_focusRoot = root; }
+bool GameInput::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::WindowDeactivate || event->type() == QEvent::FocusOut) { reset(); return false; }
+    if (event->type() != QEvent::KeyPress && event->type() != QEvent::KeyRelease) return false;
+    auto *window = qobject_cast<QQuickWindow *>(watched);
+    if (!window || !m_focusRoot) return false;
+    QQuickItem *focus = window->activeFocusItem();
+    for (QQuickItem *item = focus; item; item = item->parentItem()) {
+        if (item->inherits("QQuickTextInput") || item->inherits("QQuickTextEdit")) return false;
+        if (item == m_focusRoot) {
+            auto *key = static_cast<QKeyEvent *>(event);
+            handleKey(key->key(), key->nativeScanCode(), key->text(), event->type() == QEvent::KeyPress, key->isAutoRepeat());
+            break;
+        }
+    }
+    return false;
+}
 void GameInput::press(const QString &action) { press(action, 1.0); }
 void GameInput::press(const QString &action, qreal value)
 {
@@ -42,7 +65,7 @@ QString GameInput::actionForKey(int key, quint32 nativeScanCode, const QString &
 
     // Native scan codes are centralized here so games never need platform tables.
 #if defined(Q_OS_MACOS)
-    if (nativeScanCode == 0) return QStringLiteral("move_left");   // A
+    if (nativeScanCode == 0 && key != 0 && key != Qt::Key_unknown) return QStringLiteral("move_left");   // A
     if (nativeScanCode == 2) return QStringLiteral("move_right");  // D
     if (nativeScanCode == 13) return QStringLiteral("up");         // W
     if (nativeScanCode == 1) return QStringLiteral("down");        // S
@@ -52,11 +75,13 @@ QString GameInput::actionForKey(int key, quint32 nativeScanCode, const QString &
     if (nativeScanCode == 17) return QStringLiteral("up");         // physical W
     if (nativeScanCode == 31) return QStringLiteral("down");       // physical S
 #elif defined(Q_OS_LINUX)
-    // evdev/Wayland and X11 keycodes are both accepted; exact translation stays host-side.
-    if (nativeScanCode == 30 || nativeScanCode == 38) return QStringLiteral("move_left");
-    if (nativeScanCode == 32 || nativeScanCode == 40) return QStringLiteral("move_right");
-    if (nativeScanCode == 17 || nativeScanCode == 25) return QStringLiteral("up");
-    if (nativeScanCode == 31 || nativeScanCode == 39) return QStringLiteral("down");
+    const QString backend = QGuiApplication::platformName();
+    const bool xkbCodes = backend == QStringLiteral("xcb") || backend.startsWith(QStringLiteral("wayland"));
+    const quint32 scan = xkbCodes && nativeScanCode >= 8 ? nativeScanCode - 8 : nativeScanCode;
+    if (scan == 30) return QStringLiteral("move_left");
+    if (scan == 32) return QStringLiteral("move_right");
+    if (scan == 17) return QStringLiteral("up");
+    if (scan == 31) return QStringLiteral("down");
 #endif
 
     // Logical fallback keeps standard layouts and synthetic key events working.
@@ -72,8 +97,13 @@ bool GameInput::handleKey(int key, quint32 nativeScanCode, const QString &text, 
 {
     const QString action = actionForKey(key, nativeScanCode, text);
     if (action.isEmpty()) return false;
-    if (autoRepeat && isPressed(action)) return true;
-    if (pressed) press(action); else release(action);
+    if (autoRepeat) return true;
+    const quint64 token = (quint64(nativeScanCode) << 32) | quint32(key);
+    if (pressed) { m_physicalKeys.insert(token, action); press(action); }
+    else {
+        const QString previous = m_physicalKeys.take(token);
+        if (!previous.isEmpty() && !m_physicalKeys.values().contains(previous)) release(previous);
+    }
     return true;
 }
-void GameInput::reset() { const auto keys = m_values.keys(); m_values.clear(); for (const QString &k : keys) { emit actionReleased(k); emit actionValueChanged(k, 0.0); } }
+void GameInput::reset() { m_physicalKeys.clear(); const auto keys = m_values.keys(); m_values.clear(); for (const QString &k : keys) { emit actionReleased(k); emit actionValueChanged(k, 0.0); } }

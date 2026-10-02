@@ -1,7 +1,17 @@
-# Theme API
+# GameTheme
 
-External games use `GameTheme`. v0.7 deliberately keeps the v0.6 token lookup surface: `value`, `color`, `number`, `stringValue`, `hasValue`, `keys`, `values`, and `surface`. Read-only compatibility properties include `activeThemeId`, `activeThemeName`, `revision`, `themes`, and `themeCount`; `isInstalled`, `installedVersion`, and selection of an already installed theme through `applyTheme` are retained.
+External games read tokens through value, color, number, stringValue, hasValue, keys(prefix), values(prefix), surface(key). Properties are activeThemeId/name, revision, themes/themeCount, ready/version. isInstalled, installedVersion, applyTheme(id), lastError and capabilities remain compatible. applyTheme selects an already installed theme; it does not install a package and changes launcher-wide selection.
 
-External packages do not receive raw theme installation/removal APIs. Theme packages and trust are managed by the host.
+Do not import the private application Constants/ThemeSurface modules. The SDK's SdkPanel/SdkText/SdkButton show package-local Qt Quick components using semantic keys. Missing tokens/surface fields fall back to the built-in theme; nested partial surfaces inherit defaults. Relative asset tokens/aliases resolve to their owning RCC URL. Alias cycles/invalid manifests fail installation rather than blanking the UI.
 
-Prefer semantic aliases over literal UI colors. v0.7 adds background/surface/text/accent/semantic/button/game aliases plus spacing, radius, touch-target, icon-size, typography, animation, shadow/glow, and reduced-motion tokens. Existing aliases remain valid and are not removed for v0.7.
+```qml
+function themeColor(key) {
+    let revision = GameTheme.revision
+    return GameTheme.color(key)
+}
+Rectangle { color: themeColor("alias.page.background.normal") }
+```
+
+Read revision in **every theme-producing binding** that must update; invokable lookups are not independently change-notifying. The same rule applies to number/surface/text/image asset queries. Surface returns a data map, not a rendered component; external games implement their own shape/gradient/image drawing.
+
+External ThemeRuntime is the same scoped facade alias as GameTheme. The host ThemeRuntime has install/remove APIs, but the external facade does not. [Theme SDK](../../theme-sdk/README.md) describes data-only packages/theme API 1. Protected metric.unit/ratio/data primitives keep gameplay constants separate. Automatic packaged-font registration is still future work; allowed font data alone does not change font families.

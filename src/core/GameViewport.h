@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #pragma once
 #include <QObject>
+#include <QVariantMap>
+#include <QPointer>
+class QQuickWindow;
 
 class GameViewport final : public QObject
 {
@@ -17,8 +20,12 @@ public:
     explicit GameViewport(QObject *parent = nullptr);
     qreal safeWidth() const; qreal safeHeight() const; qreal safeTop() const; qreal safeBottom() const; qreal density() const;
     bool portrait() const; bool landscape() const; bool valid() const;
+    Q_INVOKABLE QVariantMap windowInsets(QObject *item);
     Q_INVOKABLE void update(qreal width, qreal height, qreal top = 0.0, qreal bottom = 0.0, qreal density = 1.0);
-signals: void changed();
+signals:
+    void changed();
+    void nativeInsetsChanged();
 private:
+    QPointer<QQuickWindow> m_window;
     qreal m_width = 1.0, m_height = 1.0, m_top = 0.0, m_bottom = 0.0, m_density = 1.0;
 };

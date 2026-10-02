@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "ModManager.h"
 #include "NetworkSafety.h"
+#include "PackagePaths.h"
+#include <QScopeGuard>
 #include "AppPaths.h"
 #include "SettingsManager.h"
 #include "RccPackageInspector.h"
 #include "GameRuntime.h"
+#include "PackageCompatibility.h"
 #include "PublisherTrustResolver.h"
 
 #include <QCoreApplication>
 #include <QCryptographicHash>
 #include <QDir>
+#include <QDirIterator>
+#include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -22,6 +27,7 @@
 #include <QResource>
 #include <QSaveFile>
 #include <QSslSocket>
+#include <QTimer>
 #include <QVersionNumber>
 #include <QtGlobal>
 
@@ -67,7 +73,7 @@ QUrl resolveEndpoint(const QString &base, const QString &endpoint)
 bool isOfficialCatalogOrigin(const QString &base)
 {
     const QUrl url(base);
-    if (!url.isValid() || url.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0) return false;
+    if (!url.userInfo().isEmpty() || !url.isValid() || url.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0) return false;
     if (url.host().compare(QStringLiteral("leominigames.younglion.xyz"), Qt::CaseInsensitive) != 0) return false;
     if (url.port(-1) != -1 && url.port(-1) != 443) return false;
     const QString path = QDir::cleanPath(url.path());
@@ -79,7 +85,7 @@ constexpr qint64 kMaxJsonResponseBytes = 2LL * 1024LL * 1024LL;
 
 struct ModManager::Impl
 {
-    explicit Impl(QObject *owner) : network(owner) {}
+    explicit Impl(QObject *owner, QNetworkAccessManager *injected) : ownedNetwork(owner), network(injected ? injected : &ownedNetwork) {}
 
     struct DownloadJob {
         int row = -1;
@@ -93,17 +99,24 @@ struct ModManager::Impl
         QCryptographicHash hash{QCryptographicHash::Sha256};
     };
 
-    QNetworkAccessManager network;
+    QNetworkAccessManager ownedNetwork;
+    QNetworkAccessManager *network;
     QHash<QNetworkReply *, std::shared_ptr<DownloadJob>> downloads;
 };
 
-ModManager::ModManager(AppPaths *paths, SettingsManager *settings, QObject *parent)
+ModManager::ModManager(AppPaths *paths, SettingsManager *settings, QObject *parent, QNetworkAccessManager *network)
     : QAbstractListModel(parent),
       m_paths(paths),
       m_settings(settings),
-      m_impl(std::make_unique<Impl>(this))
+      m_impl(std::make_unique<Impl>(this, network))
 {
     loadInstalled();
+    QDirIterator pending(m_paths->mods(), {QStringLiteral("*.part")}, QDir::Files, QDirIterator::Subdirectories);
+    int inspected = 0;
+    while (pending.hasNext() && inspected++ < 1024) {
+        const QFileInfo file(pending.next());
+        if (PackagePaths::inside(m_paths->mods(), file.absoluteFilePath()) && file.lastModified().secsTo(QDateTime::currentDateTimeUtc()) > 24 * 60 * 60) QFile::remove(file.absoluteFilePath());
+    }
 }
 
 ModManager::~ModManager() = default;
@@ -219,8 +232,7 @@ int ModManager::indexOf(const QString &id) const
 
 bool ModManager::validId(const QString &id)
 {
-    static const QRegularExpression pattern(QStringLiteral("^[a-z0-9][a-z0-9_.-]{1,63}$"));
-    return pattern.match(id).hasMatch();
+    return RccPackageInspector::validId(id);
 }
 
 bool ModManager::safeEntryPath(const QString &path)
@@ -277,7 +289,7 @@ void ModManager::refresh()
     setLoading(true);
 
     QUrl url(apiBaseUrl() + QStringLiteral("/mods?limit=100"));
-    if (!url.isValid() || url.scheme() != QStringLiteral("https") || url.host().isEmpty() ||
+    if (!url.userInfo().isEmpty() || !url.isValid() || url.scheme() != QStringLiteral("https") || url.host().isEmpty() ||
         !url.userInfo().isEmpty()) {
         setLoading(false);
         setError(tr("Mod catalog requires a valid HTTPS API base URL."));
@@ -290,18 +302,19 @@ void ModManager::refresh()
     request.setHeader(QNetworkRequest::UserAgentHeader,
                       QStringLiteral("LeoMiniGames/%1").arg(QCoreApplication::applicationVersion()));
 
-    QNetworkReply *reply = m_impl->network.get(request);
+    QNetworkReply *reply = m_impl->network->get(request);
     NetworkSafety::boundJsonReply(reply, kMaxJsonResponseBytes);
-    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+    const QString catalogOrigin = apiBaseUrl();
+    connect(reply, &QNetworkReply::finished, this, [this, reply, catalogOrigin] {
+        auto loadingGuard = qScopeGuard([this] { setLoading(false); });
+        if (apiBaseUrl() != catalogOrigin) { setError(tr("Catalog origin changed; refresh again.")); reply->deleteLater(); return; }
         std::unique_ptr<QNetworkReply, void(*)(QNetworkReply*)> guard(
             reply, [](QNetworkReply *r) { r->deleteLater(); });
-        setLoading(false);
-
         if (reply->error() != QNetworkReply::NoError) {
             const QString detail = reply->errorString();
             if (!QSslSocket::supportsSsl() || detail.contains(QStringLiteral("TLS initialization"), Qt::CaseInsensitive)) {
                 const QString backends = QSslSocket::availableBackends().join(QStringLiteral(", "));
-                setError(QStringLiteral("Secure connection is unavailable on this device. TLS backend: %1; available: %2")
+                setError(tr("Secure connection is unavailable. Install the corrected application package. TLS backend: %1; available: %2")
                              .arg(QSslSocket::activeBackend().isEmpty() ? QStringLiteral("none") : QSslSocket::activeBackend(),
                                   backends.isEmpty() ? QStringLiteral("none") : backends));
             } else {
@@ -319,6 +332,8 @@ void ModManager::refresh()
             return;
         }
 
+        if (!document.object().value(QStringLiteral("data")).isArray()) { setError(tr("Catalog data must be an array.")); return; }
+        QSet<QString> seenIds;
         const QJsonArray dataArray = document.object().value(QStringLiteral("data")).toArray();
         QHash<QString, Entry> installed;
         for (const Entry &entry : std::as_const(m_entries)) {
@@ -336,11 +351,13 @@ void ModManager::refresh()
             if (!validId(entry.id))
                 continue;
 
+            if (seenIds.contains(entry.id)) { setError(tr("Catalog contains duplicate IDs.")); return; }
+            seenIds.insert(entry.id);
             entry.inCatalog = true;
             entry.name = object.value(QStringLiteral("name")).toString(entry.id);
             entry.localizedName = object.value(QStringLiteral("localized_name")).toString(entry.name);
             entry.description = object.value(QStringLiteral("description")).toString();
-            const bool authoritativeCatalog = isOfficialCatalogOrigin(apiBaseUrl());
+            const bool authoritativeCatalog = isOfficialCatalogOrigin(catalogOrigin);
             const QJsonObject publisherObject = object.value(QStringLiteral("publisher")).toObject();
             entry.author = !publisherObject.isEmpty()
                 ? publisherObject.value(QStringLiteral("display_name")).toString(object.value(QStringLiteral("author")).toString(QStringLiteral("Unknown")))
@@ -407,15 +424,16 @@ void ModManager::refresh()
                 entry.installedEntry = local.installedEntry;
                 entry.installedMountRoot = local.installedMountRoot;
                 entry.settingsSchema = local.settingsSchema;
+                entry.installedManifest = local.installedManifest;
                 if (entry.license.isEmpty()) entry.license = local.license;
                 if (entry.licenseFile.isEmpty()) entry.licenseFile = local.licenseFile;
                 if (entry.sourceUrl.isEmpty()) entry.sourceUrl = local.sourceUrl;
                 if (entry.tags.isEmpty()) entry.tags = local.tags;
-                if (entry.apiVersion.isEmpty()) entry.apiVersion = local.apiVersion;
-                if (entry.capabilities.isEmpty()) entry.capabilities = local.capabilities;
-                if (entry.locales.isEmpty()) entry.locales = local.locales;
-                if (entry.defaultLocale.isEmpty()) entry.defaultLocale = local.defaultLocale;
-                if (entry.saveVersion <= 1) entry.saveVersion = local.saveVersion;
+                entry.apiVersion = local.apiVersion;
+                entry.capabilities = local.capabilities;
+                entry.locales = local.locales;
+                entry.defaultLocale = local.defaultLocale;
+                entry.saveVersion = local.saveVersion;
                 entry.state = QStringLiteral("installed");
                 const QString localIconPath = QStringLiteral(":/mods/%1/assets/icon.png").arg(entry.id);
                 if (QFileInfo::exists(localIconPath))
@@ -439,6 +457,8 @@ void ModManager::refresh()
 
 void ModManager::install(const QString &id)
 {
+    if (m_loading) return;
+    if (id == m_activeGameId) { setError(tr("Close the running game before changing its package.")); return; }
     const int row = indexOf(id);
     if (row < 0)
         return;
@@ -507,7 +527,7 @@ void ModManager::requestDownloadTicket(int row)
     request.setRawHeader("Accept", "application/json");
     request.setTransferTimeout(15000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::SameOriginRedirectPolicy);
-    QNetworkReply *reply = m_impl->network.get(request);
+    QNetworkReply *reply = m_impl->network->get(request);
     NetworkSafety::boundJsonReply(reply, kMaxJsonResponseBytes);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, row] {
@@ -554,18 +574,15 @@ void ModManager::startPackageDownload(int row, const QUrl &url,
 {
     if (row < 0 || row >= m_entries.size())
         return;
-    if (!url.isValid() || url.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0 || url.host().isEmpty()) {
+    if (!url.userInfo().isEmpty() || !url.isValid() || url.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0 || url.host().isEmpty()) {
         failEntry(row, QStringLiteral("Mod downloads require a valid HTTPS URL."));
         return;
     }
 
     Entry &entry = m_entries[row];
-    const QString versionDir = m_paths->mods() + QLatin1Char('/') + entry.id +
-                               QLatin1Char('/') + entry.version;
-    if (!QDir().mkpath(versionDir)) {
-        failEntry(row, QStringLiteral("Could not create the mod directory."));
-        return;
-    }
+    const QString key = QString::fromLatin1(QCryptographicHash::hash(entry.version.toUtf8(), QCryptographicHash::Sha256).toHex());
+    const QString versionDir = PackagePaths::directory(m_paths->mods(), entry.id, key);
+    if (versionDir.isEmpty()) { failEntry(row, tr("Could not create a contained mod directory.")); return; }
 
     auto job = std::make_shared<Impl::DownloadJob>();
     job->row = row;
@@ -590,7 +607,13 @@ void ModManager::startPackageDownload(int row, const QUrl &url,
     request.setRawHeader("Accept", "application/octet-stream");
     request.setTransferTimeout(60000);
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
-    QNetworkReply *reply = m_impl->network.get(request);
+    QNetworkReply *reply = m_impl->network->get(request);
+    reply->setReadBufferSize(256 * 1024);
+    auto *deadline = new QTimer(reply);
+    deadline->setSingleShot(true);
+    connect(deadline, &QTimer::timeout, reply, &QNetworkReply::abort);
+    connect(reply, &QNetworkReply::finished, deadline, &QTimer::stop);
+    deadline->start(120000);
     m_impl->downloads.insert(reply, job);
 
     connect(reply, &QNetworkReply::downloadProgress, this, [this, job](qint64 received, qint64 total) {
@@ -610,7 +633,7 @@ void ModManager::startPackageDownload(int row, const QUrl &url,
             return;
         const QByteArray chunk = reply->readAll();
         job->received += chunk.size();
-        if (job->received > kMaxModBytes) {
+        if (job->received > kMaxModBytes || job->received > job->expectedSize) {
             reply->abort();
             return;
         }
@@ -641,7 +664,7 @@ void ModManager::startPackageDownload(int row, const QUrl &url,
         bool finalWriteOk = true;
         if (reply->isOpen() && reply->isReadable() && reply->bytesAvailable() > 0) {
             const QByteArray chunk = reply->readAll();
-            if (job->received + chunk.size() > kMaxModBytes) {
+            if (job->received + chunk.size() > qMin(kMaxModBytes, job->expectedSize)) {
                 finalWriteOk = false;
             } else {
                 job->received += chunk.size();
@@ -661,7 +684,7 @@ void ModManager::startPackageDownload(int row, const QUrl &url,
         }
 
         Entry &entry = m_entries[job->row];
-        if (error != QNetworkReply::NoError || job->received > kMaxModBytes || !finalWriteOk) {
+        if (error != QNetworkReply::NoError || job->received > kMaxModBytes || job->received > job->expectedSize || !finalWriteOk) {
             QFile::remove(job->partPath);
             failEntry(job->row, QStringLiteral("Download failed: %1").arg(errorString));
             return;
@@ -679,6 +702,16 @@ void ModManager::startPackageDownload(int row, const QUrl &url,
             return;
         }
 
+        if (entry.id == m_activeGameId) { QFile::remove(job->partPath); failEntry(job->row, tr("Close the running game before updating it.")); return; }
+        const RccPackageInspection candidate = RccPackageInspector::inspect(job->partPath, entry.id, entry.entryPath);
+        if (!candidate.valid) { QFile::remove(job->partPath); failEntry(job->row, candidate.error); return; }
+        const QString compatibilityError = PackageCompatibility::error(candidate.manifest);
+        const QString candidateVersion = candidate.manifest.value(QStringLiteral("version")).toString();
+        if (!compatibilityError.isEmpty() || (!candidateVersion.isEmpty() && candidateVersion != entry.version)) {
+            QFile::remove(job->partPath);
+            failEntry(job->row, compatibilityError.isEmpty() ? QStringLiteral("Package version does not match the catalog.") : compatibilityError); return;
+        }
+        const Entry previousMetadata = entry;
         entry.state = QStringLiteral("installing");
         entry.progress = 1.0;
         updateRow(job->row, {StateRole, ProgressRole});
@@ -707,6 +740,7 @@ void ModManager::startPackageDownload(int row, const QUrl &url,
             QFile::remove(job->finalPath);
             if (QFileInfo::exists(rollbackFile))
                 QFile::rename(rollbackFile, previousFile);
+            entry = previousMetadata;
             if (hadPrevious && QFileInfo::exists(previousFile) && QResource::registerResource(previousFile, previousMountRoot)) {
                 entry.installed = true;
                 entry.installedFile = previousFile;
@@ -732,12 +766,6 @@ void ModManager::startPackageDownload(int row, const QUrl &url,
 
         const QString resourcePath = QStringLiteral(":/mods/%1/%2").arg(entry.id, inspection.entryPath);
         if (!QFileInfo::exists(resourcePath)) { rollback(QStringLiteral("The mod entry file is missing after RCC mount.")); return; }
-        QFile::remove(rollbackFile);
-        if (hadPrevious && QFileInfo(previousFile).absoluteFilePath() != QFileInfo(job->finalPath).absoluteFilePath()) {
-            const QString oldVersionDir = QFileInfo(previousFile).absolutePath();
-            QFile::remove(previousFile);
-            QDir(oldVersionDir).removeRecursively();
-        }
 
         entry.installed = true;
         entry.installedVersion = entry.version;
@@ -750,7 +778,14 @@ void ModManager::startPackageDownload(int row, const QUrl &url,
         const QString localIconPath = QStringLiteral(":/mods/%1/assets/icon.png").arg(entry.id);
         if (QFileInfo::exists(localIconPath))
             entry.iconUrl = QStringLiteral("qrc:/mods/%1/assets/icon.png").arg(entry.id);
-        saveInstalled();
+        if (!saveInstalled()) { rollback(tr("Could not commit the installed mod index.")); return; }
+        QFile::remove(rollbackFile);
+        if (hadPrevious && QFileInfo(previousFile).absoluteFilePath() != QFileInfo(job->finalPath).absoluteFilePath()) {
+            const QString oldVersionDir = QFileInfo(previousFile).absolutePath();
+            QFile::remove(previousFile);
+            QDir(oldVersionDir).removeRecursively();
+        }
+
         updateRow(job->row, {InstalledRole, InstalledVersionRole, StateRole, ErrorRole, ProgressRole, IconUrlRole});
         emit modInstalled(entry.id);
     });
@@ -758,6 +793,8 @@ void ModManager::startPackageDownload(int row, const QUrl &url,
 
 void ModManager::uninstall(const QString &id)
 {
+    if (m_loading) return;
+    if (id == m_activeGameId) { setError(tr("Close the running game before changing its package.")); return; }
     const int row = indexOf(id);
     if (row < 0)
         return;
@@ -774,8 +811,11 @@ void ModManager::uninstall(const QString &id)
     if (!entry.installedFile.isEmpty())
         QResource::unregisterResource(entry.installedFile, mapRoot);
 
+    const Entry previous = entry;
     const QString idDir = m_paths->mods() + QLatin1Char('/') + entry.id;
-    QDir(idDir).removeRecursively();
+    if (!PackagePaths::inside(m_paths->mods(), idDir)) { QResource::registerResource(entry.installedFile, mapRoot); failEntry(row, tr("Package directory is outside mod storage.")); return; }
+    const QString removedFile = entry.installedFile + QStringLiteral(".uninstall");
+    if (!QFile::rename(entry.installedFile, removedFile)) { QResource::registerResource(entry.installedFile, mapRoot); failEntry(row, tr("Could not remove installed package.")); return; }
 
     entry.installed = false;
     entry.installedVersion.clear();
@@ -786,7 +826,13 @@ void ModManager::uninstall(const QString &id)
     entry.progress = 0.0;
     entry.operationError.clear();
 
-    saveInstalled();
+    if (!saveInstalled()) {
+        QFile::rename(removedFile, previous.installedFile);
+        entry = previous;
+        QResource::registerResource(entry.installedFile, mapRoot);
+        failEntry(row, tr("Could not commit mod removal.")); return;
+    }
+    if (!QDir(idDir).removeRecursively()) entry.operationError = tr("Mod removed from index; package files could not be deleted.");
     updateRow(row, {InstalledRole, InstalledVersionRole, StateRole, ProgressRole, ErrorRole});
     emit modUninstalled(id);
 }
@@ -890,6 +936,7 @@ void ModManager::applyManifestMetadata(Entry &entry)
     if (!manifestId.isEmpty() && manifestId != entry.id)
         return;
 
+    entry.installedManifest = object;
     if (entry.name.isEmpty()) entry.name = object.value(QStringLiteral("name")).toString(entry.id);
     if (entry.localizedName.isEmpty()) entry.localizedName = entry.name;
     if (entry.description.isEmpty()) entry.description = object.value(QStringLiteral("description")).toString();
@@ -907,7 +954,8 @@ void ModManager::applyManifestMetadata(Entry &entry)
     if (entry.sourceUrl.isEmpty()) entry.sourceUrl = object.value(QStringLiteral("source_url")).toString();
     entry.sourceAvailable = entry.sourceAvailable || object.value(QStringLiteral("source_available")).toBool(false);
     if (entry.tags.isEmpty()) for (const QJsonValue &v : object.value(QStringLiteral("tags")).toArray()) entry.tags.append(v.toString());
-    if (entry.apiVersion.isEmpty()) entry.apiVersion = object.value(QStringLiteral("api_version")).toString();
+    entry.capabilities.clear(); entry.locales.clear(); entry.settingsSchema.clear();
+    entry.apiVersion = object.value(QStringLiteral("api_version")).toString();
     for (const QJsonValue &v : object.value(QStringLiteral("capabilities")).toArray()) {
         const QString cap=v.toString().trimmed();
         if(!cap.isEmpty()&&!entry.capabilities.contains(cap))entry.capabilities.append(cap);
@@ -916,10 +964,10 @@ void ModManager::applyManifestMetadata(Entry &entry)
         const QString cap=v.toString().trimmed();
         if(!cap.isEmpty()&&!entry.capabilities.contains(cap))entry.capabilities.append(cap);
     }
-    if (entry.locales.isEmpty()) for (const QJsonValue &v : object.value(QStringLiteral("locales")).toArray()) entry.locales.append(v.toString());
+    for (const QJsonValue &v : object.value(QStringLiteral("locales")).toArray()) entry.locales.append(v.toString());
     const QString defaultLocale = object.value(QStringLiteral("default_locale")).toString();
-    if (!defaultLocale.isEmpty()) entry.defaultLocale = defaultLocale;
-    entry.saveVersion = qMax(entry.saveVersion, qMax(1, object.value(QStringLiteral("save_version")).toInt(1)));
+    entry.defaultLocale = defaultLocale.isEmpty() ? QStringLiteral("en") : defaultLocale;
+    entry.saveVersion = qMax(1, object.value(QStringLiteral("save_version")).toInt(1));
     const QJsonObject schema = object.value(QStringLiteral("settings_schema")).toObject();
     if (!schema.isEmpty()) entry.settingsSchema = schema.toVariantMap();
     // Security boundary: verified/native/reviewed/Level 3 are never trusted from manifest.json.
@@ -941,21 +989,12 @@ void ModManager::registerInstalled(Entry &entry)
         entry.operationError = inspection.error.isEmpty() ? QStringLiteral("Could not inspect installed RCC package.") : inspection.error;
         return;
     }
-    {
-        QStringList required;
-        for (const QJsonValue &value : inspection.manifest.value(QStringLiteral("required_capabilities")).toArray())
-            required.append(value.toString());
-        GameRuntime runtime;
-        const QVariantMap compatibility = runtime.checkCompatibility(
-            inspection.manifest.value(QStringLiteral("api_version")).toString(),
-            inspection.manifest.value(QStringLiteral("min_api_version")).toString(), required);
-        if (!compatibility.value(QStringLiteral("ok")).toBool()) {
-            entry.installed = false;
-            entry.state = QStringLiteral("error");
-            entry.operationError = QStringLiteral("Installed mod is incompatible: %1").arg(compatibility.value(QStringLiteral("error")).toString());
-            return;
-        }
+    const QString compatibilityError = PackageCompatibility::error(inspection.manifest);
+    if (!compatibilityError.isEmpty()) {
+        entry.installed = false; entry.state = QStringLiteral("error");
+        entry.operationError = QStringLiteral("Installed mod is incompatible: %1").arg(compatibilityError); return;
     }
+
     if (!RccPackageInspector::mount(entry.installedFile, inspection)) {
         entry.installed = false;
         entry.state = QStringLiteral("error");
@@ -986,7 +1025,7 @@ void ModManager::loadInstalled()
 {
     const QString indexPath = m_paths->mods() + QStringLiteral("/installed.json");
     QFile file(indexPath);
-    if (!file.open(QIODevice::ReadOnly))
+    if (!file.open(QIODevice::ReadOnly) || file.size() > kMaxJsonResponseBytes)
         return;
 
     QJsonParseError parseError;
@@ -1037,6 +1076,18 @@ void ModManager::loadInstalled()
 
         if (!validId(entry.id) || !safeEntryPath(entry.installedEntry))
             continue;
+        if (!QFileInfo::exists(entry.installedFile)) {
+            for (const QString &suffix : {QStringLiteral(".rollback"), QStringLiteral(".uninstall")}) {
+                const QString recovery = entry.installedFile + suffix;
+                if (!PackagePaths::inside(m_paths->mods()+QLatin1Char('/')+entry.id, recovery)) continue;
+                const auto inspection = RccPackageInspector::inspect(recovery, entry.id, entry.installedEntry);
+                if (inspection.valid && QFile::rename(recovery, entry.installedFile)) break;
+            }
+        }
+        const QString root = QFileInfo(m_paths->mods()).canonicalFilePath() + QLatin1Char('/');
+        const QString installedPath = QFileInfo(entry.installedFile).canonicalFilePath();
+        if (installedPath.isEmpty() || !installedPath.startsWith(root) || !PackagePaths::inside(m_paths->mods()+QLatin1Char('/')+entry.id, entry.installedFile)) continue;
+        entry.installedFile = installedPath;
         registerInstalled(entry);
         m_entries.append(entry);
     }
@@ -1044,7 +1095,7 @@ void ModManager::loadInstalled()
     emit countChanged();
 }
 
-void ModManager::saveInstalled() const
+bool ModManager::saveInstalled() const
 {
     QJsonArray array;
     for (const Entry &entry : m_entries) {
@@ -1087,8 +1138,8 @@ void ModManager::saveInstalled() const
     }
 
     QSaveFile file(m_paths->mods() + QStringLiteral("/installed.json"));
-    if (!file.open(QIODevice::WriteOnly))
-        return;
-    file.write(QJsonDocument(array).toJson(QJsonDocument::Indented));
-    file.commit();
+    if (!file.open(QIODevice::WriteOnly)) return false;
+    const QByteArray bytes = QJsonDocument(array).toJson(QJsonDocument::Indented);
+    if (file.write(bytes) != bytes.size()) { file.cancelWriting(); return false; }
+    return file.commit();
 }

@@ -9,7 +9,7 @@ GamePluginInfo MemoryMatchPlugin::info() const
         QStringLiteral("Memory Match"),
         QStringLiteral("Flip cards, remember their positions, and find every pair."),
         QStringLiteral("Memory"),
-        QStringLiteral("1.0.0"),
+        QStringLiteral("1.1.0"),
         QStringLiteral("YoungLion"),
         QStringLiteral("MM"),
         QUrl(QStringLiteral("qrc:/qt/qml/LeoMiniGames/MemoryMatchPage.qml")),

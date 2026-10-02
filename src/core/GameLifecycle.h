@@ -17,5 +17,8 @@ signals:
     void gameChanged(); void loaded(); void started(); void paused(); void resumed(); void backgrounded(); void foregrounded(); void saveRequested(); void closed(); void unloaded();
 private:
     void invoke(const char *method);
+    bool m_paused = false;
+    bool m_started = false;
+    bool m_closed = false;
     QPointer<QObject> m_object; QString m_gameId;
 };

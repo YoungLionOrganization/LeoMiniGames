@@ -9,7 +9,7 @@ GamePluginInfo ReactionTapPlugin::info() const
         QStringLiteral("Reaction Tap"),
         QStringLiteral("Wait for the signal, then tap as quickly as you can."),
         QStringLiteral("Arcade"),
-        QStringLiteral("1.0.0"),
+        QStringLiteral("1.1.0"),
         QStringLiteral("YoungLion"),
         QStringLiteral("RT"),
         QUrl(QStringLiteral("qrc:/qt/qml/LeoMiniGames/ReactionTapPage.qml")),

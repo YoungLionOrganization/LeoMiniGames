@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.3 — Runtime recovery and platform packaging
+
+- SDK examples and documentation match API 0.7 / app 0.7.3; modern lifecycle/input/save/live-theme/i18n example, minimal theme overlay and native ABI compile example.
+- Shared SDK RCC build/source checks, generated API signatures, link/coverage validation and real external-engine SDK tests run in CI.
+
+- Correct Android OpenSSL dependency names and verify same-ABI native dependency closure.
+- Bundle app-local Windows MSVC runtimes; validate PE architecture and imports.
+- Preserve incompatible/corrupt saves and recovery backups; bind migrations to the game engine.
+- Centralize guarded session shutdown, restore navigation and defer external engine teardown.
+- Preserve installed runtime metadata and roll package updates back on index commit failure.
+- Fix native keyboard routing, builtin pause behavior and MemoryMatch delayed reset.
+- Validate exact release artifacts and require candidate platform QA evidence before publication.
+- Modernize all six builtins with lifecycle hooks, validated GameSave snapshots, action checkpoints and GameAudio. Preserve legacy records; resume boards/hands; invalidate suspended Reaction Tap timing rounds.
+- Extract Android native plugins and explicitly deploy the OpenSSL backend; require a compiled-manifest check and actual HTTPS catalog probe.
+- Keep game API 0.7; Android versionCode 703; native plugin ABI 1.0 is unchanged.
+
+
 ## 0.7.1 — Release, Update Gateway and Developer Lab Servicing
 
 ### Windows installer / CPU packaging

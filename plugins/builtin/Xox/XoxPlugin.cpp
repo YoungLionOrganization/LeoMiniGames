@@ -9,7 +9,7 @@ GamePluginInfo XoxPlugin::info() const
         QStringLiteral("XOX"),
         QStringLiteral("Classic 3×3 local two-player game."),
         QStringLiteral("Board"),
-        QStringLiteral("1.0.0"),
+        QStringLiteral("1.1.0"),
         QStringLiteral("YoungLion"),
         QStringLiteral("XO"),
         QUrl(QStringLiteral("qrc:/qt/qml/LeoMiniGames/XoxPage.qml")),

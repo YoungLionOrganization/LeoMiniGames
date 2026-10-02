@@ -13,3 +13,11 @@ keystore.base64.txt
 /LeoMiniGames*.zip
 /SHA256SUMS
 
+
+# Python validator caches
+__pycache__/
+*.py[cod]
+
+# SDK package outputs
+/mod-sdk/*/build/
+/theme-sdk/*/build/

@@ -1,0 +1,37 @@
+name: Record candidate platform QA
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Full source SHA of the tested build candidate
+        required: true
+        type: string
+      report_json:
+        description: Completed platform-qa.json (21 targets with actual evidence)
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  record:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate supplied QA report
+        env:
+          REPORT_JSON: ${{ inputs.report_json }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          sha = os.environ['CANDIDATE_SHA']
+          if not re.fullmatch('[0-9a-f]{40}', sha): raise SystemExit('full candidate SHA required')
+          Path('platform-qa.json').write_text(json.dumps(json.loads(os.environ['REPORT_JSON']), indent=2)+'\n')
+          PY
+          python3 tools/validate_platform_qa.py platform-qa.json --sha "$CANDIDATE_SHA"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: platform-qa
+          path: platform-qa.json
+          if-no-files-found: error

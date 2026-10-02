@@ -1,0 +1,6 @@
+<RCC><qresource prefix="/mods/test_audio">
+<file alias="tone#1.ogg">tone.ogg</file>
+<file alias="tone.ogg">tone.ogg</file>
+<file alias="fallback.wav">tone.ogg</file>
+<file alias="click.wav">../../../resources/sfx/click.wav</file>
+</qresource></RCC>

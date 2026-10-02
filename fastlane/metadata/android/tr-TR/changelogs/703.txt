@@ -1,0 +1,1 @@
+Android TLS açılış düzeltmesi, Windows çalışma zamanı paketleme, güvenli kayıt kurtarma, oturum ve giriş düzeltmeleri. API 0.7 uyumluluğu korunur.

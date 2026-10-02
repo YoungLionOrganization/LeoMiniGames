@@ -1,17 +1,32 @@
-# LeoMiniGames v0.7 SDK Overview
+# LeoMiniGames SDK — application 0.7.3 / host API 0.7
 
-LeoMiniGames hosts built-in C++ plugins and external `rcc-v1` QML packages. v0.7 keeps the v0.5/v0.6 context-service contract through compatibility facades while adding capability discovery and stricter resource isolation.
+Start with [Quickstart](QUICKSTART.md). The package format remains **rcc-v1**, theme API remains **1**, and native C++ ABI remains **1.0**. These are separate version numbers. The launcher supports legacy v0.5/v0.6 RCC packages through scoped compatibility facades.
+
+## Documentation map
+
+| Task | Guide |
+| --- | --- |
+| Build/run a first game or theme | [Quickstart](QUICKSTART.md), [Developer Lab](DEVELOPER_MODE.md) |
+| All exposed properties, methods and signals | [Generated API reference](API_REFERENCE.md) |
+| Manifest and package resources | [Manifest](MANIFEST.md), [Resources](RESOURCES.md) |
+| State, schema migrations and backup errors | [Save](SAVE_API.md), [Lifecycle](LIFECYCLE_API.md) |
+| Preferences and a settings schema | [Settings](SETTINGS_API.md) |
+| Unified platform effects/music and legacy calls | [Audio](AUDIO_API.md) |
+| Actions, touch and keyboard focus | [Input](INPUT_API.md) |
+| Theme/language bindings and viewport sizing | [Theme](THEME_API.md), [I18n](I18N_API.md), [Viewport](VIEWPORT_API.md) |
+| Random continuation, timers and local events | [Random/clock/events](RANDOM_CLOCK_EVENTS_API.md) |
+| Local scores, counters, achievements and haptics | [Stats/feedback](STATS_FEEDBACK_API.md) |
+| HTTPS permission and offline behavior | [Network](NETWORK_API.md) |
+| Legacy migration and intentional boundaries | [Compatibility](COMPATIBILITY.md), [Migration](MIGRATION_0.6_TO_0.7.md) |
+| Native C++ plugin boundary | [Native SDK](NATIVE_API.md) |
+| Package errors, testing and publishing checklist | [Troubleshooting](TROUBLESHOOTING.md) |
 
 ## Runtime model
 
-External packages are inspected before mount and then loaded in a dedicated `QQmlEngine`. The package receives host services, not raw application internals. The stable context names include `App`, `Settings`, `Lang`, `Audio`, `GameTheme`, `Lifecycle`, `GameSettings`, `GameSave`, `GameInput`, `GameI18n`, `GameAudio`, `GameResources`, `GameRuntime`, `GameStats`, `Achievements`, `Haptics`, `GameEvents`, `GameClock`, `Viewport`, and `GameLogger`.
+External QML packages run in a dedicated QQmlEngine with their root Item sized by the host. Context services are `App`, `Settings`, `Lang`, `Audio`, `GameTheme` (also `ThemeRuntime` as a facade alias), `Lifecycle`, `GameSettings`, `GameSave`, `GameInput`, `GameRandom`, `GameClock`, `GameEvents`, `GameI18n`, `GameAudio`, `GameResources`, `GameRuntime`, `GameStats`, `Achievements`, `Haptics`, `Viewport` and `GameLogger`. Do not import the private `LeoMiniGames` QML module or depend on host C++ internals.
 
-Missing `api_version` means legacy compatibility mode. New packages should declare `api_version: "0.7"` and only put true hard requirements in `required_capabilities`.
+Use `GameRuntime.apiVersion`, `GameRuntime.version`, `GameRuntime.capabilities` (a property, not a function), and `GameRuntime.supports("resources")`. A service-specific `capabilities()` is a method only where listed in the reference. Capability discovery describes host features, not hardware availability or permission to use network/native code.
 
-## Compatibility rule
+New packages declare `api_version: "0.7"`; put only hard requirements in `required_capabilities`. Missing API fields retain legacy behavior. Package metadata does not grant Official/Verified/Native trust. [Licensing](../DEVELOPER_LICENSING.md) and publisher onboarding are separate from runtime capabilities.
 
-A v0.5/v0.6 package is not rejected merely because it lacks v0.7 fields. Canonical RCC layout is preferred, legacy `/mods/<id>` layout is accepted when the RCC contains no resources outside that namespace. Security-sensitive publisher/native trust never comes from `manifest.json`.
-
-## Network
-
-`GameRuntime.capabilities()` advertises `network.https`. Modern v0.7 installed packages opt into runtime HTTPS; local Developer RCC remains network-disabled. This permission model is additive and does not retroactively reject legacy v0.5/v0.6 packages.
+The API reference is generated from headers and checked in CI. SDK examples are built as real RCCs and tested in the external engine. These checks do not replace Android/desktop physical-device QA or a production backend deployment.

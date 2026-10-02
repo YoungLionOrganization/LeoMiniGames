@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #pragma once
 
-#include <QObject>
+#include "core/BuiltinGame.h"
 #include <QVariantList>
 #include <array>
 
-class TwentyFortyEightGame final : public QObject
+class TwentyFortyEightGame final : public BuiltinGame
 {
     Q_OBJECT
     Q_PROPERTY(QVariantList tiles READ tiles NOTIFY boardChanged)
@@ -31,6 +31,9 @@ public:
 
     Q_INVOKABLE void reset();
     Q_INVOKABLE bool move(const QString &direction);
+
+    QVariantMap snapshot() const override;
+    bool restoreSnapshot(const QVariantMap &state) override;
 
 signals:
     void boardChanged();

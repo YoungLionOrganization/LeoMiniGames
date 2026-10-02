@@ -1,23 +1,21 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "AudioManager.h"
 #include "SettingsManager.h"
+#include "AudioClip.h"
 #include <QHash>
 #include <QQueue>
 #include <QtGlobal>
+#include <cmath>
 #include <utility>
-#ifdef LMG_HAS_MULTIMEDIA
-#include <QSoundEffect>
-#endif
 
 namespace { constexpr int kMaxDynamicEffects = 32; }
 struct AudioManager::Impl
 {
+    struct Effect { AudioClip *clip; qreal gain = 1.0; QString group = QStringLiteral("sfx"); };
     QHash<QString, QUrl> builtins;
-#ifdef LMG_HAS_MULTIMEDIA
-    QHash<QString, QSoundEffect *> effects;
-    QHash<QString, QSoundEffect *> dynamicEffects;
-    QQueue<QString> dynamicOrder;
-#endif
+    QHash<QString, Effect> effects;
+    QQueue<QString> order;
+    bool paused = false;
 };
 
 AudioManager::AudioManager(SettingsManager *settings, QObject *parent)
@@ -46,78 +44,95 @@ bool AudioManager::available() const {
 }
 QStringList AudioManager::capabilities() const
 {
-    QStringList result{QStringLiteral("named_effects"), QStringLiteral("local_rcc_audio"), QStringLiteral("volume")};
-#ifdef LMG_HAS_MULTIMEDIA
-    result << QStringLiteral("preload");
-#endif
-    return result;
+    if (!available()) return QStringList{};
+    return {QStringLiteral("named_effects"), QStringLiteral("local_rcc_audio"),
+        QStringLiteral("volume"), QStringLiteral("preload"), QStringLiteral("media_effect_fallback")};
 }
-qreal AudioManager::effectiveVolume(qreal gain) const { if (!m_settings || !m_settings->soundEnabled()) return 0.0; return qBound<qreal>(0.0, m_settings->soundVolume()*qBound<qreal>(0.0,gain,2.0),1.0); }
+qreal AudioManager::effectiveVolume(qreal gain, const QString &group) const
+{
+    if (!std::isfinite(gain) || (m_settings && !m_settings->soundEnabled())) return 0.0;
+    const qreal master = m_settings ? m_settings->soundVolume() : 1.0;
+    const qreal groupGain = m_settings ? m_settings->value(QStringLiteral("audio/groups/") + group, 1.0).toReal() : 1.0;
+    if (!std::isfinite(groupGain)) return 0.0;
+    return qBound<qreal>(0.0, master * qBound<qreal>(0.0, gain, 2.0) * qBound<qreal>(0.0, groupGain, 1.0), 1.0);
+}
 bool AudioManager::localUrlAllowed(const QUrl &url) const
 {
-    if (!url.isValid() || url.isEmpty()) return false;
-    const QString scheme=url.scheme().toLower();
-    return scheme==QStringLiteral("qrc") || scheme==QStringLiteral("file");
+    return url.isValid() && !url.isEmpty() && url.host().isEmpty()
+        && !url.hasQuery() && !url.hasFragment()
+        && (url.scheme() == QStringLiteral("qrc") || url.isLocalFile());
 }
-void AudioManager::play(const QString &name)
+void AudioManager::play(const QString &name) { play(name, 1.0, QStringLiteral("sfx")); }
+void AudioManager::play(const QString &name, qreal gain, const QString &group)
 {
-#ifdef LMG_HAS_MULTIMEDIA
-    const QUrl source=m_impl->builtins.value(name.trimmed().toLower());
+    const QUrl source = m_impl->builtins.value(name.trimmed().toLower());
     if (source.isEmpty()) { emit audioError(QStringLiteral("Unknown named sound effect."), name); return; }
-    QSoundEffect *effect=m_impl->effects.value(name,nullptr);
-    if (!effect) {
-        effect=new QSoundEffect(this); effect->setLoopCount(1); effect->setSource(source);
-        connect(effect,&QSoundEffect::statusChanged,this,[this,effect,source]{ if(effect->status()==QSoundEffect::Error) emit audioError(QStringLiteral("Could not decode sound effect."),source.toString()); });
-        m_impl->effects.insert(name,effect);
-    }
-    effect->setVolume(effectiveVolume()); if(effect->isPlaying()) effect->stop(); effect->play();
-#else
-    Q_UNUSED(name)
-#endif
+    playUrl(source, gain, group);
 }
 void AudioManager::preload(const QUrl &url)
 {
-#ifdef LMG_HAS_MULTIMEDIA
-    if (!localUrlAllowed(url)) { emit audioError(QStringLiteral("Audio source must be a local qrc:/ or file: URL."),url.toString()); return; }
-    const QString key=url.toString(QUrl::FullyEncoded); if(m_impl->dynamicEffects.contains(key)) return;
-    while(m_impl->dynamicOrder.size()>=kMaxDynamicEffects) { const QString old=m_impl->dynamicOrder.dequeue(); if(auto *e=m_impl->dynamicEffects.take(old)) e->deleteLater(); }
-    auto *effect=new QSoundEffect(this); effect->setLoopCount(1); effect->setVolume(effectiveVolume()); effect->setSource(url);
-    connect(effect,&QSoundEffect::statusChanged,this,[this,effect,url]{ if(effect->status()==QSoundEffect::Error) emit audioError(QStringLiteral("Could not decode local sound effect."),url.toString()); });
-    m_impl->dynamicEffects.insert(key,effect); m_impl->dynamicOrder.enqueue(key);
-#else
-    Q_UNUSED(url)
-#endif
+    if (url.scheme().isEmpty() && !url.toString().contains(QLatin1Char('/'))) {
+        const QUrl named = m_impl->builtins.value(url.toString().trimmed().toLower());
+        if (named.isEmpty()) { emit audioError(QStringLiteral("Unknown named sound effect."), url.toString()); return; }
+        preload(named); return;
+    }
+    if (!available()) { emit audioError(QStringLiteral("This build has no Qt Multimedia audio support."), url.toString()); return; }
+    if (!localUrlAllowed(url)) { emit audioError(QStringLiteral("Audio source must be a local qrc:/ or file: URL."), url.toString()); return; }
+    const QUrl source = url.adjusted(QUrl::NormalizePathSegments);
+    const QString key = source.toString(QUrl::FullyEncoded);
+    if (m_impl->effects.contains(key)) return;
+    while (m_impl->order.size() >= kMaxDynamicEffects) {
+        const QString old = m_impl->order.dequeue();
+        delete m_impl->effects.take(old).clip;
+    }
+    auto *clip = new AudioClip(source, AudioClip::Usage::Effect, this);
+    connect(clip, &AudioClip::errorOccurred, this, &AudioManager::audioError);
+    m_impl->effects.insert(key, {clip, 1.0, QStringLiteral("sfx")});
+    m_impl->order.enqueue(key);
+    clip->setVolume(effectiveVolume());
+    if (m_impl->paused) clip->pause();
+    clip->load();
 }
-void AudioManager::playUrl(const QUrl &url) { playUrl(url,1.0); }
-void AudioManager::playUrl(const QUrl &url,qreal gain)
+void AudioManager::playUrl(const QUrl &url) { playUrl(url, 1.0); }
+void AudioManager::playUrl(const QUrl &url, qreal gain) { playUrl(url, gain, QStringLiteral("sfx")); }
+void AudioManager::playUrl(const QUrl &url, qreal gain, const QString &group)
 {
-    if (url.scheme().isEmpty() && !url.toString().contains(QLatin1Char('/'))) { play(url.toString()); return; }
-#ifdef LMG_HAS_MULTIMEDIA
-    if (!localUrlAllowed(url) || effectiveVolume(gain)<=0.0) { if(!localUrlAllowed(url)) emit audioError(QStringLiteral("Audio source must be local."),url.toString()); return; }
-    preload(url); const QString key=url.toString(QUrl::FullyEncoded); auto *effect=m_impl->dynamicEffects.value(key,nullptr); if(!effect) return;
-    effect->setVolume(effectiveVolume(gain)); if(effect->isPlaying()) effect->stop(); effect->play();
-#else
-    Q_UNUSED(gain)
-#endif
+    if (url.scheme().isEmpty() && !url.toString().contains(QLatin1Char('/'))) { play(url.toString(), gain, group); return; }
+    if (m_impl->paused || effectiveVolume(gain, group) <= 0.0) return;
+    preload(url);
+    const QString key = url.adjusted(QUrl::NormalizePathSegments).toString(QUrl::FullyEncoded);
+    auto it = m_impl->effects.find(key);
+    if (it == m_impl->effects.end()) return;
+    it->gain = gain; it->group = group;
+    m_impl->order.removeAll(key); m_impl->order.enqueue(key);
+    it->clip->setVolume(effectiveVolume(gain, group));
+    it->clip->play();
 }
 void AudioManager::releasePrefix(const QString &urlPrefix)
 {
-#ifdef LMG_HAS_MULTIMEDIA
-    const auto keys=m_impl->dynamicEffects.keys();
-    for(const QString &key:keys) if(key.startsWith(urlPrefix)) { if(auto *e=m_impl->dynamicEffects.take(key)) e->deleteLater(); m_impl->dynamicOrder.removeAll(key); }
-#else
-    Q_UNUSED(urlPrefix)
-#endif
+    const auto keys = m_impl->effects.keys();
+    for (const QString &key : keys) if (key.startsWith(urlPrefix)) {
+        delete m_impl->effects.take(key).clip;
+        m_impl->order.removeAll(key);
+    }
 }
 void AudioManager::stopAll()
 {
-#ifdef LMG_HAS_MULTIMEDIA
-    for(auto *e:std::as_const(m_impl->effects)) e->stop(); for(auto *e:std::as_const(m_impl->dynamicEffects)) e->stop();
-#endif
+    for (const auto &effect : std::as_const(m_impl->effects)) effect.clip->stop();
+}
+void AudioManager::pauseAll()
+{
+    m_impl->paused = true;
+    for (const auto &effect : std::as_const(m_impl->effects)) effect.clip->pause();
+}
+void AudioManager::resumeAll()
+{
+    m_impl->paused = false;
+    for (const auto &effect : std::as_const(m_impl->effects)) effect.clip->resume();
 }
 void AudioManager::updateVolume()
 {
-#ifdef LMG_HAS_MULTIMEDIA
-    const qreal volume=effectiveVolume(); for(auto *e:std::as_const(m_impl->effects)) e->setVolume(volume); for(auto *e:std::as_const(m_impl->dynamicEffects)) e->setVolume(volume);
-#endif
+    for (const auto &effect : std::as_const(m_impl->effects))
+        effect.clip->setVolume(effectiveVolume(effect.gain, effect.group));
 }
+void AudioManager::refreshVolumes() { updateVolume(); }

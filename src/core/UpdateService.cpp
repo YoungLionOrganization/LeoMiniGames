@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "UpdateService.h"
 #include "NetworkSafety.h"
+#include "SemVer.h"
 #include "SettingsManager.h"
 
 #include <QCoreApplication>
@@ -26,73 +27,7 @@ constexpr qint64 kMaxUpdateMetadataBytes = 2 * 1024 * 1024;
 constexpr qint64 kAutomaticCheckIntervalSeconds = 12 * 60 * 60;
 const QUrl kUpdateGatewayUrl(QStringLiteral("https://leominigames.younglion.xyz/api/v1/updates/v1/check"));
 
-struct SemVer {
-    int major = 0;
-    int minor = 0;
-    int patch = 0;
-    QStringList prerelease;
-    bool valid = false;
-};
-
-SemVer parseSemVer(QString value)
-{
-    static const QRegularExpression re(QStringLiteral(
-        R"(^[vV]?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$)"));
-    value = value.trimmed();
-    const QRegularExpressionMatch match = re.match(value);
-    if (!match.hasMatch())
-        return SemVer{};
-
-    SemVer out;
-    out.major = match.captured(1).toInt();
-    out.minor = match.captured(2).toInt();
-    out.patch = match.captured(3).toInt();
-    if (!match.captured(4).isEmpty())
-        out.prerelease = match.captured(4).split(QLatin1Char('.'));
-    out.valid = true;
-    return out;
-}
-
-int compareIdentifier(const QString &left, const QString &right)
-{
-    bool leftNumeric = false;
-    bool rightNumeric = false;
-    const qulonglong leftValue = left.toULongLong(&leftNumeric);
-    const qulonglong rightValue = right.toULongLong(&rightNumeric);
-    if (leftNumeric && rightNumeric)
-        return leftValue == rightValue ? 0 : (leftValue < rightValue ? -1 : 1);
-    if (leftNumeric != rightNumeric)
-        return leftNumeric ? -1 : 1;
-    const int result = QString::compare(left, right, Qt::CaseSensitive);
-    return result < 0 ? -1 : (result > 0 ? 1 : 0);
-}
-
-int compareSemVer(const SemVer &left, const SemVer &right)
-{
-    if (left.major != right.major)
-        return left.major < right.major ? -1 : 1;
-    if (left.minor != right.minor)
-        return left.minor < right.minor ? -1 : 1;
-    if (left.patch != right.patch)
-        return left.patch < right.patch ? -1 : 1;
-
-    if (left.prerelease.isEmpty() && right.prerelease.isEmpty())
-        return 0;
-    if (left.prerelease.isEmpty())
-        return 1;
-    if (right.prerelease.isEmpty())
-        return -1;
-
-    const qsizetype common = qMin(left.prerelease.size(), right.prerelease.size());
-    for (qsizetype i = 0; i < common; ++i) {
-        const int result = compareIdentifier(left.prerelease.at(i), right.prerelease.at(i));
-        if (result != 0)
-            return result;
-    }
-    if (left.prerelease.size() == right.prerelease.size())
-        return 0;
-    return left.prerelease.size() < right.prerelease.size() ? -1 : 1;
-}
+using namespace LmgSemVer;
 
 QString normalizedArchitecture()
 {
@@ -129,8 +64,8 @@ QString platformName()
 }
 }
 
-UpdateService::UpdateService(SettingsManager *settings, QObject *parent)
-    : QObject(parent), m_settings(settings), m_network(new QNetworkAccessManager(this))
+UpdateService::UpdateService(SettingsManager *settings, QObject *parent, QNetworkAccessManager *network)
+    : QObject(parent), m_settings(settings), m_network(network ? network : new QNetworkAccessManager(this))
 {
     const QString savedChannel = m_settings
         ? m_settings->value(QStringLiteral("updates/channel"), QStringLiteral("stable")).toString().trimmed().toLower()
@@ -183,9 +118,11 @@ void UpdateService::setChannel(const QString &channel)
 void UpdateService::clearResult()
 {
     if (m_reply) {
-        m_reply->abort();
-        m_reply->deleteLater();
+        QNetworkReply *old = m_reply;
         m_reply = nullptr;
+        old->disconnect(this);
+        old->abort();
+        old->deleteLater();
     }
     m_latestVersion.clear();
     m_releaseName.clear();
@@ -208,7 +145,6 @@ void UpdateService::checkForUpdatesAutomatically()
     const qint64 last = m_settings->value(QStringLiteral("updates/lastCheckEpoch"), 0).toLongLong();
     if (last > 0 && now >= last && now - last < kAutomaticCheckIntervalSeconds)
         return;
-    m_settings->setValue(QStringLiteral("updates/lastCheckEpoch"), now);
     checkForUpdates();
 }
 
@@ -221,6 +157,7 @@ void UpdateService::checkForUpdates()
         return;
     }
 
+    clearResult();
     m_errorString.clear();
     m_status = QStringLiteral("checking");
     m_checking = true;
@@ -240,7 +177,7 @@ void UpdateService::checkForUpdates()
     request.setHeader(QNetworkRequest::UserAgentHeader,
                       QStringLiteral("LeoMiniGames/%1 update-check").arg(currentVersion()));
     request.setRawHeader("Accept", "application/json");
-    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::SameOriginRedirectPolicy);
     m_reply = m_network->get(request);
     NetworkSafety::boundJsonReply(m_reply, kMaxUpdateMetadataBytes);
 
@@ -253,8 +190,10 @@ void UpdateService::checkForUpdates()
         if (m_reply && received > kMaxUpdateMetadataBytes)
             m_reply->abort();
     });
-    connect(m_reply, &QNetworkReply::finished, this, [this] {
-        QNetworkReply *reply = m_reply;
+    QNetworkReply *requestReply = m_reply;
+    connect(m_reply, &QNetworkReply::finished, this, [this, requestReply] {
+        if (m_reply != requestReply) { requestReply->deleteLater(); return; }
+        QNetworkReply *reply = requestReply;
         m_reply = nullptr;
         if (!reply)
             return;
@@ -327,6 +266,10 @@ void UpdateService::parseGatewayResponse(const QByteArray &payload)
         return;
     }
 
+    if (m_channel == QStringLiteral("stable") && !remoteVersion.prerelease.isEmpty()) {
+        finishWithError(tr("Stable update metadata contains a prerelease.")); return;
+    }
+    if (m_settings) m_settings->setValue(QStringLiteral("updates/lastCheckEpoch"), QDateTime::currentDateTimeUtc().toSecsSinceEpoch());
     m_latestVersion = remoteVersionText;
     m_releaseName = release.value(QStringLiteral("name")).toString().trimmed();
     if (m_releaseName.isEmpty())
@@ -398,7 +341,7 @@ bool UpdateService::isAllowedUpdateUrl(const QUrl &url)
 {
     if (!url.isValid() || url.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0)
         return false;
-    if (!url.userInfo().isEmpty() || url.host().compare(QStringLiteral("leominigames.younglion.xyz"), Qt::CaseInsensitive) != 0)
+    if (url.port(443) != 443 || !url.userInfo().isEmpty() || url.host().compare(QStringLiteral("leominigames.younglion.xyz"), Qt::CaseInsensitive) != 0)
         return false;
     const QString path = url.path();
     return path.startsWith(QStringLiteral("/api/v1/updates/"))

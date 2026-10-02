@@ -2,7 +2,7 @@
 <Package>
     <DisplayName>LeoMiniGames Application</DisplayName>
     <Description>LeoMiniGames game platform, runtime, bundled games and Maintenance Tool integration.</Description>
-    <Version>0.7.2</Version>
+    <Version>0.7.3</Version>
     <ReleaseDate>2026-09-20</ReleaseDate>
     <Name>xyz.younglion.leominigames</Name>
     <Default>true</Default>

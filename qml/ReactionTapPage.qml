@@ -2,8 +2,14 @@
 import QtQuick
 import QtQuick.Controls
 
-Item {
+Flickable {
     id: root
+    contentWidth: width
+    contentHeight: Math.max(height, content.implicitHeight + Math.max(Constants.spaceMd, Viewport.safeTop) + Math.max(Constants.spaceMd, Viewport.safeBottom))
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
+    interactive: contentHeight > height
+    ScrollBar.vertical: ScrollBar {}
     property var game: App.currentGame
 
     function titleText() {
@@ -25,14 +31,16 @@ Item {
     Connections {
         target: game
         function onStateChanged() {
-            if (game.state === "ready") Audio.play("ready")
-            else if (game.state === "false_start") Audio.play("error")
-            else if (game.state === "result") Audio.play("win")
+            if (game.state === "ready") GameAudio.playEffect("qrc:/sfx/ready.wav")
+            else if (game.state === "false_start") GameAudio.playEffect("qrc:/sfx/error.wav")
+            else if (game.state === "result") GameAudio.playEffect("qrc:/sfx/win.wav")
         }
     }
 
     Column {
-        anchors.centerIn: parent
+        id: content
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: Math.max(Math.max(Constants.spaceMd, Viewport.safeTop), (root.height - height) / Constants.u2)
         width: Math.min(parent.width - Constants.n("alias.game.common.horizontalInset"), Constants.n("alias.game.reaction.maxWidth"))
         spacing: Constants.n("alias.game.reaction.contentSpacing")
 
@@ -96,7 +104,7 @@ Item {
                 id: tap
                 onTapped: {
                     if (game.state === "idle" || game.state === "result" || game.state === "false_start") {
-                        Audio.play("click")
+                        GameAudio.playEffect("qrc:/sfx/click.wav")
                         game.startRound()
                     } else {
                         game.tap()

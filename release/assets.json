@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "version": "0.7.2",
+  "version": "0.7.3",
   "assets": [
     {
       "id": "source",
@@ -103,5 +103,34 @@
     "*.7z",
     "*.sha1",
     "repository-info.json"
+  ],
+  "expected_names": [
+    "LeoMiniGames-v{version}-Source.zip",
+    "LeoMiniGames-v{version}-Windows-x86_64.zip",
+    "LeoMiniGames-v{version}-Windows-x86_64-Setup.exe",
+    "LeoMiniGames-v{version}-Windows-x86_64-AVX2.zip",
+    "LeoMiniGames-v{version}-Windows-x86_64-AVX2-Setup.exe",
+    "LeoMiniGames-v{version}-Windows-ARM64.zip",
+    "LeoMiniGames-v{version}-Windows-ARM64-Setup.exe",
+    "LeoMiniGames-v{version}-Linux-Ubuntu-22.04-x86_64.tar.gz",
+    "LeoMiniGames-v{version}-Linux-Ubuntu-22.04-x86_64.AppImage",
+    "LeoMiniGames-v{version}-Linux-Ubuntu-24.04-x86_64.tar.gz",
+    "LeoMiniGames-v{version}-Linux-Ubuntu-24.04-x86_64.AppImage",
+    "LeoMiniGames-v{version}-Linux-Ubuntu-24.04-arm64.tar.gz",
+    "LeoMiniGames-v{version}-Linux-Ubuntu-24.04-arm64.AppImage",
+    "LeoMiniGames-v{version}-Debian-13-x86_64-native.tar.gz",
+    "LeoMiniGames-v{version}-Debian-13-arm64-native.tar.gz",
+    "LeoMiniGames-v{version}-Arch-x86_64-native.tar.gz",
+    "LeoMiniGames-v{version}-macOS-arm64.zip",
+    "LeoMiniGames-v{version}-macOS-arm64.dmg",
+    "LeoMiniGames-v{version}-macOS-x86_64.zip",
+    "LeoMiniGames-v{version}-macOS-x86_64.dmg",
+    "LeoMiniGames-v{version}-macOS-universal.zip",
+    "LeoMiniGames-v{version}-macOS-universal.dmg",
+    "LeoMiniGames-v{version}-Android-arm64-v8a.apk",
+    "LeoMiniGames-v{version}-Android-armeabi-v7a.apk",
+    "LeoMiniGames-v{version}-Android-x86_64.apk",
+    "LeoMiniGames-v{version}-Android-x86.apk",
+    "LeoMiniGames-v{version}-Android-universal.apk"
   ]
 }

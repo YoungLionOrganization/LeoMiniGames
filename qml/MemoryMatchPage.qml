@@ -2,12 +2,18 @@
 import QtQuick
 import QtQuick.Controls
 
-Item {
+Flickable {
     id: root
+    contentWidth: width
+    contentHeight: Math.max(height, content.implicitHeight + Math.max(Constants.spaceMd, Viewport.safeTop) + Math.max(Constants.spaceMd, Viewport.safeBottom))
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
+    interactive: contentHeight > height
+    ScrollBar.vertical: ScrollBar {}
     property var game: App.currentGame
 
     function playSfx(name) {
-        Audio.play(name)
+        GameAudio.playEffect("qrc:/sfx/" + name + ".wav")
     }
 
     Connections {
@@ -22,7 +28,9 @@ Item {
     }
 
     Column {
-        anchors.centerIn: parent
+        id: content
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: Math.max(Math.max(Constants.spaceMd, Viewport.safeTop), (root.height - height) / Constants.u2)
         width: Math.min(parent.width - Constants.n("alias.game.common.horizontalInset"), Constants.n("alias.game.memory.maxWidth"))
         spacing: Constants.n("alias.game.memory.contentSpacing")
 
@@ -107,7 +115,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: qsTr("New game")
             onClicked: {
-                Audio.play("shuffle")
+                GameAudio.playEffect("qrc:/sfx/shuffle.wav")
                 game.reset()
             }
         }

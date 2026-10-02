@@ -1,22 +1,11 @@
-# Plugin Developer Guide
+# Developer guide — 0.7.3
 
-1. Start from `mod-sdk/ExampleHelloMod` for a legacy/minimal RCC package or `ExampleModernMod` for v0.6 APIs.
-2. Keep `package_format: rcc-v1` and a safe relative `entry` such as `Main.qml`.
-3. Do not import LeoMiniGames' private QML module. Use QtQuick/QtQuick.Controls and context services.
-4. Use `GameSettings` only for preferences. Use `GameSave` for state/progress and `GameStats` for counters/high scores.
-5. Use `Viewport` rather than assuming valid width/height during `Component.onCompleted`.
-6. Treat lifecycle callbacks as optional: old mods still run, modern mods can autosave or release resources on lifecycle events.
-7. Put translations under `i18n/<locale>.json` and use `GameI18n.text()`.
-8. Ship a license file and manifest license metadata. For closed-source YoungLion licensing, `YoungLion-Mod-License` is reserved but the actual license text is not part of this release.
+Start with [SDK Quickstart](sdk/QUICKSTART.md) and the [API index](sdk/OVERVIEW.md). ExampleHelloMod preserves the legacy API; ExampleModernMod 1.1.0 targets API 0.7 and application 0.7.3. Theme SDK and native ABI examples are separate projects.
 
-### Save migration example
+Build game/theme RCCs with `python3 tools/sdk/build_package.py <project> --rcc <Qt6-rcc> --output <output.rcc>`. The scripts work independently of the current directory, validate packaged resources and emit checksums. Build the launcher with BUILD_TESTING=ON to execute real SDK RCC/engine tests.
 
-```qml
-GameSave.registerMigration(1, 2, function(oldSave) {
-    oldSave.newField = oldSave.oldField || 0
-    delete oldSave.oldField
-    return oldSave
-})
-```
+A development loop is edit → source check → RCC build → Developer Lab verification/import → diagnostics → save/reopen and target-device testing. Developer Lab local RCCs are session-only and network-disabled; normal market installation/publishing is separate. [Troubleshooting](sdk/TROUBLESHOOTING.md) lists acceptance checks and known limits.
 
-Register migrations before loading an old slot.
+Use GameSave for state, GameSettings for preferences, GameAudio for platform playback, GameInput actions for keyboard/touch parity, and GameResources for package URLs. Register schema migrations before load. Serialize once per lifecycle save; do not both implement save() and duplicate it in onSaveRequested. Make theme/language bindings depend on revision/language and gate input/timers while paused.
+
+Supply license/source metadata under the existing [developer licensing policy](DEVELOPER_LICENSING.md), [publisher terms](YOUNGLION_DEVELOPER_PUBLISHER_TERMS_1.0.md) and, for native/L3, [native addendum](NATIVE_L3_PUBLISHER_ADDENDUM_1.0.md). `LicenseRef-YoungLion-Publisher-Package-1.0` terms exist in licenses; the old claim that closed-source terms were only reserved is obsolete. Compilation and manifest trust claims never grant publisher review/native access.

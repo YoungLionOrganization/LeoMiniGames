@@ -16,19 +16,15 @@ ApplicationWindow {
     function closeCurrentGame() {
         if (App.currentGameId.length === 0)
             return
-        Lifecycle.save()
-        GameSave.forceSave()
-        Lifecycle.close()
-        Lifecycle.unload()
-        GameAudio.pauseAll()
-        Audio.releasePrefix("qrc:/mods/" + App.currentGameId + "/")
         App.closeGame()
     }
 
     function navigateBack() {
         if (stack.depth > 1) {
-            closeCurrentGame()
-            stack.pop()
+            if (App.currentGameId.length > 0)
+                closeCurrentGame()
+            else
+                stack.pop()
             return
         }
         Qt.quit()
@@ -131,6 +127,10 @@ ApplicationWindow {
     // Kept in the module for source compatibility; RCC v1 games open through GameHost.
     Component { id: legacyModHostComponent; ModHost { onBackRequested: window.navigateBack() } }
 
-    Connections { target: App; function onGameOpened() { stack.push(gameHostComponent) } }
+    Connections {
+        target: App
+        function onGameOpened() { stack.push(gameHostComponent) }
+        function onGameRetiring() { if (stack.depth > 1) stack.pop(StackView.Immediate) }
+    }
     Connections { target: Back; function onBackPressed() { window.navigateBack() } }
 }

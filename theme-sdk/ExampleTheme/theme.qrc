@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="/theme">
     <file alias="theme.json">theme/theme.json</file>
+    <file alias="assets/grid.svg">theme/assets/grid.svg</file>
   </qresource>
 </RCC>

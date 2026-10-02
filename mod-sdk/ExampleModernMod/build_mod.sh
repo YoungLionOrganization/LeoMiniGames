@@ -1,5 +1,4 @@
 #!/usr/bin/env sh
 set -eu
-RCC="${1:-rcc}"
-"$RCC" -binary mod.qrc -o example_modern-1.0.0.rcc
-echo "Built: example_modern-1.0.0.rcc"
+SDK_PROJECT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+exec python3 "$SDK_PROJECT_DIR/../../tools/sdk/build_package.py" "$SDK_PROJECT_DIR" --rcc "${1:-rcc}"

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://younglion.xyz/schemas/leominigames/theme-manifest-v1.json",
+  "title": "LeoMiniGames theme API 1",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "tokens"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_.-]{1,127}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "version": {
+      "type": "string",
+      "maxLength": 64,
+      "default": "1.0.0"
+    },
+    "theme_api_version": {
+      "type": "integer",
+      "const": 1,
+      "default": 1
+    },
+    "publisher": {
+      "type": "string"
+    },
+    "tokens": {
+      "type": "object",
+      "maxProperties": 10000
+    },
+    "aliases": {
+      "type": "object",
+      "maxProperties": 20000
+    },
+    "surfaces": {
+      "type": "object",
+      "maxProperties": 256,
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$comment": "Authoring aid; host enforces SemVer, effective alias graph, resource namespace/size/types. Missing version/theme_api_version retains legacy defaults."
+}

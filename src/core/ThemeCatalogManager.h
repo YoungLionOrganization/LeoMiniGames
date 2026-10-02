@@ -11,6 +11,7 @@
 #include <QUrl>
 #include <memory>
 
+class QNetworkAccessManager;
 class AppPaths;
 class SettingsManager;
 class ThemeManager;
@@ -53,7 +54,7 @@ public:
     };
     Q_ENUM(Roles)
 
-    explicit ThemeCatalogManager(AppPaths *paths, SettingsManager *settings, ThemeManager *themes, QObject *parent = nullptr);
+    explicit ThemeCatalogManager(AppPaths *paths, SettingsManager *settings, ThemeManager *themes, QObject *parent = nullptr, QNetworkAccessManager *network = nullptr);
     ~ThemeCatalogManager() override;
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;

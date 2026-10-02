@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #pragma once
 
-#include <QObject>
+#include "core/BuiltinGame.h"
 #include <QVariantList>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <vector>
 
-class MemoryMatchGame final : public QObject
+class MemoryMatchGame final : public BuiltinGame
 {
     Q_OBJECT
     Q_PROPERTY(QVariantList cards READ cards NOTIFY cardsChanged)
@@ -34,8 +35,13 @@ public:
     bool gameOver() const;
     QString status() const;
 
+    Q_INVOKABLE void pause();
+    Q_INVOKABLE void resume();
     Q_INVOKABLE void reset();
     Q_INVOKABLE bool flip(int index);
+
+    QVariantMap snapshot() const override;
+    bool restoreSnapshot(const QVariantMap &state) override;
 
 signals:
     void cardsChanged();
@@ -60,6 +66,12 @@ private:
     int m_matches = 0;
     int m_bestMoves = 0;
     QTimer m_timer;
+    QElapsedTimer m_playClock;
+    qint64 m_activeBeforePause = 0;
+    bool m_paused = false;
+    bool m_resumeTimer = false;
+    QTimer m_pairTimer;
+    int m_pairRemaining = -1;
     int m_elapsedSeconds = 0;
     int m_bestSeconds = 0;
     int m_wins = 0;

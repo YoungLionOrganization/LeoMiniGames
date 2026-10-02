@@ -7,10 +7,12 @@
 #include <QList>
 #include <QString>
 #include <QStringList>
+#include <QJsonObject>
 #include <QUrl>
 #include <QVariant>
 #include <memory>
 
+class QNetworkAccessManager;
 class AppPaths;
 class SettingsManager;
 
@@ -35,7 +37,7 @@ public:
     };
     Q_ENUM(Roles)
 
-    explicit ModManager(AppPaths *paths, SettingsManager *settings, QObject *parent = nullptr);
+    explicit ModManager(AppPaths *paths, SettingsManager *settings, QObject *parent = nullptr, QNetworkAccessManager *network = nullptr);
     ~ModManager() override;
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -45,6 +47,7 @@ public:
     bool loading() const; QString error() const; QString apiBaseUrl() const; int count() const;
     bool tlsAvailable() const; QString tlsBackend() const;
 
+    void setActiveGameId(const QString &id) { m_activeGameId = id; }
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void install(const QString &id);
     Q_INVOKABLE void uninstall(const QString &id);
@@ -88,6 +91,7 @@ private:
         QStringList locales;
         QVariantMap settingsSchema;
 
+        QJsonObject installedManifest;
         bool installed = false;
         QString installedVersion, installedFile, installedEntry, installedMountRoot;
         QString state = QStringLiteral("idle");
@@ -97,12 +101,13 @@ private:
 
     struct Impl;
     int indexOf(const QString &id) const;
-    void setError(const QString &message); void setLoading(bool loading); void loadInstalled(); void saveInstalled() const;
+    void setError(const QString &message); void setLoading(bool loading); void loadInstalled(); bool saveInstalled() const;
     void registerInstalled(Entry &entry); void applyManifestMetadata(Entry &entry);
     void updateRow(int row, const QList<int> &roles = QList<int>{}); void failEntry(int row, const QString &message);
     void requestDownloadTicket(int row); void startPackageDownload(int row, const QUrl &url, const QString &expectedSha, qint64 expectedSize);
     static bool validId(const QString &id); static bool safeEntryPath(const QString &path); static bool versionAtLeast(const QString &current, const QString &minimum);
 
     AppPaths *m_paths = nullptr; SettingsManager *m_settings = nullptr; std::unique_ptr<Impl> m_impl;
+    QString m_activeGameId;
     QList<Entry> m_entries; bool m_loading = false; QString m_error;
 };

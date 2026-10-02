@@ -21,6 +21,11 @@ public:
     Q_INVOKABLE void play(const QString &name);
     Q_INVOKABLE void playUrl(const QUrl &url);
     Q_INVOKABLE void playUrl(const QUrl &url, qreal gain);
+    void play(const QString &name, qreal gain, const QString &group);
+    void playUrl(const QUrl &url, qreal gain, const QString &group);
+    void refreshVolumes();
+    void pauseAll();
+    void resumeAll();
     Q_INVOKABLE void preload(const QUrl &url);
     Q_INVOKABLE void releasePrefix(const QString &urlPrefix);
     Q_INVOKABLE void stopAll();
@@ -31,6 +36,6 @@ private:
     std::unique_ptr<Impl> m_impl;
     SettingsManager *m_settings = nullptr;
     void updateVolume();
-    qreal effectiveVolume(qreal gain = 1.0) const;
+    qreal effectiveVolume(qreal gain = 1.0, const QString &group = QStringLiteral("sfx")) const;
     bool localUrlAllowed(const QUrl &url) const;
 };

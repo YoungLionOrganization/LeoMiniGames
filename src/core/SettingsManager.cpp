@@ -2,6 +2,7 @@
 #include "SettingsManager.h"
 
 #include <QtGlobal>
+#include <cmath>
 
 SettingsManager::SettingsManager(QObject *parent) : QObject(parent)
 {
@@ -14,7 +15,8 @@ bool SettingsManager::soundEnabled() const
 
 qreal SettingsManager::soundVolume() const
 {
-    return qBound<qreal>(0.0, m_settings.value(QStringLiteral("audio/volume"), 0.72).toReal(), 1.0);
+    const qreal volume = m_settings.value(QStringLiteral("audio/volume"), 0.72).toReal();
+    return std::isfinite(volume) ? qBound<qreal>(0.0, volume, 1.0) : 0.0;
 }
 
 bool SettingsManager::animationsEnabled() const
@@ -57,7 +59,7 @@ void SettingsManager::setSoundEnabled(bool enabled)
 
 void SettingsManager::setSoundVolume(qreal volume)
 {
-    volume = qBound<qreal>(0.0, volume, 1.0);
+    volume = std::isfinite(volume) ? qBound<qreal>(0.0, volume, 1.0) : 0.0;
     if (qFuzzyCompare(volume, soundVolume()))
         return;
     m_settings.setValue(QStringLiteral("audio/volume"), volume);

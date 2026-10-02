@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #pragma once
 
-#include <QObject>
+#include "core/BuiltinGame.h"
 #include <QTimer>
+#include <QElapsedTimer>
 #include <QVariantList>
 #include <array>
 #include <vector>
 
-class MinesweeperGame final : public QObject
+class MinesweeperGame final : public BuiltinGame
 {
     Q_OBJECT
     Q_PROPERTY(int rows READ rows NOTIFY boardReset)
@@ -39,10 +40,15 @@ public:
     int bestSeconds() const;
     int wins() const;
 
+    Q_INVOKABLE void pause();
+    Q_INVOKABLE void resume();
     Q_INVOKABLE void reset();
     Q_INVOKABLE bool openCell(int index);
     Q_INVOKABLE bool toggleFlag(int index);
     Q_INVOKABLE void setDifficulty(int level);
+
+    QVariantMap snapshot() const override;
+    bool restoreSnapshot(const QVariantMap &state) override;
 
 signals:
     void cellsChanged();
@@ -80,6 +86,10 @@ private:
     std::vector<Cell> m_cells;
 
     QTimer m_timer;
+    QElapsedTimer m_playClock;
+    qint64 m_activeBeforePause = 0;
+    bool m_paused = false;
+    bool m_resumeTimer = false;
     int m_elapsedSeconds = 0;
     std::array<int, 3> m_bestSeconds{0, 0, 0};
     std::array<int, 3> m_wins{0, 0, 0};

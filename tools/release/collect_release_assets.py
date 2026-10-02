@@ -85,6 +85,9 @@ def collect_update_repositories(artifact_root: Path, output: Path) -> list[str]:
     missing = expected.difference(copied)
     if missing:
         raise SystemExit(f"missing QtIFW update repositories: {sorted(missing)}")
+    from validate_update_repositories import validate
+    root = Path(__file__).resolve().parents[2]
+    validate(output, json.loads((root / "release/release.json").read_text())["version"])
     return sorted(copied)
 
 

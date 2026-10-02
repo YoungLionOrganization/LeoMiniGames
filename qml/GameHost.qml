@@ -8,13 +8,16 @@ Item {
     readonly property bool externalGame: App.currentGameSource === "ExternalRcc" || App.currentGameSource === "DeveloperRcc"
 
     function syncViewport() {
+        const insets = Viewport.windowInsets(root.externalGame ? externalContainer : gameLoader)
         const simulated = App.currentGameSource === "DeveloperRcc" && Developer.profileWidth > 0
         Viewport.update(simulated ? Developer.profileWidth : Math.max(Constants.viewportMinWidth, root.externalGame ? externalContainer.width : gameLoader.width),
                         simulated ? Developer.profileHeight : Math.max(Constants.viewportMinHeight, root.externalGame ? externalContainer.height : gameLoader.height),
-                        simulated ? Developer.profileSafeTop : Constants.spaceNone,
-                        simulated ? Developer.profileSafeBottom : Constants.spaceNone,
+                        simulated ? Developer.profileSafeTop : insets.top,
+                        simulated ? Developer.profileSafeBottom : insets.bottom,
                         Screen.devicePixelRatio)
     }
+
+    Connections { target: Viewport; function onNativeInsetsChanged() { root.syncViewport() } }
 
     AppBackground { anchors.fill: parent }
 
@@ -66,9 +69,28 @@ Item {
             }
         }
 
+        ThemeSurface {
+            id: saveWarning
+            width: parent.width
+            height: visible ? saveWarningText.implicitHeight + Constants.spaceMd * 2 : 0
+            visible: App.currentGameSource === "BuiltIn" && GameSave.lastError.length > 0
+            surfaceToken: "surface.panel"
+            color: Constants.background
+            borderColor: Constants.danger
+            Text {
+                id: saveWarningText
+                anchors.fill: parent
+                anchors.margins: Constants.spaceMd
+                text: Lang.text(GameSave.lastError, Lang.language)
+                color: Constants.danger
+                wrapMode: Text.WordWrap
+                font.pixelSize: Constants.n("alias.gameHost.errorBodyFont")
+            }
+        }
+
         Item {
             width: parent.width
-            height: Math.max(Constants.viewportMinHeight, parent.height - Constants.n("alias.gameHost.header.height"))
+            height: Math.max(Constants.viewportMinHeight, parent.height - Constants.n("alias.gameHost.header.height") - saveWarning.height)
 
             Item {
                 id: externalContainer
@@ -110,24 +132,18 @@ Item {
                 onStatusChanged: {
                     root.syncViewport()
                     if (status === Loader.Ready) {
-                        Lifecycle.attach(item, App.currentGameId)
+                        Lifecycle.attach(App.currentGameSource === "BuiltIn" ? App.currentGame : item, App.currentGameId)
                         Lifecycle.load()
                         Lifecycle.start()
-                        forceActiveFocus()
+                        GameInput.setFocusRoot(item)
+                        item.forceActiveFocus()
                     } else if (status === Loader.Error) {
                         GameLogger.log("error", "QML game entry failed to load", source.toString(), 0)
                         Audio.play("error")
                     }
                 }
 
-                Keys.onPressed: function(event) {
-                    if (GameInput.handleKey(event.key, event.nativeScanCode, event.text, true, event.isAutoRepeat))
-                        event.accepted = false
-                }
-                Keys.onReleased: function(event) {
-                    if (GameInput.handleKey(event.key, event.nativeScanCode, event.text, false, event.isAutoRepeat))
-                        event.accepted = false
-                }
+
             }
 
             Connections {
@@ -141,7 +157,8 @@ Item {
                     Lifecycle.attach(item, App.currentGameId)
                     Lifecycle.load()
                     Lifecycle.start()
-                    gameLoader.forceActiveFocus()
+                    GameInput.setFocusRoot(item)
+                    item.forceActiveFocus()
                 }
                 function onFailed(message) {
                     GameLogger.log("error", message, App.currentGameUrl.toString(), 0)

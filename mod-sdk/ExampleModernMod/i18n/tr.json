@@ -1,1 +1,14 @@
-{"title":"Modern API Örneği","tap":"Dokun","saved":"İlerleme kaydedildi","loaded":"İlerleme yüklendi"}
+{
+  "title": "Modern API Örneği",
+  "tap": "Dokun",
+  "saved": "İlerleme kaydedildi",
+  "loaded": "İlerleme yüklendi",
+  "save": "Kaydet",
+  "load": "Yükle",
+  "difficulty": "Zorluk",
+  "new": "Yeni oturum",
+  "paused": "Duraklatıldı",
+  "invalid": "Kayıt geçersiz; eski veri korundu",
+  "save_failed": "Kayıt başarısız",
+  "load_failed": "Yükleme başarısız"
+}

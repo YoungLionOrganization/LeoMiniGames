@@ -2,6 +2,7 @@
 #pragma once
 #include <QObject>
 #include <QHash>
+#include <QSet>
 #include <QJSValue>
 #include <QVariantMap>
 
@@ -45,6 +46,8 @@ public:
 
     void activate(const QString &gameId, const QString &gameVersion, int schemaVersion);
     void setEngine(QJSEngine *engine);
+    Q_INVOKABLE bool hasStoredSlot(const QString &slot) const;
+    void protectSlot(const QString &slot, const QString &reason);
 
 signals:
     void gameChanged();
@@ -76,6 +79,8 @@ private:
     int m_loadedSchemaVersion = 1;
     QVariantMap m_payload;
     bool m_dirty = false;
+    QSet<QString> m_blockedSlots;
+    QSet<QString> m_recoveredSlots;
     QString m_lastError;
     struct Migration { int to = 0; QJSValue callback; };
     QHash<int, Migration> m_migrations;

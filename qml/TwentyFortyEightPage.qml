@@ -2,8 +2,14 @@
 import QtQuick
 import QtQuick.Controls
 
-Item {
+Flickable {
     id: root
+    contentWidth: width
+    contentHeight: Math.max(height, content.implicitHeight + Math.max(Constants.spaceMd, Viewport.safeTop) + Math.max(Constants.spaceMd, Viewport.safeBottom))
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
+    interactive: contentHeight > height
+    ScrollBar.vertical: ScrollBar {}
     property var game: App.currentGame
     property real startX: Constants.spaceNone
     property real startY: Constants.spaceNone
@@ -13,28 +19,33 @@ Item {
 
     function doMove(direction) {
         if (game.move(direction))
-            Audio.play("merge")
+            GameAudio.playEffect("qrc:/sfx/merge.wav")
         else
-            Audio.play("error")
+            GameAudio.playEffect("qrc:/sfx/error.wav")
     }
 
-    Keys.onPressed: function(event) {
-        if (event.key === Qt.Key_Left) { doMove("left"); event.accepted = true }
-        else if (event.key === Qt.Key_Right) { doMove("right"); event.accepted = true }
-        else if (event.key === Qt.Key_Up) { doMove("up"); event.accepted = true }
-        else if (event.key === Qt.Key_Down) { doMove("down"); event.accepted = true }
+    Connections {
+        target: GameInput
+        function onActionPressed(action, value) {
+            if (action === "move_left") root.doMove("left")
+            else if (action === "move_right") root.doMove("right")
+            else if (action === "up") root.doMove("up")
+            else if (action === "down") root.doMove("down")
+        }
     }
 
     Connections {
         target: game
         function onStateChanged() {
-            if (game.status === "won") Audio.play("win")
-            else if (game.status === "game_over") Audio.play("lose")
+            if (game.status === "won") GameAudio.playEffect("qrc:/sfx/win.wav")
+            else if (game.status === "game_over") GameAudio.playEffect("qrc:/sfx/lose.wav")
         }
     }
 
     Column {
-        anchors.centerIn: parent
+        id: content
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: Math.max(Math.max(Constants.spaceMd, Viewport.safeTop), (root.height - height) / Constants.u2)
         width: Math.min(parent.width - Constants.n("alias.game.common.horizontalInset"), Constants.n("alias.game.2048.maxWidth"))
         spacing: Constants.n("alias.game.2048.contentSpacing")
 
@@ -131,7 +142,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: qsTr("New game")
             onClicked: {
-                Audio.play("shuffle")
+                GameAudio.playEffect("qrc:/sfx/shuffle.wav")
                 game.reset()
             }
         }

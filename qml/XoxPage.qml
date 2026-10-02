@@ -2,8 +2,14 @@
 import QtQuick
 import QtQuick.Controls
 
-Item {
+Flickable {
     id: root
+    contentWidth: width
+    contentHeight: Math.max(height, content.implicitHeight + Math.max(Constants.spaceMd, Viewport.safeTop) + Math.max(Constants.spaceMd, Viewport.safeBottom))
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
+    interactive: contentHeight > height
+    ScrollBar.vertical: ScrollBar {}
     property var game: App.currentGame
 
     function statusText() {
@@ -16,13 +22,15 @@ Item {
     Connections {
         target: game
         function onStatusChanged() {
-            if (game.status === "win") Audio.play("win")
-            else if (game.status === "draw") Audio.play("success")
+            if (game.status === "win") GameAudio.playEffect("qrc:/sfx/win.wav")
+            else if (game.status === "draw") GameAudio.playEffect("qrc:/sfx/success.wav")
         }
     }
 
     Column {
-        anchors.centerIn: parent
+        id: content
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: Math.max(Math.max(Constants.spaceMd, Viewport.safeTop), (root.height - height) / Constants.u2)
         width: Math.min(parent.width - Constants.n("alias.game.common.horizontalInset"), Constants.n("alias.game.xox.maxWidth"))
         spacing: Constants.n("alias.game.xox.contentSpacing")
 
@@ -96,7 +104,7 @@ Item {
                             enabled: !game.gameOver && game.board[index] === ""
                             onTapped: {
                                 if (game.play(index) && game.status === "turn")
-                                    Audio.play("move")
+                                    GameAudio.playEffect("qrc:/sfx/move.wav")
                             }
                         }
                     }

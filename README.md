@@ -1,19 +1,20 @@
 # LeoMiniGames
 
 [![CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml/badge.svg)](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml)
-[![Qt](https://img.shields.io/badge/Qt-6.5%2B-41CD52?logo=qt&logoColor=white)](https://www.qt.io/)
+[![Qt](https://img.shields.io/badge/Qt-6.8%2B-41CD52?logo=qt&logoColor=white)](https://www.qt.io/)
 [![License](https://img.shields.io/badge/license-Source--Available%20SAPEL--1.0-orange)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.7.2-B8860B)](RELEASES.md)
+[![Version](https://img.shields.io/badge/version-0.7.3-B8860B)](RELEASES.md)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20iOS%20%7C%20macOS-informational)](#platform-and-architecture-matrix)
 
 **LeoMiniGames** is a modular, cross-platform Qt 6 / Qt Quick mini-game launcher, runtime and content ecosystem. Games, mods and themes are designed to remain as independent from the host application as practical while reusing a common service layer for theme, save, localization, audio, haptics, input, lifecycle, statistics, achievements, package management and developer tooling.
 
-**v0.7.2** improves Windows installer upgrades, save and credential handling, Android packaging and release safety. It keeps the v0.7.0 compatibility/security contract: supported v0.5/v0.6 RCC games continue to run through compatibility adapters rather than being rejected merely because they predate the current API negotiation model.
+**v0.7.3** repairs Android TLS dependencies, packages Windows runtimes and improves save recovery, session teardown and package installation. It keeps the v0.7.0 compatibility/security contract: supported v0.5/v0.6 RCC games continue to run through compatibility adapters rather than being rejected merely because they predate the current API negotiation model.
 
 > **Project rule:** reliability and backward compatibility take priority over forcing old content to migrate. New security boundaries are introduced through scoped adapters, validation and trust provenance rather than by deleting legacy public APIs.
 
 ## Contents
 
+- [v0.7.3 changes](#v073-changes)
 - [v0.7.2 highlights](#v072-highlights)
 - [v0.7.0 compatibility baseline](#v070-compatibility-baseline)
 - [Built-in games](#built-in-games)
@@ -38,6 +39,12 @@
 - [Validation and QA](#validation-and-qa)
 - [Repository layout](#repository-layout)
 - [Contributing and licensing](#contributing-and-licensing)
+
+## v0.7.3 changes
+
+The source implements atomic save/session/package fixes, all six builtin state snapshots, Android OpenSSL/plugin discovery and package checks, and a shared effect/media audio fallback for modern/legacy APIs. Themes now resolve relative assets and inherit partial surface fields. The updated [SDK](docs/sdk/OVERVIEW.md) includes API 0.7 examples, a minimal distinct theme, a native ABI compile example, a common RCC builder and a header-generated reference checked in CI.
+
+Fresh signed artifacts, upgrade/device tests and the 21-target platform acceptance remain release requirements; local/offscreen tests do not prove those results. Source implementation records are in [docs/releases](docs/releases/V073_IMPLEMENTATION.md).
 
 ## v0.7.2 highlights
 
@@ -105,12 +112,12 @@ The `updates` branch carries **Windows QtIFW Maintenance Tool payloads only**. L
 
 | Game | Type | Core interaction | Persistence |
 | --- | --- | --- | --- |
-| XOX | Board | Mouse/touch | Session/game stats |
-| Blackjack | Card | Mouse/touch | Game state/stats |
-| Minesweeper | Puzzle | Mouse/touch/flag | Game state/stats |
-| 2048 | Puzzle | Keyboard/swipe | Game state/stats |
-| Memory Match | Puzzle | Mouse/touch | Game state/stats |
-| Reaction Tap | Reflex | Mouse/touch | Scores/stats |
+| XOX | Board | Mouse/touch | Board, turn and statistics |
+| Blackjack | Card | Mouse/touch | Deck, hands and statistics |
+| Minesweeper | Puzzle | Mouse/touch/flag | Mine map, flags, active time and statistics |
+| 2048 | Puzzle | Keyboard/swipe | Board, score and moves |
+| Memory Match | Puzzle | Mouse/touch | Card layout, selected card, active time and statistics |
+| Reaction Tap | Reflex | Mouse/touch | Results and statistics; active timing rounds restart |
 
 Built-ins are compiled Qt plugins. Market/downloaded games are normally RCC/QML packages and use the external runtime rather than being promoted to native plugins.
 
@@ -200,6 +207,9 @@ See [`docs/sdk/COMPATIBILITY.md`](docs/sdk/COMPATIBILITY.md) and [`COMPATIBILITY
 
 ## Host service API
 
+Start with the [SDK overview](docs/sdk/OVERVIEW.md), [Quickstart](docs/sdk/QUICKSTART.md) and [generated API reference](docs/sdk/API_REFERENCE.md). Mod/theme RCC examples and a compile-only native ABI example are provided. SDK build/source checks are separate from production package/device QA.
+
+
 | Service | Purpose | Persistence/security note |
 | --- | --- | --- |
 | `GameTheme` | semantic theme tokens | host-owned active theme |
@@ -280,7 +290,7 @@ python3 tools/validate_i18n.py
 
 ## Save and lifecycle
 
-Game state and application settings are intentionally different concerns. Settings may use host settings storage; game save data goes through `GameSave` and atomic persistence paths.
+Built-in games use the current lifecycle and atomic GameSave service to restore unfinished boards/hands after background, close and restart. Player actions create coalesced checkpoints. Existing statistics and records are preserved. A pending Memory mismatch settles on restore, and Reaction Tap invalidates active timing rounds to keep measurements fair. Invalid/future built-in snapshots are preserved instead of overwritten. External games persist their own state through GameSave. Game state and application settings are intentionally different concerns. Settings may use host settings storage; game save data goes through `GameSave` and atomic persistence paths.
 
 Lifecycle events use forced-save paths where a normal dirty optimization could otherwise lose a just-completed action. Background/close behavior is therefore treated as a durability boundary rather than a cosmetic callback.
 
@@ -318,7 +328,7 @@ See [`SECURITY.md`](SECURITY.md) and [`BUG_HUNTER_AUDIT.md`](BUG_HUNTER_AUDIT.md
 
 - CMake 3.21+
 - C++20 compiler
-- Qt 6.5 minimum
+- Qt 6.8 minimum
 - Qt Core, Gui, Qml, Quick, QuickControls2, Network and Svg
 - Qt Multimedia optional
 - Ninja recommended where supported

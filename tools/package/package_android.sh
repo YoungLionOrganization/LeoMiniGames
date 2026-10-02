@@ -2,7 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BUILD_DIR="${1:?usage: package_android.sh <build-dir>}"
-VERSION="${LMG_VERSION:-0.7.2}"
+VERSION="${LMG_VERSION:-0.7.3}"
 ABI="${LMG_ANDROID_ABI:-arm64-v8a}"
 BUILD_APK="${LMG_BUILD_APK:-1}"
 BUILD_AAB="${LMG_BUILD_AAB:-1}"
@@ -47,7 +47,13 @@ if [[ "$BUILD_APK" == "1" ]]; then
   APK="$(find "$BUILD_DIR" -type f -name '*.apk' ! -name '*-unsigned.apk' | head -n1)"
   [[ -n "$APK" ]] || APK="$(find "$BUILD_DIR" -type f -name '*.apk' | head -n1)"
   [[ -n "$APK" ]] || { echo 'APK target completed but no APK was found' >&2; exit 2; }
-  python3 "$ROOT/tools/validate_android_package.py" "$APK" --abis "$EXPECTED_ABIS"
+  IFS=. read -r version_major version_minor version_patch <<< "$VERSION"
+  EXPECTED_CODE=$((10#$version_major * 10000 + 10#$version_minor * 100 + 10#$version_patch))
+  BADGING="$("${ANDROID_SDK_ROOT:?}/build-tools/${ANDROID_BUILD_TOOLS:-36.0.0}/aapt" dump badging "$APK")"
+  grep -F "package: name='xyz.younglion.leominigames'" <<< "$BADGING" >/dev/null
+  grep -F "versionCode='$EXPECTED_CODE' versionName='$VERSION'" <<< "$BADGING" >/dev/null
+  EXPECTED_CERT="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["certificate_sha256"])' "$ROOT/release/android-signing.json")"
+  python3 "$ROOT/tools/validate_android_package.py" "$APK" --abis "$EXPECTED_ABIS" --certificate-sha256 "$EXPECTED_CERT"
   "${ANDROID_SDK_ROOT:?}/build-tools/${ANDROID_BUILD_TOOLS:-36.0.0}/apksigner" verify "$APK"
   "${ANDROID_SDK_ROOT}/build-tools/${ANDROID_BUILD_TOOLS:-36.0.0}/zipalign" -c -P 16 4 "$APK"
   cp "$APK" "$DIST/LeoMiniGames-v${VERSION}-Android-${ABI}.apk"

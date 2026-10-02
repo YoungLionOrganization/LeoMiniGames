@@ -3,16 +3,17 @@
 
 #include <QRandomGenerator>
 #include "sdk/GameLocalStats.h"
+#include "sdk/BuiltinState.h"
 #include <QSet>
 #include <QtGlobal>
 #include <queue>
 
-MinesweeperGame::MinesweeperGame(QObject *parent) : QObject(parent)
+MinesweeperGame::MinesweeperGame(QObject *parent) : BuiltinGame(parent)
 {
     loadStats();
     m_timer.setInterval(1000);
     connect(&m_timer, &QTimer::timeout, this, [this] {
-        ++m_elapsedSeconds;
+        m_elapsedSeconds = static_cast<int>((m_activeBeforePause + m_playClock.elapsed()) / 1000);
         emit timeChanged();
     });
     reset();
@@ -76,8 +77,9 @@ std::vector<int> MinesweeperGame::neighbors(int index) const
 
 void MinesweeperGame::reset()
 {
+    if (m_paused) return;
     m_timer.stop();
-    m_elapsedSeconds = 0;
+    m_elapsedSeconds = 0; m_activeBeforePause = 0;
     m_cells.assign(static_cast<std::size_t>(m_rows * m_columns), Cell{});
     m_started = false;
     m_gameOver = false;
@@ -92,6 +94,7 @@ void MinesweeperGame::reset()
 
 void MinesweeperGame::setDifficulty(int level)
 {
+    if (m_paused) return;
     level = qBound(0, level, 2);
     if (m_difficulty == level && !m_cells.empty())
         return;
@@ -159,7 +162,7 @@ void MinesweeperGame::revealFlood(int start)
 
 bool MinesweeperGame::openCell(int index)
 {
-    if (m_gameOver || !validIndex(index))
+    if (m_paused || m_gameOver || !validIndex(index))
         return false;
 
     Cell &cell = m_cells[static_cast<std::size_t>(index)];
@@ -170,6 +173,7 @@ bool MinesweeperGame::openCell(int index)
         placeMines(index);
         m_started = true;
         m_status = QStringLiteral("playing");
+        m_playClock.restart();
         m_timer.start();
     }
 
@@ -192,7 +196,7 @@ bool MinesweeperGame::openCell(int index)
 
 bool MinesweeperGame::toggleFlag(int index)
 {
-    if (m_gameOver || !validIndex(index))
+    if (m_paused || m_gameOver || !validIndex(index))
         return false;
 
     Cell &cell = m_cells[static_cast<std::size_t>(index)];
@@ -240,8 +244,12 @@ void MinesweeperGame::checkWin()
 
 void MinesweeperGame::finishTimer()
 {
-    if (m_timer.isActive())
+    if (m_timer.isActive()) {
+        m_activeBeforePause += m_playClock.elapsed();
+        m_elapsedSeconds = static_cast<int>(m_activeBeforePause / 1000);
         m_timer.stop();
+        emit timeChanged();
+    }
 }
 
 void MinesweeperGame::loadStats()
@@ -272,4 +280,50 @@ void MinesweeperGame::saveStats() const
                       m_wins[static_cast<std::size_t>(i)]);
     }
     GameLocalStats::setValues(QStringLiteral("minesweeper"), values);
+}
+
+void MinesweeperGame::pause() {
+    BuiltinGame::pause();
+    if (m_paused) return;
+    m_paused = true; m_resumeTimer = m_timer.isActive();
+    if (m_resumeTimer) m_activeBeforePause += m_playClock.elapsed();
+    m_timer.stop();
+}
+void MinesweeperGame::resume() {
+    BuiltinGame::resume();
+    if (!m_paused) return;
+    m_paused = false;
+    if (m_resumeTimer) { m_playClock.restart(); m_timer.start(); }
+}
+
+QVariantMap MinesweeperGame::snapshot() const {
+    QVariantList cells;
+    for (const auto &cell:m_cells) cells.append(QVariantMap{{"mine",cell.mine},{"revealed",cell.revealed},{"flagged",cell.flagged}});
+    const qint64 elapsed=m_activeBeforePause+(m_timer.isActive() && m_playClock.isValid()?m_playClock.elapsed():0);
+    return {{"difficulty",m_difficulty},{"cells",cells},{"started",m_started},{"elapsedMs",elapsed}};
+}
+bool MinesweeperGame::restoreSnapshot(const QVariantMap &state) {
+    int difficulty,elapsed; bool started;
+    if (!BuiltinState::integer(state,"difficulty",0,2,difficulty) || !BuiltinState::integer(state,"elapsedMs",0,BuiltinState::maxCounter(),elapsed) || !BuiltinState::boolean(state,"started",started)) return false;
+    const int rows=difficulty==0?9:difficulty==1?12:16, mineCount=difficulty==0?10:difficulty==1?22:40;
+    const QVariantList values=state.value("cells").toList(); if (values.size()!=rows*rows) return false;
+    std::vector<Cell> cells; int mines=0, flags=0, safeHidden=0; bool exploded=false;
+    for (const auto &value:values) {
+        Cell cell;
+        if (!BuiltinState::boolean(value.toMap(),"mine",cell.mine) || !BuiltinState::boolean(value.toMap(),"revealed",cell.revealed) || !BuiltinState::boolean(value.toMap(),"flagged",cell.flagged)) return false;
+        if (cell.revealed && cell.flagged && !cell.mine) return false;
+        if (!started && (cell.mine || cell.revealed)) return false;
+        mines+=cell.mine; flags+=cell.flagged; safeHidden+=!cell.mine && !cell.revealed; exploded|=cell.mine && cell.revealed; cells.push_back(cell);
+    }
+    if (mines!=(started?mineCount:0) || flags>mineCount || (!started && elapsed!=0)) return false;
+    // Recompute adjacency from the actual saved mine map instead of trusting it.
+    for (int i=0;i<rows*rows;++i) if (!cells[i].mine) {
+        const int r=i/rows,c=i%rows;
+        for (int dr=-1;dr<=1;++dr) for (int dc=-1;dc<=1;++dc)
+            if ((dr||dc) && r+dr>=0 && r+dr<rows && c+dc>=0 && c+dc<rows && cells[(r+dr)*rows+c+dc].mine) ++cells[i].adjacent;
+    }
+    m_timer.stop(); m_difficulty=difficulty; m_rows=m_columns=rows; m_mineCount=mineCount; m_cells=cells; m_started=started;
+    m_won=started && !exploded && safeHidden==0; m_gameOver=exploded || m_won; m_status=exploded?"mine_hit":m_won?"cleared":started?"playing":"ready";
+    m_activeBeforePause=elapsed; m_elapsedSeconds=elapsed/1000; m_resumeTimer=started && !m_gameOver; m_playClock.restart(); if (!m_paused && m_resumeTimer) m_timer.start();
+    emit boardReset(); emit cellsChanged(); emit statusChanged(); emit timeChanged(); emit statsChanged(); return true;
 }

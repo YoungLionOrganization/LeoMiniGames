@@ -9,7 +9,7 @@ GamePluginInfo TwentyFortyEightPlugin::info() const
         QStringLiteral("2048"),
         QStringLiteral("Slide and merge equal tiles to build the 2048 tile."),
         QStringLiteral("Puzzle"),
-        QStringLiteral("1.0.0"),
+        QStringLiteral("1.1.0"),
         QStringLiteral("YoungLion"),
         QStringLiteral("2048"),
         QUrl(QStringLiteral("qrc:/qt/qml/LeoMiniGames/TwentyFortyEightPage.qml")),

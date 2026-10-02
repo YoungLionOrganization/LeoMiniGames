@@ -2,6 +2,7 @@
 #include "ThemeManager.h"
 
 #include "AppPaths.h"
+#include "SemVer.h"
 
 #include <QCryptographicHash>
 #include <QDir>
@@ -26,6 +27,17 @@ constexpr int kMaxTokens = 10000;
 constexpr int kMaxAliases = 20000;
 constexpr int kMaxSurfaces = 256;
 
+
+QVariantMap mergeSurface(const QVariantMap &base, const QVariantMap &overrides)
+{
+    QVariantMap result=base;
+    for(auto it=overrides.cbegin();it!=overrides.cend();++it) {
+        if(it.value().metaType().id()==QMetaType::QVariantMap && result.value(it.key()).metaType().id()==QMetaType::QVariantMap)
+            result.insert(it.key(),mergeSurface(result.value(it.key()).toMap(),it.value().toMap()));
+        else result.insert(it.key(),it.value());
+    }
+    return result;
+}
 
 bool isProtectedPrimitiveKey(const QString &key)
 {
@@ -77,7 +89,7 @@ ThemeManager::~ThemeManager()
 {
     for (auto it = m_records.cbegin(); it != m_records.cend(); ++it) {
         if (!it->builtIn && it->registered)
-            QResource::unregisterResource(it->filePath, it->resourceRoot);
+            QResource::unregisterResource(it->filePath, it->mountRoot);
     }
 }
 
@@ -190,9 +202,10 @@ QVariantMap ThemeManager::surface(const QString &key) const
     const ThemeRecord fallback = m_records.value(m_defaultId);
     const QVariantMap surfaces = active.document.value(QStringLiteral("surfaces")).toMap();
     const QVariantMap baseSurfaces = fallback.document.value(QStringLiteral("surfaces")).toMap();
+    const QVariantMap base = resolveNested(baseSurfaces.value(key), fallback.resourceRoot).toMap();
     if (surfaces.contains(key))
-        return resolveNested(surfaces.value(key), active.resourceRoot).toMap();
-    return resolveNested(baseSurfaces.value(key), fallback.resourceRoot).toMap();
+        return mergeSurface(base, resolveNested(surfaces.value(key), active.resourceRoot).toMap());
+    return base;
 }
 
 bool ThemeManager::applyTheme(const QString &id)
@@ -211,7 +224,7 @@ bool ThemeManager::applyTheme(const QString &id)
     return true;
 }
 
-bool ThemeManager::installThemeRcc(const QString &sourcePath, const QString &expectedSha256)
+bool ThemeManager::installThemeRcc(const QString &sourcePath, const QString &expectedSha256, const QString &expectedId, const QString &expectedVersion, int expectedThemeApi)
 {
     if (!m_paths) {
         setError(QStringLiteral("Theme storage is unavailable."));
@@ -266,8 +279,10 @@ bool ThemeManager::installThemeRcc(const QString &sourcePath, const QString &exp
     // Same hash is already installed: treat reinstall as success rather than
     // trying to register the same RCC root twice.
     for (auto it = m_records.cbegin(); it != m_records.cend(); ++it) {
-        if (!it->builtIn && QFileInfo(it->filePath).absoluteFilePath() == QFileInfo(dest).absoluteFilePath())
+        if (!it->builtIn && QFileInfo(it->filePath).absoluteFilePath() == QFileInfo(dest).absoluteFilePath()) {
+            if ((!expectedId.isEmpty() && it->id != expectedId) || (!expectedVersion.isEmpty() && it->version != expectedVersion) || (expectedThemeApi > 0 && it->document.value(QStringLiteral("theme_api_version"), 1).toInt() != expectedThemeApi)) { setError(tr("Theme catalog identity does not match the package.")); return false; }
             return true;
+        }
     }
 
     ThemeRecord candidate;
@@ -276,8 +291,13 @@ bool ThemeManager::installThemeRcc(const QString &sourcePath, const QString &exp
             QFile::remove(dest);
         return false;
     }
+    if ((!expectedId.isEmpty() && candidate.id != expectedId) || (!expectedVersion.isEmpty() && candidate.version != expectedVersion) || (expectedThemeApi > 0 && candidate.document.value(QStringLiteral("theme_api_version"), 1).toInt() != expectedThemeApi)) {
+        QResource::unregisterResource(candidate.filePath, candidate.mountRoot);
+        if (copied) QFile::remove(dest);
+        setError(tr("Theme catalog identity does not match the package.")); return false;
+    }
     if (candidate.id == m_defaultId) {
-        QResource::unregisterResource(candidate.filePath, candidate.resourceRoot);
+        QResource::unregisterResource(candidate.filePath, candidate.mountRoot);
         if (copied)
             QFile::remove(dest);
         setError(QStringLiteral("External themes cannot replace the built-in theme id."));
@@ -289,7 +309,7 @@ bool ThemeManager::installThemeRcc(const QString &sourcePath, const QString &exp
     if (replacing) {
         previous = m_records.value(candidate.id);
         if (previous.builtIn) {
-            QResource::unregisterResource(candidate.filePath, candidate.resourceRoot);
+            QResource::unregisterResource(candidate.filePath, candidate.mountRoot);
             if (copied)
                 QFile::remove(dest);
             setError(QStringLiteral("Built-in themes cannot be replaced."));
@@ -301,7 +321,7 @@ bool ThemeManager::installThemeRcc(const QString &sourcePath, const QString &exp
     // swap. Only after that do we release/delete the old RCC.
     m_records.insert(candidate.id, candidate);
     if (replacing && previous.registered)
-        QResource::unregisterResource(previous.filePath, previous.resourceRoot);
+        QResource::unregisterResource(previous.filePath, previous.mountRoot);
     if (replacing && QFileInfo(previous.filePath).absoluteFilePath() != QFileInfo(candidate.filePath).absoluteFilePath())
         QFile::remove(previous.filePath);
 
@@ -328,12 +348,14 @@ bool ThemeManager::removeTheme(const QString &id)
         setError(QStringLiteral("Built-in or unknown theme cannot be removed."));
         return false;
     }
-    if (m_activeId == id)
-        applyTheme(m_defaultId);
-    const ThemeRecord record = m_records.take(id);
-    if (record.registered)
-        QResource::unregisterResource(record.filePath, record.resourceRoot);
-    QFile::remove(record.filePath);
+    const ThemeRecord record = m_records.value(id);
+    if (record.registered && !QResource::unregisterResource(record.filePath, record.mountRoot)) { setError(QStringLiteral("Could not unmount theme package.")); return false; }
+    if (!QFile::remove(record.filePath)) {
+        if (record.registered) QResource::registerResource(record.filePath, record.mountRoot);
+        setError(QStringLiteral("Could not remove theme package.")); return false;
+    }
+    if (m_activeId == id) applyTheme(m_defaultId);
+    m_records.remove(id);
     emit themeRemoved(id);
     emit themesChanged();
     bumpRevision();
@@ -387,7 +409,7 @@ bool ThemeManager::registerExternal(const QString &filePath)
     if (!loadExternalRecord(filePath, &record))
         return false;
     if (record.id == m_defaultId || m_records.contains(record.id)) {
-        QResource::unregisterResource(record.filePath, record.resourceRoot);
+        QResource::unregisterResource(record.filePath, record.mountRoot);
         setError(QStringLiteral("Duplicate theme id: %1").arg(record.id));
         return false;
     }
@@ -427,6 +449,7 @@ bool ThemeManager::loadExternalRecord(const QString &filePath, ThemeRecord *reco
         QResource::unregisterResource(filePath, root);
         return false;
     }
+    record->mountRoot = root;
     record->registered = true;
     return true;
 }
@@ -434,13 +457,16 @@ bool ThemeManager::loadExternalRecord(const QString &filePath, ThemeRecord *reco
 bool ThemeManager::validateThemeResources(const QString &resourceRoot)
 {
     const QString themeRoot = QStringLiteral(":%1/theme").arg(resourceRoot);
-    QDirIterator it(themeRoot, QDir::Files, QDirIterator::Subdirectories);
+    QDirIterator it(QStringLiteral(":%1").arg(resourceRoot), QDir::Files, QDirIterator::Subdirectories);
+    qint64 totalBytes = 0;
+    int resourceCount = 0;
     bool foundManifest = false;
     while (it.hasNext()) {
         const QString path = it.next();
         if (path.endsWith(QStringLiteral("/theme.json"), Qt::CaseInsensitive))
             foundManifest = true;
-        if (!isAllowedThemeResource(path)) {
+        totalBytes += QResource(path).uncompressedSize();
+        if (++resourceCount > 4096 || totalBytes > 64LL * 1024 * 1024 || !path.startsWith(themeRoot + QLatin1Char('/')) || !isAllowedThemeResource(path)) {
             setError(QStringLiteral("Theme packages may contain data/assets only; forbidden resource: %1")
                          .arg(QFileInfo(path).fileName()));
             return false;
@@ -469,6 +495,13 @@ bool ThemeManager::parseDocument(const QByteArray &json, ThemeRecord *record, co
         setError(QStringLiteral("Theme id, name or tokens are invalid."));
         return false;
     }
+    const auto api = doc.object().value(QStringLiteral("theme_api_version"));
+    if (!api.isUndefined() && (!api.isDouble() || api.toDouble() != 1.0)) { setError(tr("Unsupported theme API version.")); return false; }
+    const QString version = map.value(QStringLiteral("version"), QStringLiteral("1.0.0")).toString();
+    if (version.size() > 64 || !LmgSemVer::parseSemVer(version).valid) { setError(QStringLiteral("Invalid theme version.")); return false; }
+    for (const QString &section : {QStringLiteral("aliases"), QStringLiteral("surfaces")}) {
+        if (map.contains(section) && map.value(section).metaType().id() != QMetaType::QVariantMap) { setError(QStringLiteral("Invalid theme %1 object.").arg(section)); return false; }
+    }
     const QVariantMap tokens = map.value(QStringLiteral("tokens")).toMap();
     const QVariantMap aliases = map.value(QStringLiteral("aliases")).toMap();
     const QVariantMap surfaces = map.value(QStringLiteral("surfaces")).toMap();
@@ -476,9 +509,30 @@ bool ThemeManager::parseDocument(const QByteArray &json, ThemeRecord *record, co
         setError(QStringLiteral("Theme token/alias/surface limits exceeded."));
         return false;
     }
+    // Check the effective graph, including inherited aliases. An external token
+    // can otherwise make a built-in alias cyclic and blank the entire UI.
+    QVariantMap effective = m_records.value(m_defaultId).document.value(QStringLiteral("tokens")).toMap();
+    const auto overlay = [&effective](const QVariantMap &entries, bool protect) {
+        for (auto it=entries.cbegin();it!=entries.cend();++it)
+            if (!protect || !isProtectedPrimitiveKey(it.key())) effective.insert(it.key(),it.value());
+    };
+    overlay(m_records.value(m_defaultId).document.value(QStringLiteral("aliases")).toMap(),false);
+    overlay(tokens,!builtIn); overlay(aliases,!builtIn);
+    for (auto it=effective.cbegin();it!=effective.cend();++it) {
+        QSet<QString> seen; QString key=it.key();
+        while (effective.contains(key)) {
+            if (seen.contains(key) || seen.size() > kMaxAliasDepth) { setError(QStringLiteral("Cyclic or excessively deep theme alias: %1").arg(it.key())); return false; }
+            seen.insert(key);
+            const QVariant current=effective.value(key);
+            if (current.metaType().id()!=QMetaType::QString) break;
+            key=current.toString();
+        }
+    }
+    for (auto it=surfaces.cbegin();it!=surfaces.cend();++it)
+        if (it.value().metaType().id()!=QMetaType::QVariantMap) { setError(QStringLiteral("Invalid theme surface: %1").arg(it.key())); return false; }
     record->id = id;
     record->name = name;
-    record->version = map.value(QStringLiteral("version"), QStringLiteral("1.0.0")).toString().left(64);
+    record->version = version;
     record->publisher = map.value(QStringLiteral("publisher"), QStringLiteral("Local")).toString().left(160);
     record->filePath = filePath;
     record->resourceRoot = resourceRoot;
@@ -504,15 +558,16 @@ QVariant ThemeManager::resolveKey(const QString &key, int depth) const
     const QVariantMap fallbackAliases = fallback.document.value(QStringLiteral("aliases")).toMap();
     const QVariantMap fallbackTokens = fallback.document.value(QStringLiteral("tokens")).toMap();
     QVariant v;
+    QString assetRoot = fallback.resourceRoot;
     if (isProtectedPrimitiveKey(key)) {
         if (fallbackAliases.contains(key))
             v = fallbackAliases.value(key);
         else
             v = fallbackTokens.value(key);
     } else if (aliases.contains(key)) {
-        v = aliases.value(key);
+        v = aliases.value(key); assetRoot = active.resourceRoot;
     } else if (tokens.contains(key)) {
-        v = tokens.value(key);
+        v = tokens.value(key); assetRoot = active.resourceRoot;
     } else if (fallbackAliases.contains(key)) {
         v = fallbackAliases.value(key);
     } else {
@@ -524,6 +579,8 @@ QVariant ThemeManager::resolveKey(const QString &key, int depth) const
         const QString reference = v.toString();
         if (recordContainsKey(active, reference) || recordContainsKey(fallback, reference))
             return resolveKey(reference, depth + 1);
+        if (reference.startsWith(QStringLiteral("./")))
+            return assetRoot + QLatin1Char('/') + reference.mid(2);
     }
     return v;
 }

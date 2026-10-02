@@ -2,7 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BUILD_DIR="${1:?usage: package_macos.sh <build-dir>}"
-VERSION="${LMG_VERSION:-0.7.2}"
+VERSION="${LMG_VERSION:-0.7.3}"
 SUFFIX="${LMG_PLATFORM_SUFFIX:-$(uname -m)}"
 DIST="$ROOT/dist/macos"
 rm -rf "$DIST"; mkdir -p "$DIST"
@@ -12,6 +12,7 @@ cp -R "$APP" "$DIST/LeoMiniGames.app"
 MACDEPLOYQT="${MACDEPLOYQT:-$(command -v macdeployqt || true)}"
 [ -n "$MACDEPLOYQT" ] || { echo 'macdeployqt not found' >&2; exit 3; }
 "$MACDEPLOYQT" "$DIST/LeoMiniGames.app" -qmldir="$ROOT/qml"
+python3 "$ROOT/tools/validate_audio_deployment.py" "$DIST/LeoMiniGames.app"
 LEGAL="$DIST/LeoMiniGames.app/Contents/Resources/Legal"
 mkdir -p "$LEGAL/licenses"
 cp "$ROOT/LICENSE" "$ROOT/NOTICE" \

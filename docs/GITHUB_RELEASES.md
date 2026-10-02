@@ -1,13 +1,14 @@
 # GitHub Releases and release operator guide
 
-This document describes the v0.7.2 release pipeline. The pipeline is intentionally manual at the publication boundary, but asset collection, validation and GitHub Release publication are automated after the maintainer selects publish mode and approves the protected environment.
+This document describes the v0.7.3 release pipeline. The pipeline is intentionally manual at the publication boundary, but asset collection, validation and GitHub Release publication are automated after the maintainer selects publish mode and approves the protected environment.
 
 ## Pipeline overview
 
 | Workflow | Trigger | Purpose | Publishes a Release? |
 | --- | --- | --- | --- |
 | `ci.yml` | push / PR / manual | Static validation plus cross-platform compile/test coverage | No |
-| `build-artifacts.yml` | manual | Builds the exact v0.7.2 artifacts, `release-assets` and QtIFW `update-repositories` | No |
+| `build-artifacts.yml` | manual | Builds the exact v0.7.3 artifacts, `release-assets` and QtIFW `update-repositories` | No |
+| `platform-qa.yml` | manual | Validates/upload actual candidate device/platform evidence | No |
 | `publish-release.yml` | manual | Validates release gates; in publish mode creates and publishes the GitHub Release | Yes, only in `publish` mode |
 
 Release metadata comes from `release/release.json`. The public asset contract comes from `release/assets.json`. Authorized release publishers come from `release/authorized_publishers.json`.
@@ -23,7 +24,7 @@ Confirm all of the following:
 - the operator is listed in `release/authorized_publishers.json`;
 - Android signing secrets are configured when signed Android artifacts are required.
 
-For v0.7.2 the authorized publisher is `Cavanshirpro`.
+For v0.7.3 the authorized publisher is `Cavanshirpro`.
 
 ## Step 1 — get the exact `main` SHA green
 
@@ -37,7 +38,7 @@ Open:
 
 **GitHub → LeoMiniGames → Actions → Build Release Artifacts → Run workflow**
 
-Select branch **main** and run it. v0.7.2's workflow does not ask for a version input; `LMG_VERSION`, CMake and `release/release.json` are checked against one another.
+Select branch **main** and run it. v0.7.3's workflow does not ask for a version input; `LMG_VERSION`, CMake and `release/release.json` are checked against one another.
 
 Wait until the whole workflow is green. In addition to per-platform artifacts it must produce:
 
@@ -45,6 +46,12 @@ Wait until the whole workflow is green. In addition to per-platform artifacts it
 - `update-repositories`
 
 `release-assets` is the only artifact set used for public GitHub Release upload. The current allowlist expects 27 public files. Files such as `*.aab`, `*.sha256`, `*-unsigned.zip`, `*-Legal.zip`, `Updates.xml` and repository metadata are intentionally not public Release assets.
+
+## Candidate platform QA (required before publishing)
+
+Record actual clean-system/device results for the 21 targets using release/platform-qa.template.json, exact candidate source SHA and tested artifact digests. Run **Record candidate platform QA** with candidate_sha/report_json; preserve its successful run ID. The template starts failed and must not be relabeled passing without tests. Android upgrade/signing/TLS/audio, Windows servicing and macOS Gatekeeper evidence are separate from CTest.
+
+In Publish Release provide qa_run_id (the run containing platform-qa) and, when selecting a particular successful artifact build, build_run_id. Publishing compares QA artifact names/digests to the candidate manifest before the draft/tag stage. Docs/operator-only commit reuse is controlled by the workflow; source changes require a fresh candidate build and matching QA.
 
 ## Step 3 — validate the release gates
 
@@ -96,7 +103,7 @@ After approval, the workflow:
 7. publishes the QtIFW Windows repository to the `updates` branch under the configured track;
 8. makes the draft public only after those checks succeed.
 
-For stable v0.7.2, the Windows update repository is published below:
+For stable v0.7.3, the Windows update repository is published below:
 
 ```text
 stable/windows/x86_64
@@ -152,9 +159,9 @@ $bytes = [IO.File]::ReadAllBytes("C:\path\to\your-upload-key.jks")
 
 Retain the correct signing/upload key for application update continuity. If Google Play App Signing is enabled, CI normally uses the registered upload key rather than Google's protected app-signing key.
 
-## Current v0.7.2 state
+## Current v0.7.3 state
 
-At candidate `a020647bfd7dacb49727b4683bede6807eec7d67`, CI and Build Release Artifacts succeeded, with 27 public assets validated. [Publish Release run 36470448493](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/36470448493) failed during `Prepare draft and upload exact asset set`: `cat: release/notes/v0.7.2.md: No such file or directory`. No public v0.7.2 release was created.
+At candidate `a020647bfd7dacb49727b4683bede6807eec7d67`, CI and Build Release Artifacts succeeded, with 27 public assets validated. [Publish Release run 36470448493](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/36470448493) failed during `Prepare draft and upload exact asset set`: `cat: release/notes/v0.7.3.md: No such file or directory`. No public v0.7.3 release was created.
 
 The notes file is now present, and preflight checks it before the publisher can delete a stale draft. A new source commit requires successful CI and **Build Release Artifacts** on the new exact SHA, followed by `mode=validate` and `mode=publish`. Do not select the old build run ID.
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #include "ExternalGameRuntime.h"
 #include "PluginDiagnostics.h"
+#include "GameSave.h"
 #include <QQmlComponent>
 #include <QQmlContext>
 #include <QQmlEngine>
@@ -60,18 +61,22 @@ QObject *ExternalGameRuntime::item()const{return m_item.data();} QString Externa
 void ExternalGameRuntime::setServices(const QHash<QString,QObject*>&services){m_services=services;}
 void ExternalGameRuntime::unload()
 {
-    if (m_item) {
-        m_item->setParentItem(nullptr);
-        delete m_item.data();
-        m_item.clear();
+    QPointer<QQuickItem> oldItem = m_item;
+    QPointer<QQmlEngine> oldEngine = m_impl->engine;
+    if (oldItem) { oldItem->setVisible(false); oldItem->setParentItem(nullptr); }
+    m_item.clear();
+    if (oldEngine) {
+        if (auto *save = qobject_cast<GameSave *>(m_services.value(QStringLiteral("GameSave")))) save->setEngine(nullptr);
     }
-    if (m_impl->engine) {
-        delete m_impl->engine;
-        m_impl->engine = nullptr;
-    }
-    // QQmlEngine does not own QQmlNetworkAccessManagerFactory. Keep it alive
-    // until the engine is destroyed, then release it explicitly.
-    m_impl->networkFactory.reset();
+    m_impl->engine = nullptr;
+    // A legacy close call can arrive from inside the engine being closed.
+    // Retire its objects after that JavaScript invocation returns.
+    const auto oldFactory = std::shared_ptr<RestrictedNamFactory>(m_impl->networkFactory.release());
+    QTimer::singleShot(0, this, [oldItem, oldEngine, oldFactory] {
+        delete oldItem.data();
+        delete oldEngine.data();
+        // Captured factory survives until the retired engine has been destroyed.
+    });
     m_status = QStringLiteral("null");
     m_error.clear();
     emit changed();
@@ -82,13 +87,17 @@ bool ExternalGameRuntime::load(QQuickItem *parentItem,const QUrl &source,const Q
     const QString scheme=source.scheme().toLower();if(scheme!=QStringLiteral("qrc")){m_status=QStringLiteral("error");m_error=QStringLiteral("External games must load from validated qrc:/ resources.");emit changed();emit failed(m_error);return false;}
     m_status=QStringLiteral("loading");emit changed();
     m_impl->engine = new QQmlEngine(this);
+    if (auto *save = qobject_cast<GameSave *>(m_services.value(QStringLiteral("GameSave")))) save->setEngine(m_impl->engine);
     m_impl->networkFactory = std::make_unique<RestrictedNamFactory>(allowHttpsNetwork);
     m_impl->engine->setNetworkAccessManagerFactory(m_impl->networkFactory.get());
     if (m_diagnostics)
         m_diagnostics->attachEngine(m_impl->engine);
     QQmlContext *context=new QQmlContext(m_impl->engine->rootContext(),m_impl->engine);for(auto it=m_services.cbegin();it!=m_services.cend();++it)context->setContextProperty(it.key(),it.value());context->setContextProperty(QStringLiteral("ExternalGameId"),gameId);
-    QQmlComponent component(m_impl->engine,source,QQmlComponent::PreferSynchronous);if(component.isError()){QStringList errors;for(const QQmlError&e:component.errors())errors<<e.toString();m_error=errors.join(QLatin1Char('\n'));m_status=QStringLiteral("error");if(m_diagnostics)m_diagnostics->log(QStringLiteral("error"),m_error,source.toString(),0);delete m_impl->engine; m_impl->engine=nullptr; m_impl->networkFactory.reset(); emit changed(); emit failed(m_error); return false;}
-    QObject *object=component.create(context);QQuickItem *quick=qobject_cast<QQuickItem*>(object);if(!quick){if(object)object->deleteLater();m_error=QStringLiteral("External game root must be a QQuickItem.");m_status=QStringLiteral("error");delete m_impl->engine; m_impl->engine=nullptr; m_impl->networkFactory.reset(); emit changed(); emit failed(m_error); return false;}
+    QQmlComponent component(m_impl->engine,source,QQmlComponent::PreferSynchronous);if(component.isError()){QStringList errors;for(const QQmlError&e:component.errors())errors<<e.toString();m_error=errors.join(QLatin1Char('\n'));m_status=QStringLiteral("error");if(m_diagnostics)m_diagnostics->log(QStringLiteral("error"),m_error,source.toString(),0);if (auto *save = qobject_cast<GameSave *>(m_services.value(QStringLiteral("GameSave")))) save->setEngine(nullptr); delete m_impl->engine; m_impl->engine=nullptr; m_impl->networkFactory.reset(); emit changed(); emit failed(m_error); return false;}
+    QObject *object=component.beginCreate(context);QQuickItem *quick=qobject_cast<QQuickItem*>(object);if(!quick){component.completeCreate(); delete object;m_error=QStringLiteral("External game root must be a QQuickItem.");m_status=QStringLiteral("error");if (auto *save = qobject_cast<GameSave *>(m_services.value(QStringLiteral("GameSave")))) save->setEngine(nullptr); delete m_impl->engine; m_impl->engine=nullptr; m_impl->networkFactory.reset(); emit changed(); emit failed(m_error); return false;}
     QQmlEngine::setObjectOwnership(quick,QQmlEngine::CppOwnership);quick->setParent(this);quick->setParentItem(parentItem);quick->setWidth(parentItem->width());quick->setHeight(parentItem->height());connect(parentItem,&QQuickItem::widthChanged,quick,[parentItem,quick]{quick->setWidth(parentItem->width());});connect(parentItem,&QQuickItem::heightChanged,quick,[parentItem,quick]{quick->setHeight(parentItem->height());});
-    m_item=quick;m_status=QStringLiteral("ready");m_error.clear();emit changed();emit loaded(quick);return true;
+    m_item=quick;
+    component.completeCreate();
+    if (m_item != quick) return false;
+    m_status=QStringLiteral("ready");m_error.clear();emit changed();emit loaded(quick);return true;
 }

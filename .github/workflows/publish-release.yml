@@ -16,6 +16,12 @@ on:
         required: false
         default: ""
         type: string
+      qa_run_id:
+        description: "Run containing platform-qa artifact (platform-qa.json); required for publishing."
+        required: false
+        default: ""
+        type: string
+
 
 permissions:
   contents: read
@@ -75,7 +81,7 @@ jobs:
           python3 tools/validate_i18n.py
           python3 tools/validate_distribution.py
           python3 tools/audit_prebuilt_binaries.py
-          python3 tools/validate_v072.py
+          python3 tools/validate_release_contract.py
 
       - name: Resolve immutable build candidate
         id: candidate
@@ -104,7 +110,7 @@ jobs:
             while IFS= read -r path; do
               [[ -z "$path" ]] && continue
               case "$path" in
-                .github/workflows/publish-release.yml|tools/validate_v072.py) ;;
+                .github/workflows/publish-release.yml|tools/validate_release_contract.py) ;;
                 *) return 1 ;;
               esac
             done <<< "$changed"
@@ -263,10 +269,8 @@ jobs:
           mkdir -p _release-assets _update-repositories
           gh run download "$BUILD_RUN_ID" --repo "$GITHUB_REPOSITORY" --name release-assets --dir _release-assets
           gh run download "$BUILD_RUN_ID" --repo "$GITHUB_REPOSITORY" --name update-repositories --dir _update-repositories
-          python3 tools/release/validate_release_assets.py _release-assets
-          test -s _update-repositories/windows/x86_64/Updates.xml
-          test -s _update-repositories/windows/x86_64-AVX2/Updates.xml
-          test -s _update-repositories/windows/ARM64/Updates.xml
+          python3 tools/release/validate_release_assets.py _release-assets --manifest _release-manifest.json --source-sha "${{ steps.candidate.outputs.target_sha }}"
+          python3 tools/release/validate_update_repositories.py _update-repositories
 
       - uses: actions/upload-artifact@v7
         with:
@@ -322,7 +326,7 @@ jobs:
           while IFS= read -r path; do
             [[ -z "$path" ]] && continue
             case "$path" in
-              .github/workflows/publish-release.yml|tools/validate_v072.py) ;;
+              .github/workflows/publish-release.yml|tools/validate_release_contract.py) ;;
               *)
                 echo "Application/package source changed after build candidate: $path" >&2
                 echo "A new Build Release Artifacts run is required." >&2
@@ -351,7 +355,20 @@ jobs:
             echo "tag appeared after preflight" >&2
             exit 23
           fi
-          python3 tools/release/validate_release_assets.py _release-assets
+          python3 tools/release/validate_release_assets.py _release-assets --manifest _release-manifest.json --source-sha "${{ needs.preflight.outputs.target_sha }}"
+
+      - name: Verify candidate update repositories
+        run: python3 tools/release/validate_update_repositories.py _update-repositories
+
+      - name: Verify candidate clean-platform QA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QA_RUN_ID: ${{ inputs.qa_run_id }}
+          TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
+        run: |
+          [[ "$QA_RUN_ID" =~ ^[0-9]+$ ]] || { echo "Publishing requires a platform QA evidence run." >&2; exit 1; }
+          gh run download "$QA_RUN_ID" --repo "$GITHUB_REPOSITORY" --name platform-qa --dir _platform-qa
+          python3 tools/validate_platform_qa.py _platform-qa/platform-qa.json --sha "$TARGET_SHA" --manifest _release-manifest.json
 
       - name: Prepare draft and upload exact asset set
         id: draft
@@ -484,6 +501,9 @@ jobs:
             diff -u <(printf '%s\n' "$local_names") <(printf '%s\n' "$remote_names") || true
             exit 25
           fi
+
+          gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?per_page=100" > _remote-assets.json
+          python3 tools/release/validate_release_assets.py _release-assets --remote-json _remote-assets.json --manifest _release-manifest.json --source-sha "${{ needs.preflight.outputs.target_sha }}"
 
           echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
 

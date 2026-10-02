@@ -4,10 +4,10 @@
 #include <QMetaMethod>
 GameLifecycle::GameLifecycle(QObject *parent) : QObject(parent) {}
 QString GameLifecycle::gameId() const { return m_gameId; }
-void GameLifecycle::attach(QObject *gameObject, const QString &gameId) { m_object = gameObject; m_gameId = gameId; emit gameChanged(); }
+void GameLifecycle::attach(QObject *gameObject, const QString &gameId) { m_object = gameObject; m_gameId = gameId; m_paused = false; m_started = false; m_closed = false; emit gameChanged(); }
 void GameLifecycle::invoke(const char *method) { if (!m_object) return; const QMetaObject *mo = m_object->metaObject(); for (int i = 0; i < mo->methodCount(); ++i) { const QMetaMethod mm = mo->method(i); if (mm.name() == method && mm.parameterCount() == 0) { QMetaObject::invokeMethod(m_object, method, Qt::DirectConnection); return; } } }
-void GameLifecycle::load(){invoke("load");emit loaded();} void GameLifecycle::start(){invoke("start");emit started();}
-void GameLifecycle::pause(){invoke("pause");emit paused();} void GameLifecycle::resume(){invoke("resume");emit resumed();}
+void GameLifecycle::load(){invoke("load");emit loaded();} void GameLifecycle::start(){if (!m_object || m_started || m_closed) return; m_started=true; invoke("start");emit started();}
+void GameLifecycle::pause(){if (!m_object || m_paused || m_closed) return; m_paused=true; invoke("pause");emit paused();} void GameLifecycle::resume(){if (!m_object || !m_paused || m_closed) return; m_paused=false; invoke("resume");emit resumed();}
 void GameLifecycle::background(){invoke("background");emit backgrounded();} void GameLifecycle::foreground(){invoke("foreground");emit foregrounded();}
-void GameLifecycle::save(){invoke("save");emit saveRequested();} void GameLifecycle::close(){invoke("close");emit closed();}
+void GameLifecycle::save(){invoke("save");emit saveRequested();} void GameLifecycle::close(){if (!m_object || m_closed) return; m_closed=true; invoke("close");emit closed();}
 void GameLifecycle::unload(){invoke("unload");emit unloaded(); m_object.clear(); m_gameId.clear(); emit gameChanged();}

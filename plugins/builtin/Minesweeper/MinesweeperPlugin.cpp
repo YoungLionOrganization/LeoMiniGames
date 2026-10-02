@@ -9,7 +9,7 @@ GamePluginInfo MinesweeperPlugin::info() const
         QStringLiteral("Minesweeper"),
         QStringLiteral("Open safe cells, flag mines, and clear the board."),
         QStringLiteral("Puzzle"),
-        QStringLiteral("1.0.0"),
+        QStringLiteral("1.1.0"),
         QStringLiteral("YoungLion"),
         QStringLiteral("*"),
         QUrl(QStringLiteral("qrc:/qt/qml/LeoMiniGames/MinesweeperPage.qml")),

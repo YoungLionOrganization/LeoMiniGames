@@ -8,6 +8,10 @@
 #include <QQuickStyle>
 #include <QSslSocket>
 #include <QTimer>
+#include <QQuickWindow>
+#include <QQmlError>
+#include <QImage>
+#include <QDir>
 #include <QtPlugin>
 
 #include "core/Achievements.h"
@@ -35,6 +39,8 @@
 #include "core/GameLifecycle.h"
 #include "core/GameRegistry.h"
 #include "core/GameSave.h"
+#include "core/BuiltinGame.h"
+#include "core/TlsRuntime.h"
 #include "core/GameSettings.h"
 #include "core/GameStats.h"
 #include "core/GameViewport.h"
@@ -67,8 +73,10 @@ int main(int argc, char *argv[])
     app.setOrganizationName(QStringLiteral("YoungLion"));
     app.setOrganizationDomain(QStringLiteral("xyz.younglion.leominigames"));
     app.setApplicationName(QStringLiteral("LeoMiniGames"));
-    app.setApplicationVersion(QStringLiteral("0.7.2"));
+    app.setApplicationVersion(QStringLiteral("0.7.3"));
     app.setApplicationDisplayName(QStringLiteral("LeoMiniGames"));
+    TlsRuntime::initialize();
+    if (app.arguments().contains(QStringLiteral("--tls-smoke-test"))) return TlsRuntime::probe();
     app.setWindowIcon(QIcon(QStringLiteral(":/branding/leominigames_icon.png")));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
 
@@ -152,7 +160,10 @@ int main(int argc, char *argv[])
     modsInstalled.setMode(QStringLiteral("installed"));
     modsInstalled.setSortMode(QStringLiteral("name"));
 
+    const bool smokeTest = app.arguments().contains(QStringLiteral("--smoke-test"));
+    bool smokeQmlWarnings = false;
     QQmlApplicationEngine engine;
+    QObject::connect(&engine, &QQmlEngine::warnings, &app, [&smokeQmlWarnings](const QList<QQmlError> &errors) { if (!errors.isEmpty()) smokeQmlWarnings = true; });
     gameSave.setEngine(&engine);
     diagnostics.attach(&engine);
     language.setEngine(&engine);
@@ -164,6 +175,7 @@ int main(int argc, char *argv[])
     });
     QObject::connect(&controller, &AppController::gameOpened, &app, [&] {
         const QString id = controller.currentGameId();
+        mods.setActiveGameId(id);
         const QString version = controller.currentGameVersion();
         const QString source = controller.currentGameSource();
         const bool external = source == QStringLiteral("ExternalRcc");
@@ -172,7 +184,9 @@ int main(int argc, char *argv[])
         legacyAudio.activate(id);
         gameAudio.activate(id, external || developerRcc);
         gameSettings.activate(id, developerRcc ? developer.settingsSchemaFor(id) : (external ? mods.settingsSchemaFor(id) : QVariantMap{}));
+        gameSave.setEngine(&engine);
         gameSave.activate(id, version, developerRcc ? developer.saveVersionFor(id) : (external ? mods.saveVersionFor(id) : registry.saveVersionFor(id)));
+        if (auto *builtin = qobject_cast<BuiltinGame *>(controller.currentGame())) builtin->setSaveService(&gameSave);
         gameI18n.activate(id, developerRcc ? developer.defaultLocaleFor(id) : (external ? mods.defaultLocaleFor(id) : QStringLiteral("en")), developerRcc ? developer.localesFor(id) : (external ? mods.localesFor(id) : QStringList{}));
         gameResources.activate(id);
         gameStats.activate(id);
@@ -180,19 +194,29 @@ int main(int argc, char *argv[])
         diagnostics.activate(id, version, source);
         gameInput.reset();
     });
+    QObject::connect(&developer, &DeveloperManager::packageClosing, &controller, [&controller](const QString &id) { if (controller.currentGameId() == id) controller.closeGame(); });
     QObject::connect(&developer, &DeveloperManager::launchRequested, &controller, [&controller](const QString &id, const QUrl &url, const QString &version) { controller.openExternalSession(id, url, version); });
-    QObject::connect(&audio, &AudioManager::audioError, &diagnostics, [&diagnostics](const QString &message, const QString &source) { diagnostics.log(QStringLiteral("audio"), message, source, 0); });
+    QObject::connect(&gameSave, &GameSave::lastErrorChanged, &diagnostics, [&] { if (!gameSave.lastError().isEmpty()) diagnostics.log(QStringLiteral("save"), gameSave.lastError(), QStringLiteral("GameSave"), 0); });
+    QObject::connect(&gameAudio, &GameAudio::audioError, &diagnostics, [&diagnostics](const QString &message, const QString &source) { diagnostics.log(QStringLiteral("audio"), message, source, 0); });
     QObject::connect(&theme, &ThemeManager::errorOccurred, &diagnostics, [&diagnostics](const QString &message) { diagnostics.log(QStringLiteral("theme"), message, QStringLiteral("ThemeManager"), 0); });
 
     QObject::connect(&lifecycle, &GameLifecycle::started, &gameStats, &GameStats::startSession);
     QObject::connect(&lifecycle, &GameLifecycle::started, &gameClock, &GameClock::reset);
     QObject::connect(&lifecycle, &GameLifecycle::paused, &gameClock, &GameClock::pause);
     QObject::connect(&lifecycle, &GameLifecycle::resumed, &gameClock, &GameClock::resume);
+    QObject::connect(&lifecycle, &GameLifecycle::paused, &gameAudio, &GameAudio::pauseAll);
+    QObject::connect(&lifecycle, &GameLifecycle::resumed, &gameAudio, &GameAudio::resumeAll);
     QObject::connect(&lifecycle, &GameLifecycle::closed, &gameStats, &GameStats::endSession);
-    QObject::connect(&controller, &AppController::gameClosed, &app, [&] {
-        // Final safety net for legacy games that call App.closeGame() directly instead of
-        // going through Main.qml's closeCurrentGame() lifecycle sequence.
+    QObject::connect(&controller, &AppController::gameClosing, &app, [&] {
+        gameInput.setFocusRoot(nullptr);
+        lifecycle.save();
         gameSave.forceSave();
+        lifecycle.close();
+        lifecycle.unload();
+        audio.releasePrefix(QStringLiteral("qrc:/mods/%1/").arg(controller.currentGameId()));
+    });
+    QObject::connect(&controller, &AppController::gameClosed, &app, [&] {
+        mods.setActiveGameId(QString{});
         gameStats.endSession();
         gameInput.reset();
         gameAudio.stopMusic();
@@ -207,9 +231,12 @@ int main(int argc, char *argv[])
         achievements.activate(QString{});
     });
     QObject::connect(&app, &QGuiApplication::applicationStateChanged, &app, [&](Qt::ApplicationState state) {
+        if (state == Qt::ApplicationActive) gameAudio.resumeAll();
+        else gameAudio.pauseAll();
         if (controller.currentGameId().isEmpty())
             return;
         if (state == Qt::ApplicationInactive || state == Qt::ApplicationSuspended || state == Qt::ApplicationHidden) {
+            gameInput.reset();
             lifecycle.pause();
             lifecycle.background();
             lifecycle.save();
@@ -222,13 +249,7 @@ int main(int argc, char *argv[])
         }
     });
 
-    QObject::connect(&app, &QCoreApplication::aboutToQuit, &app, [&] {
-        if (!controller.currentGameId().isEmpty()) {
-            lifecycle.save();
-            gameSave.forceSave();
-            gameAudio.pauseAll();
-        }
-    });
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, &controller, &AppController::closeGame);
 
     engine.rootContext()->setContextProperty(QStringLiteral("App"), &controller);
     engine.rootContext()->setContextProperty(QStringLiteral("Paths"), &paths);
@@ -271,7 +292,39 @@ int main(int argc, char *argv[])
                      &app, [] { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
     engine.loadFromModule(QStringLiteral("LeoMiniGames"), QStringLiteral("Main"));
 #if !defined(LMG_PRIVACY_BUILD)
-    QTimer::singleShot(1500, &updates, &UpdateService::checkForUpdatesAutomatically);
+    if (!smokeTest) QTimer::singleShot(1500, &updates, &UpdateService::checkForUpdatesAutomatically);
 #endif
+    if (smokeTest) {
+        const QString sizeText = qEnvironmentVariable("LMG_SMOKE_SIZE");
+        const QStringList dimensions = sizeText.split(QLatin1Char('x'));
+        auto *smokeWindow = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0));
+        if (smokeWindow && dimensions.size() == 2) {
+            smokeWindow->setMinimumSize(QSize(0, 0));
+            smokeWindow->resize(dimensions.at(0).toInt(), dimensions.at(1).toInt());
+        }
+        auto *timer = new QTimer(&app);
+        const QStringList games{QStringLiteral("xox"), QStringLiteral("blackjack"), QStringLiteral("minesweeper"), QStringLiteral("2048"), QStringLiteral("memory_match"), QStringLiteral("reaction_tap")};
+        QObject::connect(timer, &QTimer::timeout, &app, [&, timer, games, index = 0, opened = false]() mutable {
+            if (!opened) {
+                if (index == games.size()) { qInfo("PASS: six builtin QML sessions opened and closed"); app.exit(0); return; }
+                if (!controller.openGame(games.at(index))) { qCritical("Smoke: game open failed"); app.exit(2); return; }
+                opened = true;
+                return;
+            }
+            if (smokeQmlWarnings || lifecycle.gameId() != games.at(index) || !diagnostics.lastError().isEmpty()) {
+                qCritical() << "Smoke: lifecycle/QML failure" << games.at(index) << diagnostics.lastError(); app.exit(3); return;
+            }
+            const QString screenshotDir = qEnvironmentVariable("LMG_SMOKE_OUTPUT");
+            if (!screenshotDir.isEmpty()) {
+                QDir().mkpath(screenshotDir);
+                auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0));
+                if (window) window->grabWindow().save(screenshotDir + QLatin1Char('/') + games.at(index) + QStringLiteral(".png"));
+            }
+            controller.closeGame();
+            if (!controller.currentGameId().isEmpty() || !lifecycle.gameId().isEmpty()) { app.exit(4); return; }
+            ++index; opened = false;
+        });
+        timer->start(500);
+    }
     return app.exec();
 }

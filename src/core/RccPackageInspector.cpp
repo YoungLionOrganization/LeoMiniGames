@@ -45,7 +45,7 @@ QJsonObject readManifest(const QString &path, QString *error)
 
 bool RccPackageInspector::validId(const QString &id)
 {
-    static const QRegularExpression pattern(QStringLiteral("^[a-z0-9][a-z0-9_.-]{1,63}$"));
+    static const QRegularExpression pattern(QStringLiteral("\\A[a-z0-9][a-z0-9_.-]{1,63}\\z"));
     return pattern.match(id).hasMatch();
 }
 

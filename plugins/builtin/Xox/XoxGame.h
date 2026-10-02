@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #pragma once
 
-#include <QObject>
+#include "core/BuiltinGame.h"
 #include <QStringList>
 
-class XoxGame final : public QObject
+class XoxGame final : public BuiltinGame
 {
     Q_OBJECT
     Q_PROPERTY(QStringList board READ board NOTIFY boardChanged)
@@ -29,6 +29,9 @@ public:
     Q_INVOKABLE bool play(int index);
     Q_INVOKABLE void newRound();
     Q_INVOKABLE void resetScore();
+
+    QVariantMap snapshot() const override;
+    bool restoreSnapshot(const QVariantMap &state) override;
 
 signals:
     void boardChanged();

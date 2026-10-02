@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "version": "0.7.2",
-  "tag": "v0.7.2",
-  "title": "LeoMiniGames v0.7.2",
+  "version": "0.7.3",
+  "tag": "v0.7.3",
+  "title": "LeoMiniGames v0.7.3",
   "target_branch": "main",
   "prerelease": false,
   "draft": true,
-  "release_notes_path": "release/notes/v0.7.2.md",
+  "release_notes_path": "release/notes/v0.7.3.md",
   "required_workflows": [
     ".github/workflows/ci.yml",
     ".github/workflows/build-artifacts.yml"

@@ -44,7 +44,7 @@ public:
     Q_INVOKABLE bool applyTheme(const QString &id);
     // Install is intentionally upsert-like for external themes. A package with an
     // already installed external id replaces the old version transactionally.
-    Q_INVOKABLE bool installThemeRcc(const QString &sourcePath, const QString &expectedSha256 = QString{});
+    Q_INVOKABLE bool installThemeRcc(const QString &sourcePath, const QString &expectedSha256 = QString{}, const QString &expectedId = QString{}, const QString &expectedVersion = QString{}, int expectedThemeApi = 0);
     Q_INVOKABLE bool updateThemeRcc(const QString &sourcePath, const QString &expectedSha256 = QString{});
     Q_INVOKABLE bool removeTheme(const QString &id);
     Q_INVOKABLE void reloadInstalled();
@@ -67,6 +67,7 @@ private:
         QString publisher;
         QString filePath;
         QString resourceRoot;
+        QString mountRoot;
         QVariantMap document;
         bool builtIn = false;
         bool registered = false;

@@ -1,1 +1,14 @@
-{"title":"Modern API Example","tap":"Tap me","saved":"Progress saved","loaded":"Progress loaded"}
+{
+  "title": "Modern API Example",
+  "tap": "Tap me",
+  "saved": "Progress saved",
+  "loaded": "Progress loaded",
+  "save": "Save",
+  "load": "Load",
+  "difficulty": "Difficulty",
+  "new": "New session",
+  "paused": "Paused",
+  "invalid": "Saved progress is invalid; original data retained",
+  "save_failed": "Save failed",
+  "load_failed": "Load failed"
+}

@@ -28,13 +28,16 @@ jobs:
       - name: Run validators
         run: |
           python3 tools/source_guard.py
+          python3 tools/validate_documentation.py
+          python3 tests/test_sdk_tools.py
           python3 tools/validate_project.py
           python3 tools/sanity_check.py
           python3 tools/security_audit.py
           python3 tools/validate_i18n.py
           python3 tools/validate_distribution.py
           python3 tools/audit_prebuilt_binaries.py
-          python3 tools/validate_v072.py
+          python3 tools/validate_release_contract.py
+          python3 tests/test_package_validators.py
           node tests/test_installer_scripts.js
           node --check < installer/config/control.qs
           node --check < installer/packages/xyz.younglion.leominigames/meta/installscript.qs
@@ -275,6 +278,18 @@ jobs:
           apk="$(find build-android/android-build -type f -name '*.apk' -print -quit)"
           test -n "$apk"
           python3 tools/validate_android_package.py "$apk" --abis "${{ matrix.abi }}"
+      - name: Launch Intel APK on emulator
+        if: matrix.abi == 'x86_64' || matrix.abi == 'x86'
+        shell: bash
+        run: |
+          apk="$(find build-android/android-build -type f -name '*.apk' -print -quit)"
+          bash tools/ci/run_android_emulator_smoke.sh "$apk" "${{ matrix.abi }}"
+      - uses: actions/upload-artifact@v7
+        if: always() && (matrix.abi == 'x86_64' || matrix.abi == 'x86')
+        with:
+          name: android-${{ matrix.abi }}-launch-evidence
+          path: android-smoke/
+
 
   android-universal:
     name: Android universal multi-ABI
@@ -330,6 +345,16 @@ jobs:
           apk="$(find build-android/android-build -type f -name '*.apk' -print -quit)"
           test -n "$apk"
           python3 tools/validate_android_package.py "$apk" --abis arm64-v8a,armeabi-v7a,x86_64,x86
+      - name: Launch universal APK on emulator
+        run: |
+          apk="$(find build-android/android-build -type f -name '*.apk' -print -quit)"
+          bash tools/ci/run_android_emulator_smoke.sh "$apk" universal
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: android-universal-launch-evidence
+          path: android-smoke/
+
 
   apple-mobile:
     name: ${{ matrix.label }} (unsigned)

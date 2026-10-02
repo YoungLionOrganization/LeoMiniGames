@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 #pragma once
 
-#include <QObject>
+#include "core/BuiltinGame.h"
 #include <QElapsedTimer>
 #include <QTimer>
 
-class ReactionTapGame final : public QObject
+class ReactionTapGame final : public BuiltinGame
 {
     Q_OBJECT
     Q_PROPERTY(QString state READ state NOTIFY stateChanged)
@@ -23,14 +23,21 @@ public:
     int rounds() const;
     int averageMs() const;
 
+    Q_INVOKABLE void pause();
+    Q_INVOKABLE void resume();
     Q_INVOKABLE void startRound();
     Q_INVOKABLE void tap();
+
+    QVariantMap snapshot() const override;
+    bool restoreSnapshot(const QVariantMap &state) override;
 
 signals:
     void stateChanged();
     void statsChanged();
 
 private:
+    bool m_paused = false;
+    qint64 m_elapsedBeforePause = 0;
     QTimer m_waitTimer;
     QElapsedTimer m_elapsed;
     QString m_state = QStringLiteral("idle");

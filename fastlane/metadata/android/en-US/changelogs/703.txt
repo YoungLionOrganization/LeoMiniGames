@@ -1,0 +1,1 @@
+Android TLS launch fix, Windows runtime packaging, safe save recovery, session and input fixes. API 0.7 remains compatible.

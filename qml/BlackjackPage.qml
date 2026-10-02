@@ -29,26 +29,21 @@ Flickable {
     Connections {
         target: game
         function onRoundStarted() {
-            Audio.play("shuffle")
-            Audio.play("deal")
+            GameAudio.playEffect("qrc:/sfx/shuffle.wav")
+            GameAudio.playEffect("qrc:/sfx/deal.wav")
         }
         function onCardDealt(hand) {
-            Audio.play("deal")
+            GameAudio.playEffect("qrc:/sfx/deal.wav")
         }
         function onStateChanged() {
             if (!game.roundOver) return
             if (game.message === "blackjack_win" || game.message === "you_win")
-                Audio.play("win")
+                GameAudio.playEffect("qrc:/sfx/win.wav")
             else if (game.message === "dealer_blackjack" || game.message === "bust" || game.message === "dealer_win")
-                Audio.play("lose")
+                GameAudio.playEffect("qrc:/sfx/lose.wav")
             else if (game.message === "push" || game.message === "push_both_blackjack")
-                Audio.play("success")
+                GameAudio.playEffect("qrc:/sfx/success.wav")
         }
-    }
-
-    Component.onCompleted: {
-        Audio.play("shuffle")
-        Audio.play("deal")
     }
 
     Column {

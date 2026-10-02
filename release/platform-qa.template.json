@@ -1,0 +1,287 @@
+{
+  "version": "0.7.3",
+  "source_sha": "REPLACE_WITH_BUILD_CANDIDATE_SHA",
+  "targets": {
+    "Android-arm64-v8a": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "device_abis": [],
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Android-arm64-v8a.apk": ""
+      }
+    },
+    "Android-armeabi-v7a": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "device_abis": [],
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Android-armeabi-v7a.apk": ""
+      }
+    },
+    "Android-x86_64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "device_abis": [],
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Android-x86_64.apk": ""
+      }
+    },
+    "Android-x86": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "device_abis": [],
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Android-x86.apk": ""
+      }
+    },
+    "Android-universal": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "device_abis": [],
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Android-universal.apk": ""
+      }
+    },
+    "Windows-x86_64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "installer_upgrade_modify_uninstall": false,
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Windows-x86_64-Setup.exe": "",
+        "LeoMiniGames-v0.7.3-Windows-x86_64.zip": ""
+      }
+    },
+    "Windows-x86_64-AVX2": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "installer_upgrade_modify_uninstall": false,
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Windows-x86_64-AVX2-Setup.exe": "",
+        "LeoMiniGames-v0.7.3-Windows-x86_64-AVX2.zip": ""
+      }
+    },
+    "Windows-ARM64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "installer_upgrade_modify_uninstall": false,
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Windows-ARM64-Setup.exe": "",
+        "LeoMiniGames-v0.7.3-Windows-ARM64.zip": ""
+      }
+    },
+    "Linux-Ubuntu-22.04-x86_64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Linux-Ubuntu-22.04-x86_64.AppImage": "",
+        "LeoMiniGames-v0.7.3-Linux-Ubuntu-22.04-x86_64.tar.gz": ""
+      }
+    },
+    "Linux-Ubuntu-24.04-x86_64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-x86_64.AppImage": "",
+        "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-x86_64.tar.gz": ""
+      }
+    },
+    "Linux-Ubuntu-24.04-arm64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-arm64.AppImage": "",
+        "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-arm64.tar.gz": ""
+      }
+    },
+    "Debian-13-x86_64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Debian-13-x86_64-native.tar.gz": ""
+      }
+    },
+    "Debian-13-arm64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Debian-13-arm64-native.tar.gz": ""
+      }
+    },
+    "Arch-x86_64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Arch-x86_64-native.tar.gz": ""
+      }
+    },
+    "macOS-arm64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "gatekeeper_assessed": false,
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-macOS-arm64.dmg": "",
+        "LeoMiniGames-v0.7.3-macOS-arm64.zip": ""
+      }
+    },
+    "macOS-x86_64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "gatekeeper_assessed": false,
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-macOS-x86_64.dmg": "",
+        "LeoMiniGames-v0.7.3-macOS-x86_64.zip": ""
+      }
+    },
+    "macOS-universal": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "gatekeeper_assessed": false,
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-macOS-universal.dmg": "",
+        "LeoMiniGames-v0.7.3-macOS-universal.zip": ""
+      }
+    },
+    "iOS-device-arm64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": ""
+    },
+    "iOS-simulator-x86_64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": ""
+    },
+    "iPadOS-device-arm64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": ""
+    },
+    "iPadOS-simulator-x86_64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": ""
+    }
+  }
+}

@@ -2,7 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BUILD_DIR="${1:?usage: package_linux.sh <build-dir>}"
-VERSION="${LMG_VERSION:-0.7.2}"
+VERSION="${LMG_VERSION:-0.7.3}"
 SUFFIX="${LMG_PLATFORM_SUFFIX:-$(uname -m)}"
 DIST="$ROOT/dist/linux"
 APPDIR="$DIST/LeoMiniGames.AppDir"
@@ -46,6 +46,8 @@ EOF
   --icon-file "$APPDIR/usr/share/icons/hicolor/512x512/apps/leominigames.png" \
   --plugin qt
 [ -x "$APPDIR/AppRun" ] || { echo 'linuxdeploy did not create a runnable AppDir/AppRun.' >&2; exit 5; }
+
+python3 "$ROOT/tools/validate_audio_deployment.py" "$APPDIR"
 
 tar -C "$DIST" -czf "$DIST/LeoMiniGames-v${VERSION}-Linux-${SUFFIX}.tar.gz" "$(basename "$APPDIR")"
 "$APPIMAGETOOL" "$APPDIR" "$DIST/LeoMiniGames-v${VERSION}-Linux-${SUFFIX}.AppImage"

@@ -44,7 +44,21 @@ for abi in "${ABIS[@]}"; do
     # Preserve Android's required 16 KiB alignment on every rewrite.
     patchelf --page-size 16384 --set-soname libcrypto_3.so "$OUT/$abi/libcrypto_3.so"
     patchelf --page-size 16384 --set-soname libssl_3.so "$OUT/$abi/libssl_3.so"
-    patchelf --page-size 16384 --replace-needed libcrypto.so.3 libcrypto_3.so "$OUT/$abi/libssl_3.so"
+    # Android OpenSSL builds use libcrypto.so; some toolchains use libcrypto.so.3.
+    # Inspect the actual dynamic table: replacing a name that is absent is a no-op.
+    for dependency in $(patchelf --print-needed "$OUT/$abi/libssl_3.so"); do
+      case "$dependency" in
+        libcrypto.so|libcrypto.so.3)
+          patchelf --page-size 16384 --replace-needed "$dependency" libcrypto_3.so "$OUT/$abi/libssl_3.so" ;;
+      esac
+    done
+    [[ "$(patchelf --print-soname "$OUT/$abi/libcrypto_3.so")" == libcrypto_3.so ]]
+    [[ "$(patchelf --print-soname "$OUT/$abi/libssl_3.so")" == libssl_3.so ]]
+    patchelf --print-needed "$OUT/$abi/libssl_3.so" | python3 -c '
+import sys
+names = sys.stdin.read().splitlines()
+if "libcrypto_3.so" not in names or {"libcrypto.so", "libcrypto.so.3"}.intersection(names):
+    raise SystemExit("OpenSSL DT_NEEDED was not rewritten to libcrypto_3.so")'
     cp LICENSE.txt "$OUT/LICENSE-OpenSSL.txt"
   )
 done

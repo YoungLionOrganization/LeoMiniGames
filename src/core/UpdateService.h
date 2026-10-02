@@ -26,7 +26,7 @@ class UpdateService final : public QObject
     Q_PROPERTY(QString installType READ installType NOTIFY maintenanceAvailabilityChanged)
 
 public:
-    explicit UpdateService(SettingsManager *settings, QObject *parent = nullptr);
+    explicit UpdateService(SettingsManager *settings, QObject *parent = nullptr, QNetworkAccessManager *network = nullptr);
 
     QString currentVersion() const;
     QString latestVersion() const { return m_latestVersion; }
