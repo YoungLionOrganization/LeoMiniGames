@@ -31,6 +31,7 @@ jobs:
           python3 tools/validate_documentation.py
           python3 tests/test_sdk_tools.py
           python3 tests/test_ci_scripts.py
+          python3 tests/test_linux_installer.py
           python3 tools/validate_project.py
           python3 tools/sanity_check.py
           python3 tools/security_audit.py
@@ -84,51 +85,12 @@ jobs:
         run: ctest --test-dir build --output-on-failure
 
   linux-distro:
-    name: Linux native ${{ matrix.label }}
     needs: static-validation
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: ubuntu-24.04
-            image: debian:13-slim
-            distro: debian
-            label: Debian-13-x86_64
-          - runner: ubuntu-24.04-arm
-            image: debian:13-slim
-            distro: debian
-            label: Debian-13-arm64
-          - runner: ubuntu-24.04
-            image: archlinux:latest
-            distro: arch
-            label: Arch-x86_64
-    runs-on: ${{ matrix.runner }}
-    container:
-      image: ${{ matrix.image }}
-    steps:
-      - name: Install Debian build dependencies
-        if: matrix.distro == 'debian'
-        shell: bash
-        run: |
-          apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            ca-certificates git python3 build-essential cmake ninja-build libsecret-1-dev pkg-config \
-            libgl-dev qt6-base-dev qt6-declarative-dev qt6-declarative-private-dev qt6-svg-dev qt6-multimedia-dev
-      - name: Install Arch build dependencies
-        if: matrix.distro == 'arch'
-        shell: bash
-        run: |
-          pacman -Syu --noconfirm
-          pacman -S --needed --noconfirm \
-            git python base-devel cmake ninja libsecret pkgconf \
-            qt6-base qt6-declarative qt6-svg qt6-multimedia
-      - uses: actions/checkout@v7
-      - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Test
-        run: ctest --test-dir build --output-on-failure
+    uses: ./.github/workflows/linux-native-packages.yml
+
+  linux-flatpak:
+    needs: static-validation
+    uses: ./.github/workflows/linux-flatpak.yml
 
   windows-msvc-x64:
     name: Windows x86_64 (MSVC 2022)

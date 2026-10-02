@@ -45,6 +45,7 @@ jobs:
           python3 tools/validate_documentation.py
           python3 tests/test_sdk_tools.py
           python3 tests/test_ci_scripts.py
+          python3 tests/test_linux_installer.py
           python3 tools/validate_project.py
           python3 tools/sanity_check.py
           python3 tools/security_audit.py
@@ -237,6 +238,8 @@ jobs:
         env:
           LMG_PLATFORM_SUFFIX: ${{ matrix.label }}
         run: bash tools/package/package_linux.sh build
+      - name: Test packaged Linux installer
+        run: LMG_TEST_APPDIR="$PWD/dist/linux/LeoMiniGames.AppDir" python3 tests/test_linux_installer.py
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ env.LMG_VERSION }}-${{ matrix.label }}
@@ -244,58 +247,12 @@ jobs:
           if-no-files-found: error
 
   linux-native:
-    name: Native ${{ matrix.label }}
     needs: validate
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: ubuntu-24.04
-            image: debian:13-slim
-            distro: debian
-            label: Debian-13-x86_64
-          - runner: ubuntu-24.04-arm
-            image: debian:13-slim
-            distro: debian
-            label: Debian-13-arm64
-          - runner: ubuntu-24.04
-            image: archlinux:latest
-            distro: arch
-            label: Arch-x86_64
-    runs-on: ${{ matrix.runner }}
-    container:
-      image: ${{ matrix.image }}
-    steps:
-      - name: Debian dependencies
-        if: matrix.distro == 'debian'
-        shell: bash
-        run: |
-          apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            ca-certificates git python3 build-essential cmake ninja-build libsecret-1-dev pkg-config tar gzip \
-            libgl-dev qt6-base-dev qt6-declarative-dev qt6-declarative-private-dev qt6-svg-dev qt6-multimedia-dev
-      - name: Arch dependencies
-        if: matrix.distro == 'arch'
-        shell: bash
-        run: |
-          pacman -Syu --noconfirm
-          pacman -S --needed --noconfirm \
-            git python base-devel cmake ninja libsecret pkgconf tar gzip \
-            qt6-base qt6-declarative qt6-svg qt6-multimedia
-      - uses: actions/checkout@v7
-      - run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
-          cmake --build build --parallel
-          ctest --test-dir build --output-on-failure
-      - name: Package native runtime
-        env:
-          LMG_PLATFORM_SUFFIX: ${{ matrix.label }}
-        run: bash tools/package/package_linux_native.sh build
-      - uses: actions/upload-artifact@v7
-        with:
-          name: LeoMiniGames-${{ env.LMG_VERSION }}-${{ matrix.label }}-native
-          path: dist/linux-native/*
-          if-no-files-found: error
+    uses: ./.github/workflows/linux-native-packages.yml
+
+  linux-flatpak:
+    needs: validate
+    uses: ./.github/workflows/linux-flatpak.yml
 
   macos:
     name: macOS ${{ matrix.label }} ZIP + DMG
@@ -608,6 +565,7 @@ jobs:
       - windows-arm64
       - linux-portable
       - linux-native
+      - linux-flatpak
       - macos
       - android
       - android-universal
@@ -620,6 +578,8 @@ jobs:
           path: _artifacts
       - name: Collect strict public asset set and QtIFW repositories
         run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm libarchive-tools flatpak ostree
           python3 tools/release/collect_release_assets.py \
             --artifact-root _artifacts \
             --public-output _release-assets \

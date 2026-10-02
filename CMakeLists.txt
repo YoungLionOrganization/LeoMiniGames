@@ -12,6 +12,7 @@ option(LEOMINIGAMES_ENABLE_AUDIO "Enable host audio (required for normal/release
 if(LEOMINIGAMES_ENABLE_AUDIO)
     find_package(Qt6 6.8 REQUIRED COMPONENTS Multimedia)
 endif()
+
 qt_standard_project_setup(REQUIRES 6.8)
 include(CTest)
 
@@ -200,4 +201,24 @@ if(WIN32)
     configure_file(resources/windows/leominigames.rc.in "${CMAKE_CURRENT_BINARY_DIR}/leominigames.rc" @ONLY)
     target_sources(LeoMiniGames PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/leominigames.rc")
     set_target_properties(LeoMiniGames PROPERTIES WIN32_EXECUTABLE TRUE)
+endif()
+
+# Desktop Linux packages and Flatpak share one install layout. Builtin plugins
+# and QML are embedded in the executable; Qt itself remains a distro/runtime dependency.
+if(UNIX AND NOT APPLE AND NOT ANDROID)
+    include(GNUInstallDirs)
+    install(TARGETS LeoMiniGames RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES packaging/linux/xyz.younglion.leominigames.desktop
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+    install(FILES packaging/linux/xyz.younglion.leominigames.metainfo.xml
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
+    install(FILES resources/branding/leominigames_icon_512.png
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/512x512/apps
+        RENAME xyz.younglion.leominigames.png)
+    install(FILES LICENSE NOTICE COPYRIGHT LICENSING.md LICENSE_HISTORY.md LICENSE_METADATA.json
+        docs/THIRD_PARTY_NOTICES.md docs/QT_LGPL_COMPLIANCE.md
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/leominigames)
+    install(FILES licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt
+        licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/leominigames/licenses)
 endif()

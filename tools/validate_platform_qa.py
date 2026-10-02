@@ -10,6 +10,7 @@ TARGETS = (
     'Windows-x86_64', 'Windows-x86_64-AVX2', 'Windows-ARM64',
     'Linux-Ubuntu-22.04-x86_64', 'Linux-Ubuntu-24.04-x86_64', 'Linux-Ubuntu-24.04-arm64',
     'Debian-13-x86_64', 'Debian-13-arm64', 'Arch-x86_64',
+    'Fedora-43-x86_64', 'Fedora-43-arm64', 'Flatpak-x86_64', 'Flatpak-aarch64',
     'macOS-arm64', 'macOS-x86_64', 'macOS-universal',
     'iOS-device-arm64', 'iOS-simulator-x86_64', 'iPadOS-device-arm64', 'iPadOS-simulator-x86_64',
 )
@@ -18,8 +19,11 @@ def target_artifacts(target):
     prefix = 'LeoMiniGames-v0.7.3-' + target
     if target.startswith('Android-'): return {prefix + '.apk'}
     if target.startswith('Windows-'): return {prefix + '.zip', prefix + '-Setup.exe'}
-    if target.startswith('Linux-'): return {prefix + '.tar.gz', prefix + '.AppImage'}
-    if target.startswith(('Debian-', 'Arch-')): return {prefix + '-native.tar.gz'}
+    if target.startswith('Linux-'): return {prefix + '.tar.gz', prefix + '.AppImage', prefix + '-Setup.run'}
+    if target.startswith('Debian-'): return {prefix + '-native.tar.gz', prefix + '.deb'}
+    if target.startswith('Arch-'): return {prefix + '-native.tar.gz', prefix + '.pkg.tar.zst'}
+    if target.startswith('Fedora-'): return {prefix + '-native.tar.gz', prefix + '.rpm'}
+    if target.startswith('Flatpak-'): return {'LeoMiniGames-v0.7.3-Linux-' + target.removeprefix('Flatpak-') + '.flatpak'}
     if target.startswith('macOS-'): return {prefix + '.zip', prefix + '.dmg'}
     return set()
 

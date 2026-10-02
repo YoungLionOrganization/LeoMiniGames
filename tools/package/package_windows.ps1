@@ -86,8 +86,7 @@ if (Test-Path $VsWhere) {
 . (Join-Path $PSScriptRoot 'find_msvc_runtime.ps1')
 $Crt = Find-LmgMsvcRuntime -RedistRoots $RedistRoots -Architecture $RedistArch
 Write-Host "Deploying $RedistArch runtime from $($Crt.FullName)"
-Copy-Item (Join-Path $Crt.FullName '*.dll') $Stage -Force
-& python (Join-Path $Root 'tools/validate_windows_runtime.py') $Stage
+& python (Join-Path $Root 'tools/validate_windows_runtime.py') $Stage --deploy-crt $Crt.FullName
 if ($LASTEXITCODE -ne 0) { throw 'Packaged MSVC runtime validation failed.' }
 
 & python (Join-Path $Root 'tools/validate_audio_deployment.py') $Stage

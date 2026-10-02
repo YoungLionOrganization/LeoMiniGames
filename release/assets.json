@@ -69,8 +69,8 @@
       "id": "linux-native",
       "pattern": "LeoMiniGames-v{version}-*-native.tar.gz",
       "required": true,
-      "min_count": 3,
-      "max_count": 3
+      "min_count": 5,
+      "max_count": 5
     },
     {
       "id": "macos-zip",
@@ -92,6 +92,41 @@
       "required": true,
       "min_count": 5,
       "max_count": 5
+    },
+    {
+      "id": "linux-setup",
+      "pattern": "LeoMiniGames-v{version}-Linux-*-Setup.run",
+      "required": true,
+      "min_count": 3,
+      "max_count": 3
+    },
+    {
+      "id": "linux-deb",
+      "pattern": "LeoMiniGames-v{version}-Debian-13-*.deb",
+      "required": true,
+      "min_count": 2,
+      "max_count": 2
+    },
+    {
+      "id": "linux-rpm",
+      "pattern": "LeoMiniGames-v{version}-Fedora-43-*.rpm",
+      "required": true,
+      "min_count": 2,
+      "max_count": 2
+    },
+    {
+      "id": "linux-arch",
+      "pattern": "LeoMiniGames-v{version}-Arch-x86_64.pkg.tar.zst",
+      "required": true,
+      "min_count": 1,
+      "max_count": 1
+    },
+    {
+      "id": "linux-flatpak",
+      "pattern": "LeoMiniGames-v{version}-Linux-*.flatpak",
+      "required": true,
+      "min_count": 2,
+      "max_count": 2
     }
   ],
   "forbidden_public_patterns": [
@@ -131,6 +166,18 @@
     "LeoMiniGames-v{version}-Android-armeabi-v7a.apk",
     "LeoMiniGames-v{version}-Android-x86_64.apk",
     "LeoMiniGames-v{version}-Android-x86.apk",
-    "LeoMiniGames-v{version}-Android-universal.apk"
+    "LeoMiniGames-v{version}-Android-universal.apk",
+    "LeoMiniGames-v{version}-Linux-Ubuntu-22.04-x86_64-Setup.run",
+    "LeoMiniGames-v{version}-Linux-Ubuntu-24.04-x86_64-Setup.run",
+    "LeoMiniGames-v{version}-Linux-Ubuntu-24.04-arm64-Setup.run",
+    "LeoMiniGames-v{version}-Debian-13-x86_64.deb",
+    "LeoMiniGames-v{version}-Debian-13-arm64.deb",
+    "LeoMiniGames-v{version}-Fedora-43-x86_64-native.tar.gz",
+    "LeoMiniGames-v{version}-Fedora-43-x86_64.rpm",
+    "LeoMiniGames-v{version}-Fedora-43-arm64-native.tar.gz",
+    "LeoMiniGames-v{version}-Fedora-43-arm64.rpm",
+    "LeoMiniGames-v{version}-Arch-x86_64.pkg.tar.zst",
+    "LeoMiniGames-v{version}-Linux-x86_64.flatpak",
+    "LeoMiniGames-v{version}-Linux-aarch64.flatpak"
   ]
 }

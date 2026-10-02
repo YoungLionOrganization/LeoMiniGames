@@ -58,7 +58,26 @@ def validate(stage):
     if not required: raise ValueError('no MSVC runtime imports found; check package')
     return required
 
+
+def deploy_runtime(stage, crt):
+    """Copy only DLLs for the application's ISA, then enforce import closure.
+
+    VS ARM64 CRT directories can also contain x64/ARM64EC helper DLLs. They
+    must not be copied indiscriminately into a native ARM64 application.
+    """
+    import shutil
+    target, _ = imports((stage/'LeoMiniGames.exe').read_bytes())
+    for path in crt.glob('*.dll'):
+        machine, _ = imports(path.read_bytes())
+        if machine == target:
+            shutil.copy2(path, stage/path.name)
+        else:
+            print(f'Skip {path.name}: PE machine 0x{machine:04x}, target 0x{target:04x}')
+    return validate(stage)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(); parser.add_argument('stage', type=Path)
+    parser.add_argument('--deploy-crt', type=Path)
     args = parser.parse_args()
-    print('PASS: MSVC runtime closure:', ', '.join(sorted(validate(args.stage))))
+    result = deploy_runtime(args.stage, args.deploy_crt) if args.deploy_crt else validate(args.stage)
+    print('PASS: MSVC runtime closure:', ', '.join(sorted(result)))

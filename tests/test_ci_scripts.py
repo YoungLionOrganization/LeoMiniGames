@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class EmulatorWrapperTests(unittest.TestCase):
-    def run_wrapper(self, abi='x86_64', failure=False, missing=False):
+    def run_wrapper(self, abi='x86_64', failure=False, missing=False, avd_failure=False, empty_avd=False):
         with tempfile.TemporaryDirectory() as folder:
             tmp = Path(folder)
             bin_dir = tmp/'bin'
@@ -24,7 +24,14 @@ class EmulatorWrapperTests(unittest.TestCase):
                 path.write_text(body)
                 path.chmod(0o755)
             script(bin_dir/'sdkmanager', '#!/usr/bin/env bash\nexit 0\n')
-            script(bin_dir/'avdmanager', '#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$TEST_LOG"\nexit 0\n')
+            script(bin_dir/'avdmanager', '''#!/usr/bin/env bash
+printf "%s\\n" "$*" >> "$TEST_LOG"
+[[ "$TEST_AVD_FAILURE" == 0 ]] || { echo 'fixture AVD failure' >&2; exit 7; }
+[[ "$TEST_EMPTY_AVD" == 0 ]] || exit 0
+mkdir -p "$ANDROID_AVD_HOME/lmg-smoke.avd"
+printf 'path=fixture\\n' > "$ANDROID_AVD_HOME/lmg-smoke.ini"
+printf 'abi.type=fixture\\n' > "$ANDROID_AVD_HOME/lmg-smoke.avd/config.ini"
+''')
             script(bin_dir/'sleep', '#!/usr/bin/env bash\nexit 0\n')
             script(bin_dir/'sudo', '#!/usr/bin/env bash\nexit 0\n')
             script(emulator_dir/'emulator', '''#!/usr/bin/env python3
@@ -56,7 +63,10 @@ elif 'logcat -d' in args:
             if not missing: apk.write_bytes(b'control flow fixture only')
             env = dict(os.environ, PATH=str(bin_dir)+os.pathsep+os.environ['PATH'],
                        ANDROID_SDK_ROOT=str(tmp/'sdk'), TEST_MARKER=str(marker),
-                       TEST_LOG=str(log), TEST_FAILURE='1' if failure else '0')
+                       TEST_LOG=str(log), TEST_FAILURE='1' if failure else '0',
+                       LMG_AVDMANAGER=str(bin_dir/'avdmanager'),
+                       TEST_AVD_FAILURE='1' if avd_failure else '0',
+                       TEST_EMPTY_AVD='1' if empty_avd else '0')
             for key in ('LD_LIBRARY_PATH','QT_PLUGIN_PATH','QT_QPA_PLATFORM_PLUGIN_PATH',
                         'QML2_IMPORT_PATH','QML_IMPORT_PATH','QT_QPA_PLATFORM','QT_QPA_PLATFORMTHEME'):
                 env[key] = '/fixture/android/qt'
@@ -87,6 +97,14 @@ elif 'logcat -d' in args:
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('APK not found', result.stderr)
         self.assertEqual(log, '')
+
+    def test_failed_or_empty_avd_never_starts_emulator(self):
+        for flags in ({'avd_failure': True}, {'empty_avd': True}):
+            result, log, args = self.run_wrapper(**flags)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(args, [])
+            self.assertNotIn('adb ', log)
+            self.assertTrue('fixture AVD failure' in result.stderr or 'usable configuration' in result.stderr)
 
 
 if __name__ == '__main__':

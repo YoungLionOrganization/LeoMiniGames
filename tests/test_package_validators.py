@@ -6,6 +6,8 @@ import json
 import zipfile
 import tempfile
 import unittest
+import io
+import tarfile
 
 ROOT = Path(__file__).resolve().parents[1]
 def module(name, path):
@@ -54,6 +56,23 @@ def pe(needed=(), machine=0x8664):
 
 
 class PackageValidators(unittest.TestCase):
+    def test_native_linux_tar_uses_system_qt_and_checks_isa_and_license(self):
+        def archive(binary, license=True, escape=False):
+            output=io.BytesIO()
+            with tarfile.open(fileobj=output,mode='w:gz') as tar:
+                for name,data in [('LeoMiniGames',binary)]+([('LICENSE',b'license')] if license else []):
+                    info=tarfile.TarInfo(('../' if escape else '')+'native/'+name)
+                    info.size=len(data);info.mode=0o755;tar.addfile(info,io.BytesIO(data))
+            output.seek(0)
+            return tarfile.open(fileobj=output,mode='r:gz')
+        binary=elf('x86_64','LeoMiniGames',['libQt6Multimedia.so.6'])
+        assets.validate_linux_tar(archive(binary),'Linux-x86_64-native.tar.gz')
+        for tar,name in [(archive(binary,license=False),'Linux-x86_64-native.tar.gz'),
+                         (archive(binary),'Linux-arm64-native.tar.gz'),
+                         (archive(binary,escape=True),'Linux-x86_64-native.tar.gz'),
+                         (archive(elf('x86_64','LeoMiniGames')),'Linux-x86_64-native.tar.gz')]:
+            with self.assertRaises(ValueError):assets.validate_linux_tar(tar,name)
+
     def libs(self, abi, crypto='libcrypto_3.so'):
         return {name:elf(abi,name,needed) for name,needed in (
             ('libcrypto_3.so',('libc.so',)),('libssl_3.so',(crypto,'libdl.so')),
@@ -108,6 +127,20 @@ class PackageValidators(unittest.TestCase):
         disabled=struct.pack('<HHI',3,8,len(manifest))+pool+node
         with self.assertRaises(ValueError):android.require_extracted_native_libraries(disabled)
         with self.assertRaises(ValueError):android.require_extracted_native_libraries(b'not a manifest')
+
+    def test_mixed_arm64_crt_copies_only_native_dlls_and_requires_closure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            stage=Path(directory)/'stage';stage.mkdir()
+            crt=Path(directory)/'crt';crt.mkdir()
+            (stage/'LeoMiniGames.exe').write_bytes(pe(['vcruntime140.dll','msvcp140.dll'],machine=0xaa64))
+            for name in ('vcruntime140.dll','msvcp140.dll'):
+                (crt/name).write_bytes(pe(machine=0xaa64))
+            (crt/'vcruntime140_1.dll').write_bytes(pe(machine=0x8664))
+            windows.deploy_runtime(stage,crt)
+            self.assertFalse((stage/'vcruntime140_1.dll').exists())
+            (stage/'LeoMiniGames.exe').write_bytes(pe(['vcruntime140_1.dll'],machine=0xaa64))
+            with self.assertRaisesRegex(ValueError,'missing app-local runtime'):
+                windows.deploy_runtime(stage,crt)
 
     def test_apk_certificate_identity_and_unsigned_rejection(self):
         def lp(data): return struct.pack('<I',len(data))+data

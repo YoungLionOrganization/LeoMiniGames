@@ -363,7 +363,7 @@ Application update discovery and downloads are resolved through `https://leomini
 - `release-assets` — the validated public Release payload;
 - `update-repositories` — the Windows QtIFW repositories used by Maintenance Tool.
 
-The public asset allowlist for v0.7.2 contains 27 files: the source ZIP; Windows x86_64 baseline, x86_64 AVX2 and ARM64 portable ZIPs and Setup EXEs; three Linux portable tarballs, three AppImages and three native tarballs; three macOS ZIPs and three DMGs; and five Android APKs. AABs, unsigned Apple test bundles, checksum sidecars, legal sidecars and QtIFW repository internals are intentionally excluded from the public GitHub Release asset set.
+The v0.7.3 public asset allowlist contains 39 files: source ZIP; six Windows ZIP/Setup files; three Linux portable tarballs, three AppImages, three Setup.run installers, five native tarballs, two DEBs, two RPMs, one Arch package and two Flatpak bundles; six macOS ZIP/DMG files; and five Android APKs. See [Linux package choices](docs/LINUX_PACKAGES.md). AABs, unsigned Apple test bundles, checksum/legal sidecars and QtIFW repository internals remain excluded from public assets.
 
 Windows packaging runs `windeployqt` before creating the portable archive. QtIFW produces hybrid installers so the installed Maintenance Tool can later consume the published update repository.
 

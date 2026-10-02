@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=LeoMiniGames
+Comment=Modular Qt mini-game platform
+Exec=LeoMiniGames
+Icon=xyz.younglion.leominigames
+Categories=Game;
+Terminal=false
+StartupWMClass=LeoMiniGames

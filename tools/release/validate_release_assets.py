@@ -11,9 +11,81 @@ import subprocess
 import tarfile
 import zipfile
 import tempfile
+import io
+import struct
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from validate_audio_deployment import require_audio_backend
+from validate_android_package import dynamic_dependencies
+
+
+def require_linux_binary(data, name):
+    if len(data) < 64 or data[:6] != b'\x7fELF\x02\x01': raise ValueError(f'{name}: invalid 64-bit Linux ELF')
+    machine = struct.unpack_from('<H', data, 18)[0]
+    needed, _ = dynamic_dependencies(data, name)
+    expected = 183 if any(x in name for x in ('arm64', 'aarch64')) else 62
+    if machine != expected: raise ValueError(f'{name}: wrong Linux ELF architecture')
+    if not any(dep.startswith('libQt6Multimedia.so') for dep in needed):
+        raise ValueError(f'{name}: native binary is missing Qt Multimedia linkage')
+
+
+def validate_linux_tar(archive, name, bundled=False, setup=False):
+    members = archive.getmembers()
+    for member in members:
+        path = Path(member.name)
+        if path.is_absolute() or '..' in path.parts: raise ValueError(f'{name}: unsafe archive member')
+    entries = [m for m in members if m.isfile() and m.size > 0]
+    binaries = [m for m in entries if Path(m.name).name == 'LeoMiniGames']
+    if len(binaries) != 1: raise ValueError(f'{name}: expected one Linux executable')
+    if not binaries[0].mode & 0o111: raise ValueError(f'{name}: Linux executable is not executable')
+    require_linux_binary(archive.extractfile(binaries[0]).read(), name)
+    if not any(Path(m.name).name == 'LICENSE' for m in entries): raise ValueError(f'{name}: license missing')
+    if bundled:
+        require_audio_backend(m.name for m in entries)
+        if not any(m.name.endswith('/AppRun') and m.mode & 0o111 for m in entries):
+            raise ValueError(f'{name}: executable AppRun missing')
+
+
+def validate_linux_package(path):
+    """Inspect package payloads without executing maintainer scripts."""
+    if path.suffix == '.deb':
+        metadata = subprocess.check_output(['dpkg-deb', '--field', str(path), 'Package'], text=True).strip()
+        if metadata != 'leominigames': raise ValueError(f'{path.name}: incorrect DEB package identity')
+        payload = subprocess.check_output(['dpkg-deb', '--fsys-tarfile', str(path)])
+        with tarfile.open(fileobj=io.BytesIO(payload), mode='r:') as archive:
+            validate_linux_tar(archive, path.name)
+        return
+    if path.suffix == '.rpm':
+        identity = subprocess.check_output(['rpm', '-qp', '--qf', '%{NAME}', str(path)], text=True)
+        if identity != 'leominigames': raise ValueError(f'{path.name}: incorrect RPM package identity')
+        payload = subprocess.check_output(['rpm2cpio', str(path)])
+    else:
+        payload = path.read_bytes()
+    names = subprocess.check_output(['bsdtar', '-tf', '-'], input=payload).decode().splitlines()
+    for name in names:
+        if name.startswith('/') or '..' in Path(name).parts: raise ValueError(f'{path.name}: unsafe package member')
+    binary = next((name for name in names if name.removeprefix('./') == 'usr/bin/LeoMiniGames'), None)
+    if not binary or not any(name.removeprefix('./') == 'usr/share/doc/leominigames/LICENSE' for name in names):
+        raise ValueError(f'{path.name}: executable/legal payload missing')
+    if path.name.endswith('.pkg.tar.zst'):
+        info = subprocess.check_output(['bsdtar', '-xOf', '-', '.PKGINFO'], input=payload).decode()
+        if 'pkgname = leominigames\n' not in info: raise ValueError(f'{path.name}: incorrect Arch package identity')
+    require_linux_binary(subprocess.check_output(['bsdtar', '-xOf', '-', binary], input=payload), path.name)
+
+
+def validate_flatpak(path):
+    with tempfile.TemporaryDirectory() as folder:
+        repo = Path(folder)/'repo'
+        subprocess.run(['ostree', f'--repo={repo}', 'init', '--mode=archive'], check=True, capture_output=True)
+        subprocess.run(['flatpak', 'build-import', str(repo), str(path)], check=True, capture_output=True)
+        refs = subprocess.check_output(['ostree', f'--repo={repo}', 'refs'], text=True).splitlines()
+        arch = 'aarch64' if 'aarch64' in path.name else 'x86_64'
+        ref = f'app/xyz.younglion.leominigames/{arch}/master'
+        if ref not in refs: raise ValueError(f'{path.name}: incorrect Flatpak app identity/architecture')
+        data = subprocess.check_output(['ostree', f'--repo={repo}', 'cat', ref, '/files/bin/LeoMiniGames'])
+        require_linux_binary(data, path.name)
+        subprocess.run(['ostree', f'--repo={repo}', 'cat', ref, '/files/share/doc/leominigames/LICENSE'],
+                       check=True, capture_output=True)
 
 
 def digest(path):
@@ -58,9 +130,18 @@ def validate_content(path, root):
             subprocess.run([sys.executable, str(root/'tools/validate_android_package.py'), str(path), '--abis', abis, '--certificate-sha256', certificate], check=True)
     elif path.name.endswith('.tar.gz'):
         with tarfile.open(path, 'r:gz') as archive:
-            entries = [m for m in archive.getmembers() if m.isfile() and m.size > 0]
-            if not entries or not any(Path(m.name).name == 'LeoMiniGames' for m in entries): raise ValueError(f'{path.name}: missing Linux executable')
-            require_audio_backend(m.name for m in entries)
+            validate_linux_tar(archive, path.name, bundled=not path.name.endswith('-native.tar.gz'))
+    elif path.suffix == '.run':
+        data = path.read_bytes()
+        marker = b'\n__LMG_PAYLOAD_BELOW__\n'
+        if not data.startswith(b'#!/usr/bin/env bash\n') or marker not in data:
+            raise ValueError(f'{path.name}: invalid Linux installer')
+        with tarfile.open(fileobj=io.BytesIO(data.split(marker, 1)[1]), mode='r:gz') as archive:
+            validate_linux_tar(archive, path.name, bundled=True)
+    elif path.suffix in ('.deb', '.rpm') or path.name.endswith('.pkg.tar.zst'):
+        validate_linux_package(path)
+    elif path.suffix == '.flatpak':
+        validate_flatpak(path)
     elif path.suffix == '.exe':
         if signature[:2] != b'MZ': raise ValueError(f'{path.name}: invalid PE')
     elif path.suffix == '.AppImage':

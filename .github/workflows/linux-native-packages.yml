@@ -1,0 +1,114 @@
+name: Linux native packages
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  LMG_VERSION: "0.7.3"
+
+jobs:
+  packages:
+    name: ${{ matrix.label }} install and uninstall
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            image: debian:13-slim
+            distro: debian
+            format: deb
+            label: Debian-13-x86_64
+          - runner: ubuntu-24.04-arm
+            image: debian:13-slim
+            distro: debian
+            format: deb
+            label: Debian-13-arm64
+          - runner: ubuntu-24.04
+            image: archlinux:latest
+            distro: arch
+            format: arch
+            label: Arch-x86_64
+          - runner: ubuntu-24.04
+            image: fedora:43
+            distro: fedora
+            format: rpm
+            label: Fedora-43-x86_64
+          - runner: ubuntu-24.04-arm
+            image: fedora:43
+            distro: fedora
+            format: rpm
+            label: Fedora-43-arm64
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - name: Debian dependencies
+        if: matrix.distro == 'debian'
+        shell: bash
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates git python3 build-essential cmake ninja-build libsecret-1-dev pkg-config tar gzip \
+            dpkg-dev xvfb xauth libgl1-mesa-dri libgl-dev \
+            qt6-base-dev qt6-declarative-dev qt6-declarative-private-dev qt6-svg-dev qt6-multimedia-dev
+      - name: Arch dependencies
+        if: matrix.distro == 'arch'
+        shell: bash
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --needed --noconfirm git python base-devel cmake ninja libsecret pkgconf tar gzip zstd \
+            qt6-base qt6-declarative qt6-svg qt6-multimedia xorg-server-xvfb xorg-xauth mesa
+          useradd --create-home lmg-build
+      - name: Fedora dependencies
+        if: matrix.distro == 'fedora'
+        shell: bash
+        run: |
+          dnf install -y ca-certificates git python3 gcc-c++ cmake ninja-build libsecret-devel pkgconf-pkg-config \
+            tar gzip rpm-build xorg-x11-server-Xvfb xorg-x11-xauth mesa-dri-drivers \
+            qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtsvg-devel qt6-qtmultimedia-devel
+      - uses: actions/checkout@v7
+      - name: Build and CTest
+        shell: bash
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          cmake --build build --parallel 4
+          ctest --test-dir build --output-on-failure
+          python3 tests/test_linux_installer.py
+      - name: Package native archive and installer
+        shell: bash
+        env:
+          LMG_PLATFORM_SUFFIX: ${{ matrix.label }}
+        run: |
+          bash tools/package/package_linux_native.sh build
+          if [[ '${{ matrix.distro }}' == arch ]]; then
+            chown -R lmg-build "$GITHUB_WORKSPACE"
+            runuser -u lmg-build -- env LMG_VERSION="$LMG_VERSION" LMG_PLATFORM_SUFFIX="$LMG_PLATFORM_SUFFIX" \
+              bash tools/package/package_linux_distro.sh build arch
+          else
+            bash tools/package/package_linux_distro.sh build '${{ matrix.format }}'
+          fi
+      - name: Install, launch six games, reinstall and uninstall
+        shell: bash
+        run: |
+          case '${{ matrix.format }}' in
+            deb) extension=deb;; rpm) extension=rpm;; arch) extension=pkg.tar.zst;;
+          esac
+          bash tools/ci/linux_package_smoke.sh \
+            "dist/linux-native/LeoMiniGames-v${LMG_VERSION}-${{ matrix.label }}.$extension" '${{ matrix.format }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: linux-native-${{ matrix.label }}-evidence
+          path: linux-package-smoke/
+      - uses: actions/upload-artifact@v7
+        with:
+          name: LeoMiniGames-${{ env.LMG_VERSION }}-${{ matrix.label }}-native
+          path: |
+            dist/linux-native/*.tar.gz
+            dist/linux-native/*.deb
+            dist/linux-native/*.rpm
+            dist/linux-native/*.pkg.tar.zst
+          if-no-files-found: error

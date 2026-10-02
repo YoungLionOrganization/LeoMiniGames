@@ -11,7 +11,22 @@ case "$ABI" in
 esac
 mkdir -p "$OUT"
 sdkmanager "emulator" "$IMAGE"
-avdmanager create avd --force -n lmg-smoke -k "$IMAGE" --abi "$DEVICE_ABI" --device pixel_2 <<< no
+# Pin a known command-line tools release: newer preview tools have failed while
+# reading the optional devices.xml in otherwise valid Google system images.
+sdkmanager 'cmdline-tools;16.0'
+AVDMANAGER="${LMG_AVDMANAGER:-${ANDROID_SDK_ROOT:?}/cmdline-tools/16.0/bin/avdmanager}"
+export ANDROID_AVD_HOME="$(cd "$OUT" && pwd)/avd"
+mkdir -p "$ANDROID_AVD_HOME"
+if ! "$AVDMANAGER" create avd --force -n lmg-smoke -k "$IMAGE" --abi "$DEVICE_ABI" --device pixel_2 \
+  > "$OUT/avd-create.log" 2>&1 <<< no; then
+  cat "$OUT/avd-create.log" >&2
+  exit 1
+fi
+[[ -s "$ANDROID_AVD_HOME/lmg-smoke.ini" && -s "$ANDROID_AVD_HOME/lmg-smoke.avd/config.ini" ]] || {
+  echo 'AVD creation did not produce a usable configuration.' >&2
+  cat "$OUT/avd-create.log" >&2
+  exit 1
+}
 if [[ -e /dev/kvm ]]; then sudo chmod 666 /dev/kvm; fi
 # install-qt-action exports Android Qt libraries/plugins. The host emulator ships
 # its own Qt: inheriting those paths can abort it before adb sees a device.

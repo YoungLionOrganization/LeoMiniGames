@@ -1,0 +1,15 @@
+# Official prebuilt payload, produced from the same source SHA by the workflow.
+pkgname=leominigames
+pkgver=${LMG_VERSION:-0.7.3}
+pkgrel=1
+pkgdesc='Modular Qt mini-game platform'
+arch=('x86_64')
+url='https://github.com/YoungLionOrganization/LeoMiniGames'
+license=('LicenseRef-LMG-SAPEL-1.0')
+depends=('qt6-base' 'qt6-declarative' 'qt6-svg' 'qt6-multimedia' 'libsecret')
+options=('!strip' '!debug')
+source=('payload.tar.gz')
+sha256sums=('SKIP')
+package() {
+    cp -a "$srcdir/usr" "$pkgdir/"
+}
