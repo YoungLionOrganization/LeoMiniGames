@@ -24,7 +24,7 @@ if [[ "$ACTION" == uninstall ]]; then
   for file in "$PREFIX"/.integration-*; do
     [[ -f "$file" ]] || continue
     target="$(cat "$file")"
-    if [[ -f "$target" ]] && grep -Fq "# LeoMiniGames prefix: $PREFIX" "$target"; then rm -- "$target"; fi
+    if [[ ! -L "$target" && -f "$target" ]] && grep -Fxq "# LeoMiniGames prefix: $PREFIX" "$target"; then rm -- "$target"; fi
   done
   rm -rf -- "$PREFIX"
   echo 'LeoMiniGames uninstalled. Games, saves and settings in the user data directory are preserved.'

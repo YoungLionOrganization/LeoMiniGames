@@ -64,6 +64,8 @@ class LinuxInstallerTests(unittest.TestCase):
         result=subprocess.run([str(launcher),'--smoke-test'],env=env,
                               capture_output=True,text=True,timeout=35)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        if os.environ.get('LMG_TEST_SETUP') or os.environ.get('LMG_TEST_APPDIR'):
+            self.assertIn('PASS: six builtin QML sessions opened and closed',result.stdout+result.stderr)
         result=subprocess.run(['bash',str(self.prefix/'uninstall.sh'),'--prefix',str(self.prefix),'--uninstall'],
                               env=self.env,capture_output=True,text=True,timeout=10)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
@@ -96,6 +98,13 @@ class LinuxInstallerTests(unittest.TestCase):
         self.run_setup(success=False)
         self.assertEqual(launcher.read_text(),'unrelated launcher')
         self.assertTrue((self.prefix/'preserve-on-failure').is_file())
+
+    def test_uninstall_keeps_launcher_reassigned_to_similar_prefix(self):
+        self.run_setup()
+        launcher=self.home/'bin/leominigames'
+        launcher.write_text(f'#!/usr/bin/env bash\n# LeoMiniGames prefix: {self.prefix}-other\n')
+        self.run_setup('--uninstall')
+        self.assertTrue(launcher.is_file())
 
 
 if __name__=='__main__': unittest.main()

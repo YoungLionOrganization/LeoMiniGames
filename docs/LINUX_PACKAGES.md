@@ -17,12 +17,12 @@ The user installer needs Bash, tar and coreutils, and runs without root. The def
 
 Flatpak data lives under `~/.var/app/xyz.younglion.leominigames`. The sandbox grants network, graphics/audio and keyring access, and uses file portals instead of granting the entire home directory. Native L3 plugins must match the runtime ABI. Native and Flatpak builds have separate data directories. Uninstallation normally keeps user data; `flatpak uninstall --delete-data` explicitly deletes it.
 
-Updates use the same format/package manager. In-app update discovery opens the backend download page. QtIFW Maintenance Tool servicing remains Windows-only.
+Updates use the same format/package manager. For a local Flatpak bundle already installed, remove the app without `--delete-data`, then install the new bundle; saves remain available. In-app update discovery opens the backend download page. QtIFW Maintenance Tool servicing remains Windows-only.
 
 ## Build and verification
 
 After [building](BUILDING.md), use `LMG_PLATFORM_SUFFIX=Debian-13-x86_64 bash tools/package/package_linux_distro.sh build deb`. Use `rpm` on Fedora or `arch` as an unprivileged user on Arch. `package_linux_native.sh` emits diagnostic tarballs; `package_linux.sh` deploys Qt, produces AppImage/tar.gz and a `.run` installer. `bash tools/package/package_flatpak.sh` builds a bundle against the declared KDE SDK.
 
-`python3 tests/test_linux_installer.py` tests fresh install, upgrade, launch, uninstall, data retention, corrupt payloads and unrelated targets. Set `LMG_TEST_APPDIR="$PWD/dist/linux/LeoMiniGames.AppDir"` to exercise the actual deployed application.
+`python3 tests/test_linux_installer.py` tests fresh install, upgrade, launch, uninstall, data retention, corrupt payloads and unrelated targets. Use `LMG_TEST_SETUP="/absolute/path/to/Setup.run" LMG_TEST_QPA_PLATFORM=xcb xvfb-run -a python3 tests/test_linux_installer.py` to exercise the exact packaged installer and deployed Qt runtime.
 
 Reusable native/Flatpak workflows run in CI and Build Release Artifacts. Native packages are installed, launched with Xvfb/xcb, reinstalled and removed. Flatpak is built, installed, launched inside its sandbox, reinstalled and removed. Portable artifact jobs test the installer with the deployed AppDir. The smoke test opens/closes all six builtin games and rejects QML/lifecycle failures. Physical audio, interactive keyrings/desktops and older distributions still require release QA.
