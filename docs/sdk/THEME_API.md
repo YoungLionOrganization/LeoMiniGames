@@ -15,3 +15,5 @@ Rectangle { color: themeColor("alias.page.background.normal") }
 Read revision in **every theme-producing binding** that must update; invokable lookups are not independently change-notifying. The same rule applies to number/surface/text/image asset queries. Surface returns a data map, not a rendered component; external games implement their own shape/gradient/image drawing.
 
 External ThemeRuntime is the same scoped facade alias as GameTheme. The host ThemeRuntime has install/remove APIs, but the external facade does not. [Theme SDK](../../theme-sdk/README.md) describes data-only packages/theme API 1. Protected metric.unit/ratio/data primitives keep gameplay constants separate. Automatic packaged-font registration is still future work; allowed font data alone does not change font families.
+
+Custom Qt Quick Controls backgrounds/content items should use `import QtQuick.Controls.Basic`. The launcher selects Basic globally; the modern SDK button imports it explicitly so independent previews also work on Windows/macOS native-style defaults. Changing tokens does not require a platform-specific control implementation.

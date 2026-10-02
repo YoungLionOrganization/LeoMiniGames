@@ -8,6 +8,10 @@
 
 > Sonraki kullanıcı isteğiyle altı builtin’in tam oturum kaydı v0.7.3 kapsamına alındı. Ekran görüntüsündeki TLS sorunu için `extractNativeLibs` düzeltmesi ve gerçek HTTPS smoke kontrolü eklendi. Güncel ek çalışma: [V073_BUILTIN_TLS_UPDATE.md](V073_BUILTIN_TLS_UPDATE.md). Aşağıdaki tablo ilk uygulama anındaki kapsamı kaydeder.
 
+> Dependabot güncellemeleri ve kabul önerileri: [V073_DEPENDABOT_UPDATE.md](V073_DEPENDABOT_UPDATE.md).
+
+> 2 Ekim workflow hata düzeltmeleri: [V073_WORKFLOW_FIXES.md](V073_WORKFLOW_FIXES.md).
+
 ## İlk planın kod değişiklikleri
 
 | İş | Uygulanan değişiklik | Davranış doğrulaması / sınır |

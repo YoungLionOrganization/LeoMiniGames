@@ -67,16 +67,25 @@ $Deploy = if ($QtBin) { Join-Path $QtBin 'windeployqt.exe' } else { (Get-Command
 if ($LASTEXITCODE -ne 0) { throw "windeployqt failed: $LASTEXITCODE" }
 
 # Portable and installer payloads both need the app-local MSVC runtime.
-$RedistRoot = $env:VCToolsRedistDir
-if (-not $RedistRoot) {
-  $VsWhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
-  if (-not (Test-Path $VsWhere)) { throw 'MSVC redistributable location unavailable.' }
-  $VsRoot = & $VsWhere -latest -products '*' -property installationPath
-  $RedistRoot = (Get-ChildItem (Join-Path $VsRoot 'VC/Redist/MSVC') -Directory | Sort-Object Name -Descending | Select-Object -First 1).FullName
-}
 $RedistArch = if ($WindowsArch -eq 'arm64') { 'arm64' } else { 'x64' }
-$Crt = Get-ChildItem (Join-Path $RedistRoot $RedistArch) -Directory -Filter 'Microsoft.VC*.CRT' | Sort-Object Name -Descending | Select-Object -First 1
-if (-not $Crt) { throw "MSVC runtime missing for $RedistArch" }
+$RedistRoots = @()
+if ($env:VCToolsRedistDir) { $RedistRoots += $env:VCToolsRedistDir }
+$VsWhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+if (Test-Path $VsWhere) {
+  $VsRoots = @(& $VsWhere -all -products '*' -property installationPath)
+  if ($LASTEXITCODE -ne 0) { throw 'Visual Studio redistributable discovery failed.' }
+  foreach ($VsRoot in $VsRoots) {
+    $Base = Join-Path $VsRoot 'VC/Redist/MSVC'
+    if (Test-Path $Base) {
+      $RedistRoots += @(Get-ChildItem $Base -Directory | Sort-Object Name -Descending | ForEach-Object { $_.FullName })
+    }
+  }
+}
+# VS 18 can select v145 while only v143 carries the ARM64 app-local CRT.
+# Search installed redists for the target architecture; never copy host DLLs.
+. (Join-Path $PSScriptRoot 'find_msvc_runtime.ps1')
+$Crt = Find-LmgMsvcRuntime -RedistRoots $RedistRoots -Architecture $RedistArch
+Write-Host "Deploying $RedistArch runtime from $($Crt.FullName)"
 Copy-Item (Join-Path $Crt.FullName '*.dll') $Stage -Force
 & python (Join-Path $Root 'tools/validate_windows_runtime.py') $Stage
 if ($LASTEXITCODE -ne 0) { throw 'Packaged MSVC runtime validation failed.' }

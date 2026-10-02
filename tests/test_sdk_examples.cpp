@@ -31,6 +31,14 @@
 #include <QGuiApplication>
 #include <QTemporaryDir>
 #include <QQuickWindow>
+#include <QQuickStyle>
+#include <QStandardPaths>
+#include <QSettings>
+#include <QFileInfo>
+#include <QDir>
+#include <QScopeGuard>
+#include <cstdio>
+#include <cstdlib>
 #include <QQuickItem>
 #include <QKeyEvent>
 #include <QFile>
@@ -39,8 +47,16 @@
 int main(int argc,char **argv) {
     QTemporaryDir data;
     qputenv("XDG_DATA_HOME",data.path().toUtf8());qputenv("XDG_CONFIG_HOME",data.path().toUtf8());
-    QGuiApplication app(argc,argv);app.setOrganizationName("LMGTests");app.setApplicationName("SDK");app.setApplicationVersion("0.7.3");
-    int count=0;auto check=[&](bool ok,const char *name){++count;if(!ok)qFatal("FAIL: %s",name);};check(argc==2,"SDK fixtures supplied");
+    QGuiApplication app(argc,argv);app.setOrganizationName("LMGTests");
+    app.setApplicationName("SDK-"+QFileInfo(data.path()).fileName());app.setApplicationVersion("0.7.3");
+    QStandardPaths::setTestModeEnabled(true);
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,data.path());
+    QQuickStyle::setStyle(QStringLiteral("Basic"));
+    const QString appData=QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    const QString cache=QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    const auto cleanup=qScopeGuard([&]{QDir(appData).removeRecursively();QDir(cache).removeRecursively();});
+    int count=0;auto check=[&](bool ok,const char *name){++count;if(!ok){std::fprintf(stderr,"FAIL: SDK assertion %d: %s\n",count,name);std::fflush(stderr);std::abort();}};check(argc==2,"SDK fixtures supplied");
     const QString dir=QString::fromLocal8Bit(argv[1]);
     AppPaths paths;SettingsManager settings;LanguageManager language(&settings);AudioManager audio(&settings);GameAudio gameAudio(&audio,&settings);
     LegacySettingsFacade legacySettings(&settings);LegacyLanguageFacade legacyLanguage(&language);LegacyAudioFacade legacyAudio(&audio);

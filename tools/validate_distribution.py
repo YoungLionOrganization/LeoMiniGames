@@ -48,9 +48,24 @@ def matrix_values(job_data, field: str) -> set[str]:
     if not isinstance(include, list): return set()
     return {str(row.get(field)) for row in include if isinstance(row, dict) and row.get(field) is not None}
 
+def validate_android_java(data, workflow: str) -> None:
+    # Check the JDK contract instead of tying it to an action major version.
+    for key in ('android', 'android-universal'):
+        android_job = job(data, key) or {}
+        steps = android_job.get('steps') or []
+        java_steps = [step for step in steps if isinstance(step, dict)
+                      and re.fullmatch(r'actions/setup-java@(?:v[1-9][0-9]*(?:\.[0-9]+){0,2}|[0-9a-f]{40})',
+                                       str(step.get('uses', '')))]
+        valid = len(java_steps) == 1
+        if valid:
+            options = java_steps[0].get('with') or {}
+            valid = options.get('distribution') == 'temurin' and str(options.get('java-version')) == '17'
+        (ok if valid else err)(f'{workflow} {key} installs Temurin JDK 17')
+
 # Workflows -----------------------------------------------------------------
 ci, cis = load_workflow('.github/workflows/ci.yml')
 if ci:
+    validate_android_java(ci, "CI")
     if re.search(r'(?m)^\s*tags\s*:', cis) or 'gh release create' in cis or 'action-gh-release' in cis:
         err('CI must not create releases/tags automatically')
     else:
@@ -103,7 +118,7 @@ if ci:
         'android-universal','QT_ANDROID_BUILD_ALL_ABIS=TRUE',
         'for qt_arch in android_arm64_v8a android_armv7 android_x86_64 android_x86',
         '--autodesktop','iPadOS-device-arm64','target: ios','arch: ios',
-        'actions/setup-java@v5','bash "$QT_ROOT_DIR/bin/qt-cmake"',
+        'bash "$QT_ROOT_DIR/bin/qt-cmake"',
         'qt6-declarative-private-dev',
     ]
     for token in required_semantics:
@@ -122,6 +137,7 @@ if ci:
 
 art, arts = load_workflow('.github/workflows/build-artifacts.yml')
 if art:
+    validate_android_java(art, "Build artifacts")
     on_data = art.get('on')
     if not isinstance(on_data, dict) or set(on_data.keys()) != {'workflow_dispatch'}:
         err('Build artifacts workflow must remain workflow_dispatch-only')

@@ -2,6 +2,8 @@
 
 ## 0.7.3 — Runtime recovery and platform packaging
 
+- Fix cross-platform SDK control style and test isolation, report emulator startup failures with a clean host Qt environment, and find the installed ARM64 MSVC runtime across redist versions.
+- Apply reviewed Dependabot updates for install-qt-action 4.4.1, download-artifact v8 and setup-java v6; validate Android Temurin JDK 17 independently of the action major version.
 - SDK examples and documentation match API 0.7 / app 0.7.3; modern lifecycle/input/save/live-theme/i18n example, minimal theme overlay and native ABI compile example.
 - Shared SDK RCC build/source checks, generated API signatures, link/coverage validation and real external-engine SDK tests run in CI.
 
