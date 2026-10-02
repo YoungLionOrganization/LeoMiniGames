@@ -30,6 +30,20 @@ if [[ "$ACTION" == uninstall ]]; then
   echo 'LeoMiniGames uninstalled. Games, saves and settings in the user data directory are preserved.'
   exit 0
 fi
+# Check menu/launcher ownership before replacing the current payload.
+BIN="${XDG_BIN_HOME:-$HOME/.local/bin}"
+APPS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+LAUNCHER="$BIN/leominigames"
+DESKTOP="$APPS/xyz.younglion.leominigames.desktop"
+if ((INTEGRATE)); then
+  for file in "$LAUNCHER" "$DESKTOP"; do
+    [[ ! -e "$file" && ! -L "$file" ]] || {
+      [[ ! -L "$file" && -f "$file" ]] && grep -Fxq "# LeoMiniGames prefix: $PREFIX" "$file"
+    } || { echo "Integration file already belongs to another installation: $file" >&2; exit 2; }
+  done
+  mkdir -p -- "$BIN" "$APPS"
+  [[ -w "$BIN" && -w "$APPS" ]] || { echo 'Integration directories are not writable.' >&2; exit 2; }
+fi
 SELF="$(realpath -- "$0")"
 PAYLOAD_LINE="$(awk '/^__LMG_PAYLOAD_BELOW__$/ { print NR + 1; exit }' "$SELF")"
 [[ -n "$PAYLOAD_LINE" ]] || { echo 'This script must be run from a packaged Setup.run file.' >&2; exit 2; }
@@ -51,18 +65,8 @@ if ! mv -- "$WORK/LeoMiniGames.AppDir" "$PREFIX"; then
   exit 1
 fi
 if ((INTEGRATE)); then
-  BIN="${XDG_BIN_HOME:-$HOME/.local/bin}"
-  APPS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
-  mkdir -p -- "$BIN" "$APPS"
   # Bash %q protects paths containing spaces, quotes, dollars and backticks.
   printf '#!/usr/bin/env bash\n# LeoMiniGames prefix: %s\nexec %q "$@"\n' "$PREFIX" "$PREFIX/AppRun" > "$WORK/launcher"
-  LAUNCHER="$BIN/leominigames"
-  DESKTOP="$APPS/xyz.younglion.leominigames.desktop"
-  for file in "$LAUNCHER" "$DESKTOP"; do
-    [[ ! -e "$file" ]] || grep -Fq "# LeoMiniGames prefix: $PREFIX" "$file" || {
-      echo "Integration file already belongs to another installation: $file" >&2; exit 2;
-    }
-  done
   install -m755 "$WORK/launcher" "$LAUNCHER"
   # Desktop Entry quoting has different rules from shell quoting.
   ESCAPED="${LAUNCHER//\\/\\\\}"

@@ -221,4 +221,8 @@ if(UNIX AND NOT APPLE AND NOT ANDROID)
     install(FILES licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt
         licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt
         DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/leominigames/licenses)
+    # Minimal distro images often omit /usr/share/doc; licenses must survive.
+    install(FILES LICENSE NOTICE COPYRIGHT LICENSE_METADATA.json
+        licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/leominigames)
 endif()

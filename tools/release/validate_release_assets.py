@@ -65,7 +65,7 @@ def validate_linux_package(path):
     for name in names:
         if name.startswith('/') or '..' in Path(name).parts: raise ValueError(f'{path.name}: unsafe package member')
     binary = next((name for name in names if name.removeprefix('./') == 'usr/bin/LeoMiniGames'), None)
-    if not binary or not any(name.removeprefix('./') == 'usr/share/doc/leominigames/LICENSE' for name in names):
+    if not binary or not any(name.removeprefix('./') == 'usr/share/licenses/leominigames/LICENSE' for name in names):
         raise ValueError(f'{path.name}: executable/legal payload missing')
     if path.name.endswith('.pkg.tar.zst'):
         info = subprocess.check_output(['bsdtar', '-xOf', '-', '.PKGINFO'], input=payload).decode()

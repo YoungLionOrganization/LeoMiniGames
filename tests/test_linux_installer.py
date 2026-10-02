@@ -56,6 +56,8 @@ class LinuxInstallerTests(unittest.TestCase):
         self.run_setup()
         self.assertFalse((self.prefix/'stale-local-file').exists())
         env=dict(self.env,QT_QPA_PLATFORM='offscreen',QT_QUICK_BACKEND='software')
+        for key in ('LD_LIBRARY_PATH','QT_PLUGIN_PATH','QT_QPA_PLATFORM_PLUGIN_PATH','QML2_IMPORT_PATH','QML_IMPORT_PATH'):
+            env.pop(key,None)
         result=subprocess.run([str(launcher),'--smoke-test'],env=env,
                               capture_output=True,text=True,timeout=35)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
@@ -82,6 +84,15 @@ class LinuxInstallerTests(unittest.TestCase):
         self.setup.write_bytes((ROOT/'installer/linux/install.sh').read_bytes()+b'bad gzip')
         self.run_setup('--no-integration',success=False)
         self.assertTrue((self.prefix/'AppRun').is_file())
+
+    def test_foreign_launcher_keeps_existing_payload(self):
+        self.run_setup('--no-integration')
+        (self.prefix/'preserve-on-failure').write_text('keep')
+        launcher=self.home/'bin/leominigames';launcher.parent.mkdir()
+        launcher.write_text('unrelated launcher')
+        self.run_setup(success=False)
+        self.assertEqual(launcher.read_text(),'unrelated launcher')
+        self.assertTrue((self.prefix/'preserve-on-failure').is_file())
 
 
 if __name__=='__main__': unittest.main()

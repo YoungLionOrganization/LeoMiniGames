@@ -75,6 +75,9 @@ int main(int argc, char *argv[])
     app.setApplicationName(QStringLiteral("LeoMiniGames"));
     app.setApplicationVersion(QStringLiteral("0.7.3"));
     app.setApplicationDisplayName(QStringLiteral("LeoMiniGames"));
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+    app.setDesktopFileName(QStringLiteral("xyz.younglion.leominigames"));
+#endif
     TlsRuntime::initialize();
     if (app.arguments().contains(QStringLiteral("--tls-smoke-test"))) return TlsRuntime::probe();
     app.setWindowIcon(QIcon(QStringLiteral(":/branding/leominigames_icon.png")));

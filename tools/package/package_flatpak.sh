@@ -11,7 +11,7 @@ mkdir -p "$DIST" "$WORK/source"
 # Snapshot tracked and untracked source while excluding build/dist/git caches.
 tar -C "$ROOT" --exclude='./.git' --exclude='./dist' --exclude='./build*' \
   --exclude='./.flatpak-builder' --exclude='__pycache__' -cf - . | tar -C "$WORK/source" -xf -
-flatpak-builder --force-clean --user --arch="$ARCH" --install-deps-from=flathub \
+flatpak-builder --force-clean --user --jobs=4 --arch="$ARCH" --install-deps-from=flathub \
   --repo="$WORK/repo" "$WORK/build" "$WORK/source/packaging/flatpak/xyz.younglion.leominigames.json"
 flatpak build-bundle --arch="$ARCH" --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo \
   "$WORK/repo" "$DIST/LeoMiniGames-v${VERSION}-Linux-${ARCH}.flatpak" xyz.younglion.leominigames

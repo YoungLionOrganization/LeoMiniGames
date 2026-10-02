@@ -52,6 +52,7 @@ cp -a "$WORK/stage/." %{buildroot}/
 /usr/share/metainfo/xyz.younglion.leominigames.metainfo.xml
 /usr/share/icons/hicolor/512x512/apps/xyz.younglion.leominigames.png
 %doc /usr/share/doc/leominigames
+%license /usr/share/licenses/leominigames
 EOF
     rpmbuild --define "_topdir $WORK/rpm" --define '_build_id_links none' \
       --define 'debug_package %{nil}' -bb "$WORK/rpm/SPECS/leominigames.spec"

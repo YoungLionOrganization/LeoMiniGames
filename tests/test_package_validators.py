@@ -169,7 +169,7 @@ class PackageValidators(unittest.TestCase):
             report['targets'][name]={'passed':True,'clean_system':True,'environment':'test fixture',
                 'artifact_sha256':digest,'artifact_name':'fixture.zip','evidence':'fixture only',
                 'tested_at':'2026-10-01','tester':'test', 'device_abis':['x86_64'],
-                'installer_upgrade_modify_uninstall':True,'gatekeeper_assessed':True}
+                'installer_upgrade_modify_uninstall':True,'installer_install_reinstall_uninstall':True,'gatekeeper_assessed':True}
         manifest={'source_sha':sha,'assets':{}}
         for target,row in report['targets'].items():
             candidates=qa.target_artifacts(target)

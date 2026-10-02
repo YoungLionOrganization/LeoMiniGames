@@ -170,6 +170,10 @@ The application target set remains Windows, Linux, Android, iOS and macOS. GitHu
 | Linux | Ubuntu 22.04 x86_64 | build + CTest | compatibility lane |
 | Linux | Ubuntu 24.04 x86_64 | build + CTest | tar.gz + AppImage |
 | Linux | Ubuntu 24.04 ARM64 | build + CTest | tar.gz + AppImage |
+| Linux | Debian 13 x86_64 / ARM64 | build, CTest, install/reinstall/uninstall + Xvfb launch | DEB + native tar.gz |
+| Linux | Fedora 43 x86_64 / ARM64 | build, CTest, install/reinstall/uninstall + Xvfb launch | RPM + native tar.gz |
+| Linux | Arch x86_64 | build, CTest, install/reinstall/uninstall + Xvfb launch | pkg.tar.zst + native tar.gz |
+| Linux | KDE Flatpak x86_64 / aarch64 | sandbox build, install/reinstall/uninstall + Xvfb launch | flatpak bundle |
 | macOS | Apple Silicon arm64 | build + CTest | ZIP + DMG |
 | macOS | Intel x86_64 | build + CTest | ZIP + DMG |
 | Android | arm64-v8a | APK build | signed APK + AAB lane |

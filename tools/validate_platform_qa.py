@@ -50,6 +50,8 @@ def validate(report, sha, manifest=None):
             if artifact not in target_artifacts(target) or artifact not in manifest['assets'] or manifest['assets'][artifact]['sha256'] != row['artifact_sha256']: raise ValueError(f'{target}: tested artifact differs from candidate')
         if target.startswith('Android-') and not row.get('device_abis'): raise ValueError(f'{target}: missing actual device ABI')
         if target.startswith('Windows-') and row.get('installer_upgrade_modify_uninstall') is not True: raise ValueError(f'{target}: installer servicing not passed')
+        if target.startswith(('Linux-', 'Debian-', 'Arch-', 'Fedora-', 'Flatpak-')) and row.get('installer_install_reinstall_uninstall') is not True:
+            raise ValueError(f'{target}: Linux package/installer lifecycle not passed')
         if target.startswith('macOS-') and row.get('gatekeeper_assessed') is not True: raise ValueError(f'{target}: Gatekeeper assessment missing')
 
 if __name__=='__main__':
