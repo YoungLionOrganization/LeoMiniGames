@@ -39,14 +39,23 @@ jobs:
           dbus-run-session -- bash -eu -o pipefail <<'SH'
           package="dist/flatpak/LeoMiniGames-v${LMG_VERSION}-Linux-${{ matrix.arch }}.flatpak"
           for pass in install reinstall; do
-            flatpak install --user --noninteractive --assumeyes --reinstall "$package"
+            # Flatpak on Ubuntu 24.04 ignores --reinstall for local bundles.
+            # Explicit removal preserves app data and exercises a fresh deployment.
+            if [[ "$pass" == reinstall ]]; then
+              flatpak uninstall --user --noninteractive --assumeyes xyz.younglion.leominigames
+            fi
+            flatpak install --user --noninteractive --assumeyes "$package"
             QT_QUICK_BACKEND=software xvfb-run -a timeout 40 flatpak run \
               --env=QT_QPA_PLATFORM=xcb --env=QT_QUICK_BACKEND=software \
               xyz.younglion.leominigames --smoke-test > "flatpak-smoke/$pass.log" 2>&1
             grep -F 'PASS: six builtin QML sessions opened and closed' "flatpak-smoke/$pass.log"
+            mkdir -p "$HOME/.var/app/xyz.younglion.leominigames/data"
+            if [[ "$pass" == install ]]; then
+              echo keep-save > "$HOME/.var/app/xyz.younglion.leominigames/data/servicing-sentinel"
+            else
+              grep -Fx keep-save "$HOME/.var/app/xyz.younglion.leominigames/data/servicing-sentinel"
+            fi
           done
-          mkdir -p "$HOME/.var/app/xyz.younglion.leominigames/data"
-          echo keep-save > "$HOME/.var/app/xyz.younglion.leominigames/data/servicing-sentinel"
           flatpak uninstall --user --noninteractive --assumeyes xyz.younglion.leominigames
           test -f "$HOME/.var/app/xyz.younglion.leominigames/data/servicing-sentinel"
           if flatpak info --user xyz.younglion.leominigames; then exit 1; fi

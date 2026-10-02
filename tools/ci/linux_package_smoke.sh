@@ -12,6 +12,8 @@ export XDG_DATA_HOME="$WORK/data" XDG_CONFIG_HOME="$WORK/config" XDG_CACHE_HOME=
 mkdir -p "$XDG_DATA_HOME/YoungLion/LeoMiniGames"
 echo 'user save survives servicing' > "$XDG_DATA_HOME/YoungLion/LeoMiniGames/sentinel"
 for pass in install reinstall; do
+  # Reinstallation must repair the payload, rather than only report installed.
+  if [[ "$pass" == reinstall ]]; then rm -- /usr/bin/LeoMiniGames; fi
   case "$FORMAT" in
     deb) DEBIAN_FRONTEND=noninteractive apt-get install -y --reinstall "$PACKAGE";;
     rpm) dnf install -y "$PACKAGE"; [[ "$pass" != reinstall ]] || dnf reinstall -y "$PACKAGE";;

@@ -23,6 +23,10 @@ class LinuxInstallerTests(unittest.TestCase):
                         XDG_CONFIG_HOME=str(self.home/'config'),
                         XDG_CACHE_HOME=str(self.home/'cache'),
                         XDG_BIN_HOME=str(self.home/'bin'))
+        self.setup=self.root/'Setup.run'
+        if os.environ.get('LMG_TEST_SETUP'):
+            shutil.copyfile(os.environ['LMG_TEST_SETUP'],self.setup)
+            return
         appdir = self.root/'LeoMiniGames.AppDir'
         if os.environ.get('LMG_TEST_APPDIR'):
             shutil.copytree(os.environ['LMG_TEST_APPDIR'], appdir, symlinks=True)
@@ -34,7 +38,6 @@ class LinuxInstallerTests(unittest.TestCase):
         payload=self.root/'payload.tar.gz'
         with tarfile.open(payload,'w:gz') as archive:
             archive.add(appdir,arcname=appdir.name)
-        self.setup=self.root/'Setup.run'
         self.setup.write_bytes((ROOT/'installer/linux/install.sh').read_bytes()+payload.read_bytes())
 
     def run_setup(self, *args, success=True):
@@ -55,7 +58,7 @@ class LinuxInstallerTests(unittest.TestCase):
         (self.prefix/'stale-local-file').write_text('obsolete')
         self.run_setup()
         self.assertFalse((self.prefix/'stale-local-file').exists())
-        env=dict(self.env,QT_QPA_PLATFORM='offscreen',QT_QUICK_BACKEND='software')
+        env=dict(self.env,QT_QPA_PLATFORM=os.environ.get('LMG_TEST_QPA_PLATFORM','offscreen'),QT_QUICK_BACKEND='software')
         for key in ('LD_LIBRARY_PATH','QT_PLUGIN_PATH','QT_QPA_PLATFORM_PLUGIN_PATH','QML2_IMPORT_PATH','QML_IMPORT_PATH'):
             env.pop(key,None)
         result=subprocess.run([str(launcher),'--smoke-test'],env=env,

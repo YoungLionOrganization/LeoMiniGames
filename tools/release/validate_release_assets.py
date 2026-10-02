@@ -29,7 +29,7 @@ def require_linux_binary(data, name):
         raise ValueError(f'{name}: native binary is missing Qt Multimedia linkage')
 
 
-def validate_linux_tar(archive, name, bundled=False, setup=False):
+def validate_linux_tar(archive, name, bundled=False):
     members = archive.getmembers()
     for member in members:
         path = Path(member.name)
@@ -77,7 +77,7 @@ def validate_flatpak(path):
     with tempfile.TemporaryDirectory() as folder:
         repo = Path(folder)/'repo'
         subprocess.run(['ostree', f'--repo={repo}', 'init', '--mode=archive'], check=True, capture_output=True)
-        subprocess.run(['flatpak', 'build-import', str(repo), str(path)], check=True, capture_output=True)
+        subprocess.run(['flatpak', 'build-import-bundle', str(repo), str(path)], check=True, capture_output=True)
         refs = subprocess.check_output(['ostree', f'--repo={repo}', 'refs'], text=True).splitlines()
         arch = 'aarch64' if 'aarch64' in path.name else 'x86_64'
         ref = f'app/xyz.younglion.leominigames/{arch}/master'

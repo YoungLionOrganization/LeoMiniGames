@@ -219,7 +219,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgstreamer-plugins-good1.0-0 libgstreamer-plugins-bad1.0-0
+          sudo apt-get install -y libgstreamer-plugins-good1.0-0 libgstreamer-plugins-bad1.0-0 xvfb xauth libxcb-cursor0
       - name: Install AppImage tooling
         shell: bash
         run: |
@@ -239,7 +239,13 @@ jobs:
           LMG_PLATFORM_SUFFIX: ${{ matrix.label }}
         run: bash tools/package/package_linux.sh build
       - name: Test packaged Linux installer
-        run: LMG_TEST_APPDIR="$PWD/dist/linux/LeoMiniGames.AppDir" python3 tests/test_linux_installer.py
+        run: |
+          LMG_TEST_SETUP="$PWD/dist/linux/LeoMiniGames-v${LMG_VERSION}-Linux-${{ matrix.label }}-Setup.run" \
+            LMG_TEST_QPA_PLATFORM=xcb xvfb-run -a python3 tests/test_linux_installer.py
+          env -u LD_LIBRARY_PATH -u QT_PLUGIN_PATH -u QT_QPA_PLATFORM_PLUGIN_PATH \
+            -u QML2_IMPORT_PATH -u QML_IMPORT_PATH QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=software \
+            APPIMAGE_EXTRACT_AND_RUN=1 xvfb-run -a timeout 40 \
+            "dist/linux/LeoMiniGames-v${LMG_VERSION}-Linux-${{ matrix.label }}.AppImage" --smoke-test
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ env.LMG_VERSION }}-${{ matrix.label }}

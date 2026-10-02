@@ -12,6 +12,7 @@
 #include <QQmlError>
 #include <QImage>
 #include <QDir>
+#include <cstdio>
 #include <QtPlugin>
 
 #include "core/Achievements.h"
@@ -309,7 +310,13 @@ int main(int argc, char *argv[])
         const QStringList games{QStringLiteral("xox"), QStringLiteral("blackjack"), QStringLiteral("minesweeper"), QStringLiteral("2048"), QStringLiteral("memory_match"), QStringLiteral("reaction_tap")};
         QObject::connect(timer, &QTimer::timeout, &app, [&, timer, games, index = 0, opened = false]() mutable {
             if (!opened) {
-                if (index == games.size()) { qInfo("PASS: six builtin QML sessions opened and closed"); app.exit(0); return; }
+                if (index == games.size()) {
+                    // Distro Qt logging rules can suppress qInfo; test evidence
+                    // must remain observable after a successful full session run.
+                    std::puts("PASS: six builtin QML sessions opened and closed");
+                    std::fflush(stdout);
+                    app.exit(0); return;
+                }
                 if (!controller.openGame(games.at(index))) { qCritical("Smoke: game open failed"); app.exit(2); return; }
                 opened = true;
                 return;
