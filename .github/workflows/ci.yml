@@ -246,7 +246,8 @@ jobs:
         shell: bash
         run: |
           apk="$(find build-android/android-build -type f -name '*.apk' -print -quit)"
-          bash tools/ci/run_android_emulator_smoke.sh "$apk" "${{ matrix.abi }}"
+          bash tools/ci/sign_android_smoke_apk.sh "$apk" "$RUNNER_TEMP/smoke.apk"
+          bash tools/ci/run_android_emulator_smoke.sh "$RUNNER_TEMP/smoke.apk" "${{ matrix.abi }}"
       - uses: actions/upload-artifact@v7
         if: always() && (matrix.abi == 'x86_64' || matrix.abi == 'x86')
         with:
@@ -311,7 +312,8 @@ jobs:
       - name: Launch universal APK on emulator
         run: |
           apk="$(find build-android/android-build -type f -name '*.apk' -print -quit)"
-          bash tools/ci/run_android_emulator_smoke.sh "$apk" universal
+          bash tools/ci/sign_android_smoke_apk.sh "$apk" "$RUNNER_TEMP/smoke.apk"
+          bash tools/ci/run_android_emulator_smoke.sh "$RUNNER_TEMP/smoke.apk" universal
       - uses: actions/upload-artifact@v7
         if: always()
         with:

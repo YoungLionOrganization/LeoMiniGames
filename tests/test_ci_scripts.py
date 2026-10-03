@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: LicenseRef-LMG-SAPEL-1.0
 """Control-flow regressions using fake tools; these do not test Android devices."""
 import json
+import importlib.util
 import os
 from pathlib import Path
 import subprocess
@@ -8,6 +9,30 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location('android_logcat', ROOT/'tools/ci/validate_android_logcat.py')
+android_logcat = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(android_logcat)
+
+
+class AndroidLogcatTests(unittest.TestCase):
+    def test_system_library_failure_is_not_application_crash(self):
+        text = '10-02 22:34:13.872 1538 1758 D nativeloader: dlopen failed: library libgeller.so not found'
+        self.assertEqual(android_logcat.application_crashes(text, ['2495']), [])
+
+    def test_java_and_native_application_crashes_fail(self):
+        for error in ('FATAL EXCEPTION: main', 'Fatal signal 11', 'UnsatisfiedLinkError', 'dlopen failed', 'CANNOT LINK EXECUTABLE'):
+            text = f'10-02 22:34:13.872 2495 2495 E AndroidRuntime: {error}'
+            self.assertTrue(android_logcat.application_crashes(text, ['2495']))
+
+    def test_crash_before_process_restart_still_fails(self):
+        text = '''10-02 22:34:10.015 557 591 I ActivityManager: Start proc 2495:xyz.younglion.leominigames/u0a209
+10-02 22:34:13.872 2495 2495 E AndroidRuntime: FATAL EXCEPTION: main
+10-02 22:34:14.015 557 591 I ActivityManager: Start proc 3000:xyz.younglion.leominigames/u0a209'''
+        self.assertTrue(android_logcat.application_crashes(text, ['3000']))
+
+    def test_native_tombstone_identifies_the_application(self):
+        text = '10-02 22:34:13.872 100 100 F DEBUG: pid: 2495, tid: 2496, name: QtThread >>> xyz.younglion.leominigames <<<'
+        self.assertTrue(android_logcat.application_crashes(text, ['3000']))
 
 
 class EmulatorWrapperTests(unittest.TestCase):
@@ -82,7 +107,7 @@ elif 'logcat -d' in args:
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn('certificate-validated HTTPS', result.stdout)
                 self.assertIn('--device pixel_2', log)
-                self.assertIn('--tls-smoke-test', log)
+                self.assertIn('--ez xyz.younglion.leominigames.tlsSmokeTest true', log)
                 self.assertIn('5554', args)
                 self.assertIn('-no-snapshot', args)
 

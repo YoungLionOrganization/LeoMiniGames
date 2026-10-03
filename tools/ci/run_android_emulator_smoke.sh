@@ -15,8 +15,9 @@ sdkmanager "emulator" "$IMAGE"
 # reading the optional devices.xml in otherwise valid Google system images.
 sdkmanager 'cmdline-tools;16.0'
 AVDMANAGER="${LMG_AVDMANAGER:-${ANDROID_SDK_ROOT:?}/cmdline-tools/16.0/bin/avdmanager}"
-export ANDROID_AVD_HOME="$(cd "$OUT" && pwd)/avd"
-mkdir -p "$ANDROID_AVD_HOME"
+export ANDROID_AVD_HOME="$(mktemp -d "${TMPDIR:-/tmp}/lmg-avd.XXXXXX")"
+# Keep multi-gigabyte emulator disks out of diagnostic artifacts.
+trap 'rm -rf "$ANDROID_AVD_HOME"' EXIT
 if ! "$AVDMANAGER" create avd --force -n lmg-smoke -k "$IMAGE" --abi "$DEVICE_ABI" --device pixel_2 \
   > "$OUT/avd-create.log" 2>&1 <<< no; then
   cat "$OUT/avd-create.log" >&2
@@ -41,6 +42,7 @@ cleanup() {
   adb -s "$ANDROID_SERIAL" emu kill >/dev/null 2>&1 || true
   kill "$EMULATOR_PID" >/dev/null 2>&1 || true
   wait "$EMULATOR_PID" 2>/dev/null || true
+  rm -rf "$ANDROID_AVD_HOME"
 }
 trap cleanup EXIT
 DEADLINE=$((SECONDS + 600))

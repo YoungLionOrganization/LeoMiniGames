@@ -14,6 +14,9 @@
 #include <QDir>
 #include <cstdio>
 #include <QtPlugin>
+#ifdef Q_OS_ANDROID
+#include <QJniObject>
+#endif
 
 #include "core/Achievements.h"
 #include "core/AppController.h"
@@ -80,7 +83,19 @@ int main(int argc, char *argv[])
     app.setDesktopFileName(QStringLiteral("xyz.younglion.leominigames"));
 #endif
     TlsRuntime::initialize();
-    if (app.arguments().contains(QStringLiteral("--tls-smoke-test"))) return TlsRuntime::probe();
+    bool tlsSmokeTest = app.arguments().contains(QStringLiteral("--tls-smoke-test"));
+#ifdef Q_OS_ANDROID
+    // Qt ignores applicationArguments intent extras in Release APKs.
+    // This fixed diagnostic performs the same certificate-validated request.
+    if (QNativeInterface::QAndroidApplication::isActivityContext()) {
+        const auto intent = QNativeInterface::QAndroidApplication::context()
+            .callObjectMethod("getIntent", "()Landroid/content/Intent;");
+        const auto key = QJniObject::fromString(QStringLiteral("xyz.younglion.leominigames.tlsSmokeTest"));
+        tlsSmokeTest = tlsSmokeTest || (intent.isValid() && intent.callMethod<jboolean>(
+            "getBooleanExtra", "(Ljava/lang/String;Z)Z", key.object<jstring>(), JNI_FALSE));
+    }
+#endif
+    if (tlsSmokeTest) return TlsRuntime::probe();
     app.setWindowIcon(QIcon(QStringLiteral(":/branding/leominigames_icon.png")));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
 

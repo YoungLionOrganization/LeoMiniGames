@@ -16,18 +16,13 @@ adb shell am start -W -n "$ACTIVITY" > "$OUT/launch.txt"
 # This delay is a bounded application launch observation window.
 sleep 10
 adb logcat -d > "$OUT/logcat.txt"
-adb shell pidof "$APP_ID" > "$OUT/pid.txt"
-grep -Eq '[0-9]+' "$OUT/pid.txt"
-if grep -Eq 'FATAL EXCEPTION|Fatal signal|UnsatisfiedLinkError|dlopen failed|CANNOT LINK EXECUTABLE' "$OUT/logcat.txt"; then
-  echo 'Android launch failed; inspect collected logcat.' >&2
-  exit 1
-fi
-echo 'PASS: installed APK remained alive after launch'
+adb shell pidof "$APP_ID" > "$OUT/pid.txt" || true
+python3 "$(dirname "$0")/validate_android_logcat.py" "$OUT/logcat.txt" "$OUT/pid.txt"
 
 # Use the actual installed Qt/OpenSSL backend, not host curl or an ELF-only test.
 adb shell am force-stop "$APP_ID"
 adb logcat -c
-adb shell am start -W -n "$ACTIVITY" --es applicationArguments '--tls-smoke-test' > "$OUT/tls-launch.txt"
+adb shell am start -W -n "$ACTIVITY" --ez xyz.younglion.leominigames.tlsSmokeTest true > "$OUT/tls-launch.txt"
 for attempt in $(seq 1 40); do
   adb logcat -d > "$OUT/tls-logcat.txt"
   if grep -Fq 'PASS: HTTPS catalog probe; certificate validated;' "$OUT/tls-logcat.txt"; then
