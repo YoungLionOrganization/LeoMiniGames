@@ -56,6 +56,23 @@ def pe(needed=(), machine=0x8664):
 
 
 class PackageValidators(unittest.TestCase):
+    def test_portable_apprun_link_resolves_to_executable_inside_appdir(self):
+        def archive(link):
+            output=io.BytesIO()
+            with tarfile.open(fileobj=output,mode='w:gz') as tar:
+                for name,data in [('usr/bin/LeoMiniGames',elf('arm64-v8a','LeoMiniGames',['libQt6Multimedia.so.6'])),
+                                  ('LICENSE',b'license'),('usr/plugins/multimedia/libffmpegmediaplugin.so',b'backend')]:
+                    info=tarfile.TarInfo('LeoMiniGames.AppDir/'+name)
+                    info.size=len(data);info.mode=0o755;tar.addfile(info,io.BytesIO(data))
+                info=tarfile.TarInfo('LeoMiniGames.AppDir/AppRun')
+                info.type=tarfile.SYMTYPE;info.linkname=link;tar.addfile(info)
+            output.seek(0)
+            return tarfile.open(fileobj=output,mode='r:gz')
+        assets.validate_linux_tar(archive('usr/bin/LeoMiniGames'),'Linux-arm64-Setup.run',bundled=True)
+        for target in ('/usr/bin/LeoMiniGames','../../usr/bin/LeoMiniGames','missing','AppRun'):
+            with self.subTest(target=target), self.assertRaisesRegex(ValueError,'AppRun'):
+                assets.validate_linux_tar(archive(target),'Linux-arm64-Setup.run',bundled=True)
+
     def test_native_linux_tar_uses_system_qt_and_checks_isa_and_license(self):
         def archive(binary, license=True, escape=False):
             output=io.BytesIO()

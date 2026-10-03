@@ -39,8 +39,15 @@ env -u LD_LIBRARY_PATH -u QT_PLUGIN_PATH -u QT_QPA_PLATFORM_PLUGIN_PATH \
 EMULATOR_PID=$!
 export ANDROID_SERIAL=emulator-5554
 cleanup() {
-  adb -s "$ANDROID_SERIAL" emu kill >/dev/null 2>&1 || true
+  timeout --kill-after=1 5 adb -s "$ANDROID_SERIAL" emu kill >/dev/null 2>&1 || true
   kill "$EMULATOR_PID" >/dev/null 2>&1 || true
+  # Emulator shutdown can hang after a successful probe. Bound both the adb
+  # request and the child process exit, then reap it before removing its disks.
+  for attempt in $(seq 1 20); do
+    kill -0 "$EMULATOR_PID" 2>/dev/null || break
+    sleep 0.25
+  done
+  kill -KILL "$EMULATOR_PID" >/dev/null 2>&1 || true
   wait "$EMULATOR_PID" 2>/dev/null || true
   rm -rf "$ANDROID_AVD_HOME"
 }

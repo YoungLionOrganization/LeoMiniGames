@@ -36,7 +36,7 @@ class AndroidLogcatTests(unittest.TestCase):
 
 
 class EmulatorWrapperTests(unittest.TestCase):
-    def run_wrapper(self, abi='x86_64', failure=False, missing=False, avd_failure=False, empty_avd=False):
+    def run_wrapper(self, abi='x86_64', failure=False, missing=False, avd_failure=False, empty_avd=False, stubborn=False):
         with tempfile.TemporaryDirectory() as folder:
             tmp = Path(folder)
             bin_dir = tmp/'bin'
@@ -60,7 +60,7 @@ printf 'abi.type=fixture\\n' > "$ANDROID_AVD_HOME/lmg-smoke.avd/config.ini"
             script(bin_dir/'sleep', '#!/usr/bin/env bash\nexit 0\n')
             script(bin_dir/'sudo', '#!/usr/bin/env bash\nexit 0\n')
             script(emulator_dir/'emulator', '''#!/usr/bin/env python3
-import os, json, time, sys
+import os, json, time, sys, signal
 from pathlib import Path
 keys = ['LD_LIBRARY_PATH', 'QT_PLUGIN_PATH', 'QT_QPA_PLATFORM_PLUGIN_PATH',
         'QML2_IMPORT_PATH', 'QML_IMPORT_PATH', 'QT_QPA_PLATFORM', 'QT_QPA_PLATFORMTHEME']
@@ -69,13 +69,17 @@ if any(key in os.environ for key in keys):
 if os.environ['TEST_FAILURE'] == '1':
     print('fixture emulator startup failure', flush=True); sys.exit(17)
 Path(os.environ['TEST_MARKER']).write_text(json.dumps(sys.argv[1:]))
+if os.environ['TEST_STUBBORN'] == '1': signal.signal(signal.SIGTERM, signal.SIG_IGN)
 while True: time.sleep(0.01)
 ''')
             script(bin_dir/'adb', '''#!/usr/bin/env python3
-import os, sys
+import os, sys, time, signal
 from pathlib import Path
 args = ' '.join(sys.argv[1:])
 with open(os.environ['TEST_LOG'], 'a') as f: f.write('adb '+args+'\\n')
+if 'emu kill' in args and os.environ['TEST_STUBBORN'] == '1':
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    while True: time.sleep(0.1)
 if 'getprop sys.boot_completed' in args:
     print('1' if Path(os.environ['TEST_MARKER']).exists() else '0')
 elif 'resolve-activity' in args:
@@ -89,6 +93,7 @@ elif 'logcat -d' in args:
             env = dict(os.environ, PATH=str(bin_dir)+os.pathsep+os.environ['PATH'],
                        ANDROID_SDK_ROOT=str(tmp/'sdk'), TEST_MARKER=str(marker),
                        TEST_LOG=str(log), TEST_FAILURE='1' if failure else '0',
+                       TEST_STUBBORN='1' if stubborn else '0',
                        LMG_AVDMANAGER=str(bin_dir/'avdmanager'),
                        TEST_AVD_FAILURE='1' if avd_failure else '0',
                        TEST_EMPTY_AVD='1' if empty_avd else '0')
@@ -97,7 +102,7 @@ elif 'logcat -d' in args:
                 env[key] = '/fixture/android/qt'
             result = subprocess.run(['bash', str(ROOT/'tools/ci/run_android_emulator_smoke.sh'),
                                      str(apk), abi, str(tmp/'out')], env=env,
-                                    capture_output=True, text=True, timeout=8)
+                                    capture_output=True, text=True, timeout=12)
             return result, log.read_text() if log.exists() else '', json.loads(marker.read_text()) if marker.exists() else []
 
     def test_boot_and_tls_probe_for_supported_abis(self):
@@ -116,6 +121,13 @@ elif 'logcat -d' in args:
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('exited before boot', result.stderr)
         self.assertIn('fixture emulator startup failure', result.stderr)
+
+    def test_hung_adb_shutdown_and_sigterm_ignored_emulator_are_bounded(self):
+        result, log, args = self.run_wrapper(stubborn=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn('certificate-validated HTTPS',result.stdout)
+        self.assertIn('emu kill',log)
+        self.assertIn('5554',args)
 
     def test_missing_apk_fails_before_sdk_install(self):
         result, log, _ = self.run_wrapper(missing=True)

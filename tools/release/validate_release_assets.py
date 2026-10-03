@@ -13,6 +13,7 @@ import zipfile
 import tempfile
 import io
 import struct
+import posixpath
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from validate_audio_deployment import require_audio_backend
@@ -29,6 +30,23 @@ def require_linux_binary(data, name):
         raise ValueError(f'{name}: native binary is missing Qt Multimedia linkage')
 
 
+def executable_archive_entry(member, members):
+    """Follow AppRun links within its AppDir, rejecting loops/escapes/missing targets."""
+    root = posixpath.dirname(posixpath.normpath(member.name))
+    seen = set()
+    while True:
+        key = posixpath.normpath(member.name)
+        if key in seen: return False
+        seen.add(key)
+        if member.isfile(): return member.size > 0 and bool(member.mode & 0o111)
+        if not (member.issym() or member.islnk()): return False
+        if posixpath.isabs(member.linkname): return False
+        target = posixpath.normpath(posixpath.join(posixpath.dirname(key), member.linkname)
+                                   if member.issym() else member.linkname)
+        if not target.startswith(root+'/') or target not in members: return False
+        member = members[target]
+
+
 def validate_linux_tar(archive, name, bundled=False):
     members = archive.getmembers()
     for member in members:
@@ -42,7 +60,8 @@ def validate_linux_tar(archive, name, bundled=False):
     if not any(Path(m.name).name == 'LICENSE' for m in entries): raise ValueError(f'{name}: license missing')
     if bundled:
         require_audio_backend(m.name for m in entries)
-        if not any(m.name.endswith('/AppRun') and m.mode & 0o111 for m in entries):
+        indexed = {posixpath.normpath(m.name): m for m in members}
+        if not any(m.name.endswith('/AppRun') and executable_archive_entry(m, indexed) for m in members):
             raise ValueError(f'{name}: executable AppRun missing')
 
 
