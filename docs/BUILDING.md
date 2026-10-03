@@ -1,5 +1,7 @@
 # Building LeoMiniGames 0.7.3
 
+See [Linux package choices](LINUX_PACKAGES.md) for package formats and installation/lifecycle tests.
+
 ## Requirements
 
 - CMake 3.21+

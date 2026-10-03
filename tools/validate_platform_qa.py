@@ -10,6 +10,7 @@ TARGETS = (
     'Windows-x86_64', 'Windows-x86_64-AVX2', 'Windows-ARM64',
     'Linux-Ubuntu-22.04-x86_64', 'Linux-Ubuntu-24.04-x86_64', 'Linux-Ubuntu-24.04-arm64',
     'Debian-13-x86_64', 'Debian-13-arm64', 'Arch-x86_64',
+    'Fedora-43-x86_64', 'Fedora-43-arm64', 'Flatpak-x86_64', 'Flatpak-aarch64',
     'macOS-arm64', 'macOS-x86_64', 'macOS-universal',
     'iOS-device-arm64', 'iOS-simulator-x86_64', 'iPadOS-device-arm64', 'iPadOS-simulator-x86_64',
 )
@@ -18,8 +19,11 @@ def target_artifacts(target):
     prefix = 'LeoMiniGames-v0.7.3-' + target
     if target.startswith('Android-'): return {prefix + '.apk'}
     if target.startswith('Windows-'): return {prefix + '.zip', prefix + '-Setup.exe'}
-    if target.startswith('Linux-'): return {prefix + '.tar.gz', prefix + '.AppImage'}
-    if target.startswith(('Debian-', 'Arch-')): return {prefix + '-native.tar.gz'}
+    if target.startswith('Linux-'): return {prefix + '.tar.gz', prefix + '.AppImage', prefix + '-Setup.run'}
+    if target.startswith('Debian-'): return {prefix + '-native.tar.gz', prefix + '.deb'}
+    if target.startswith('Arch-'): return {prefix + '-native.tar.gz', prefix + '.pkg.tar.zst'}
+    if target.startswith('Fedora-'): return {prefix + '-native.tar.gz', prefix + '.rpm'}
+    if target.startswith('Flatpak-'): return {'LeoMiniGames-v0.7.3-Linux-' + target.removeprefix('Flatpak-') + '.flatpak'}
     if target.startswith('macOS-'): return {prefix + '.zip', prefix + '.dmg'}
     return set()
 
@@ -46,6 +50,8 @@ def validate(report, sha, manifest=None):
             if artifact not in target_artifacts(target) or artifact not in manifest['assets'] or manifest['assets'][artifact]['sha256'] != row['artifact_sha256']: raise ValueError(f'{target}: tested artifact differs from candidate')
         if target.startswith('Android-') and not row.get('device_abis'): raise ValueError(f'{target}: missing actual device ABI')
         if target.startswith('Windows-') and row.get('installer_upgrade_modify_uninstall') is not True: raise ValueError(f'{target}: installer servicing not passed')
+        if target.startswith(('Linux-', 'Debian-', 'Arch-', 'Fedora-', 'Flatpak-')) and row.get('installer_install_reinstall_uninstall') is not True:
+            raise ValueError(f'{target}: Linux package/installer lifecycle not passed')
         if target.startswith('macOS-') and row.get('gatekeeper_assessed') is not True: raise ValueError(f'{target}: Gatekeeper assessment missing')
 
 if __name__=='__main__':

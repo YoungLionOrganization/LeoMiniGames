@@ -12,7 +12,11 @@
 #include <QQmlError>
 #include <QImage>
 #include <QDir>
+#include <cstdio>
 #include <QtPlugin>
+#ifdef Q_OS_ANDROID
+#include <QJniObject>
+#endif
 
 #include "core/Achievements.h"
 #include "core/AppController.h"
@@ -75,8 +79,23 @@ int main(int argc, char *argv[])
     app.setApplicationName(QStringLiteral("LeoMiniGames"));
     app.setApplicationVersion(QStringLiteral("0.7.3"));
     app.setApplicationDisplayName(QStringLiteral("LeoMiniGames"));
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+    app.setDesktopFileName(QStringLiteral("xyz.younglion.leominigames"));
+#endif
     TlsRuntime::initialize();
-    if (app.arguments().contains(QStringLiteral("--tls-smoke-test"))) return TlsRuntime::probe();
+    bool tlsSmokeTest = app.arguments().contains(QStringLiteral("--tls-smoke-test"));
+#ifdef Q_OS_ANDROID
+    // Qt ignores applicationArguments intent extras in Release APKs.
+    // This fixed diagnostic performs the same certificate-validated request.
+    if (QNativeInterface::QAndroidApplication::isActivityContext()) {
+        const QJniObject activity = QNativeInterface::QAndroidApplication::context();
+        const QJniObject intent = activity.callObjectMethod("getIntent", "()Landroid/content/Intent;");
+        const auto key = QJniObject::fromString(QStringLiteral("xyz.younglion.leominigames.tlsSmokeTest"));
+        tlsSmokeTest = tlsSmokeTest || (intent.isValid() && intent.callMethod<jboolean>(
+            "getBooleanExtra", "(Ljava/lang/String;Z)Z", key.object<jstring>(), JNI_FALSE));
+    }
+#endif
+    if (tlsSmokeTest) return TlsRuntime::probe();
     app.setWindowIcon(QIcon(QStringLiteral(":/branding/leominigames_icon.png")));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
 
@@ -306,7 +325,13 @@ int main(int argc, char *argv[])
         const QStringList games{QStringLiteral("xox"), QStringLiteral("blackjack"), QStringLiteral("minesweeper"), QStringLiteral("2048"), QStringLiteral("memory_match"), QStringLiteral("reaction_tap")};
         QObject::connect(timer, &QTimer::timeout, &app, [&, timer, games, index = 0, opened = false]() mutable {
             if (!opened) {
-                if (index == games.size()) { qInfo("PASS: six builtin QML sessions opened and closed"); app.exit(0); return; }
+                if (index == games.size()) {
+                    // Distro Qt logging rules can suppress qInfo; test evidence
+                    // must remain observable after a successful full session run.
+                    std::puts("PASS: six builtin QML sessions opened and closed");
+                    std::fflush(stdout);
+                    app.exit(0); return;
+                }
                 if (!controller.openGame(games.at(index))) { qCritical("Smoke: game open failed"); app.exit(2); return; }
                 opened = true;
                 return;

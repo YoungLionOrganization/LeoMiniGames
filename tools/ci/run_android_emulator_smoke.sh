@@ -11,7 +11,23 @@ case "$ABI" in
 esac
 mkdir -p "$OUT"
 sdkmanager "emulator" "$IMAGE"
-avdmanager create avd --force -n lmg-smoke -k "$IMAGE" --abi "$DEVICE_ABI" --device pixel_2 <<< no
+# Pin a known command-line tools release: newer preview tools have failed while
+# reading the optional devices.xml in otherwise valid Google system images.
+sdkmanager 'cmdline-tools;16.0'
+AVDMANAGER="${LMG_AVDMANAGER:-${ANDROID_SDK_ROOT:?}/cmdline-tools/16.0/bin/avdmanager}"
+export ANDROID_AVD_HOME="$(mktemp -d "${TMPDIR:-/tmp}/lmg-avd.XXXXXX")"
+# Keep multi-gigabyte emulator disks out of diagnostic artifacts.
+trap 'rm -rf "$ANDROID_AVD_HOME"' EXIT
+if ! "$AVDMANAGER" create avd --force -n lmg-smoke -k "$IMAGE" --abi "$DEVICE_ABI" --device pixel_2 \
+  > "$OUT/avd-create.log" 2>&1 <<< no; then
+  cat "$OUT/avd-create.log" >&2
+  exit 1
+fi
+[[ -s "$ANDROID_AVD_HOME/lmg-smoke.ini" && -s "$ANDROID_AVD_HOME/lmg-smoke.avd/config.ini" ]] || {
+  echo 'AVD creation did not produce a usable configuration.' >&2
+  cat "$OUT/avd-create.log" >&2
+  exit 1
+}
 if [[ -e /dev/kvm ]]; then sudo chmod 666 /dev/kvm; fi
 # install-qt-action exports Android Qt libraries/plugins. The host emulator ships
 # its own Qt: inheriting those paths can abort it before adb sees a device.
@@ -23,9 +39,17 @@ env -u LD_LIBRARY_PATH -u QT_PLUGIN_PATH -u QT_QPA_PLATFORM_PLUGIN_PATH \
 EMULATOR_PID=$!
 export ANDROID_SERIAL=emulator-5554
 cleanup() {
-  adb -s "$ANDROID_SERIAL" emu kill >/dev/null 2>&1 || true
+  timeout --kill-after=1 5 adb -s "$ANDROID_SERIAL" emu kill >/dev/null 2>&1 || true
   kill "$EMULATOR_PID" >/dev/null 2>&1 || true
+  # Emulator shutdown can hang after a successful probe. Bound both the adb
+  # request and the child process exit, then reap it before removing its disks.
+  for attempt in $(seq 1 20); do
+    kill -0 "$EMULATOR_PID" 2>/dev/null || break
+    sleep 0.25
+  done
+  kill -KILL "$EMULATOR_PID" >/dev/null 2>&1 || true
   wait "$EMULATOR_PID" 2>/dev/null || true
+  rm -rf "$ANDROID_AVD_HOME"
 }
 trap cleanup EXIT
 DEADLINE=$((SECONDS + 600))

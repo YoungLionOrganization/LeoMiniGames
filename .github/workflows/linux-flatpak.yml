@@ -1,0 +1,73 @@
+name: Linux Flatpak
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  LMG_VERSION: "0.7.3"
+
+jobs:
+  flatpak:
+    name: Flatpak ${{ matrix.arch }} install and uninstall
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install build tools and runtime remote
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder xvfb xauth
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+      - name: Build bundle
+        env:
+          LMG_FLATPAK_ARCH: ${{ matrix.arch }}
+        run: bash tools/package/package_flatpak.sh
+      - name: Install, launch, reinstall and uninstall bundle
+        run: |
+          mkdir -p flatpak-smoke
+          dbus-run-session -- bash -eu -o pipefail <<'SH'
+          package="dist/flatpak/LeoMiniGames-v${LMG_VERSION}-Linux-${{ matrix.arch }}.flatpak"
+          for pass in install reinstall; do
+            # Flatpak on Ubuntu 24.04 ignores --reinstall for local bundles.
+            # Explicit removal preserves app data and exercises a fresh deployment.
+            if [[ "$pass" == reinstall ]]; then
+              flatpak uninstall --user --noninteractive --assumeyes xyz.younglion.leominigames
+            fi
+            flatpak install --user --noninteractive --assumeyes "$package"
+            QT_QUICK_BACKEND=software xvfb-run -a timeout 40 flatpak run \
+              --env=QT_QPA_PLATFORM=xcb --env=QT_QUICK_BACKEND=software \
+              xyz.younglion.leominigames --smoke-test > "flatpak-smoke/$pass.log" 2>&1
+            grep -F 'PASS: six builtin QML sessions opened and closed' "flatpak-smoke/$pass.log"
+            mkdir -p "$HOME/.var/app/xyz.younglion.leominigames/data"
+            if [[ "$pass" == install ]]; then
+              echo keep-save > "$HOME/.var/app/xyz.younglion.leominigames/data/servicing-sentinel"
+            else
+              grep -Fx keep-save "$HOME/.var/app/xyz.younglion.leominigames/data/servicing-sentinel"
+            fi
+          done
+          flatpak uninstall --user --noninteractive --assumeyes xyz.younglion.leominigames
+          test -f "$HOME/.var/app/xyz.younglion.leominigames/data/servicing-sentinel"
+          if flatpak info --user xyz.younglion.leominigames; then exit 1; fi
+          sha256sum "$package" > flatpak-smoke/package.sha256
+          SH
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: linux-flatpak-${{ matrix.arch }}-evidence
+          path: flatpak-smoke/
+      - uses: actions/upload-artifact@v7
+        with:
+          name: LeoMiniGames-${{ env.LMG_VERSION }}-Linux-flatpak-${{ matrix.arch }}
+          path: dist/flatpak/*.flatpak
+          if-no-files-found: error

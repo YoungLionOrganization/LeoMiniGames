@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>xyz.younglion.leominigames</id>
+  <name>LeoMiniGames</name>
+  <summary>A modular Qt mini-game platform</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-LMG-SAPEL-1.0</project_license>
+  <description><p>Play six built-in games, discover games and themes, and preview your own QML games in Developer Lab.</p></description>
+  <launchable type="desktop-id">xyz.younglion.leominigames.desktop</launchable>
+  <url type="homepage">https://github.com/YoungLionOrganization/LeoMiniGames</url>
+  <url type="bugtracker">https://github.com/YoungLionOrganization/LeoMiniGames/issues</url>
+  <releases><release version="0.7.3" date="2026-10-03"/></releases>
+  <content_rating type="oars-1.1"/>
+</component>

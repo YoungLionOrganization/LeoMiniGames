@@ -127,9 +127,11 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Linux-Ubuntu-22.04-x86_64-Setup.run": "",
         "LeoMiniGames-v0.7.3-Linux-Ubuntu-22.04-x86_64.AppImage": "",
         "LeoMiniGames-v0.7.3-Linux-Ubuntu-22.04-x86_64.tar.gz": ""
-      }
+      },
+      "installer_install_reinstall_uninstall": false
     },
     "Linux-Ubuntu-24.04-x86_64": {
       "passed": false,
@@ -141,9 +143,11 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-x86_64-Setup.run": "",
         "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-x86_64.AppImage": "",
         "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-x86_64.tar.gz": ""
-      }
+      },
+      "installer_install_reinstall_uninstall": false
     },
     "Linux-Ubuntu-24.04-arm64": {
       "passed": false,
@@ -155,9 +159,11 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-arm64-Setup.run": "",
         "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-arm64.AppImage": "",
         "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-arm64.tar.gz": ""
-      }
+      },
+      "installer_install_reinstall_uninstall": false
     },
     "Debian-13-x86_64": {
       "passed": false,
@@ -169,8 +175,10 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Debian-13-x86_64-native.tar.gz": ""
-      }
+        "LeoMiniGames-v0.7.3-Debian-13-x86_64-native.tar.gz": "",
+        "LeoMiniGames-v0.7.3-Debian-13-x86_64.deb": ""
+      },
+      "installer_install_reinstall_uninstall": false
     },
     "Debian-13-arm64": {
       "passed": false,
@@ -182,8 +190,10 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Debian-13-arm64-native.tar.gz": ""
-      }
+        "LeoMiniGames-v0.7.3-Debian-13-arm64-native.tar.gz": "",
+        "LeoMiniGames-v0.7.3-Debian-13-arm64.deb": ""
+      },
+      "installer_install_reinstall_uninstall": false
     },
     "Arch-x86_64": {
       "passed": false,
@@ -195,8 +205,10 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Arch-x86_64-native.tar.gz": ""
-      }
+        "LeoMiniGames-v0.7.3-Arch-x86_64-native.tar.gz": "",
+        "LeoMiniGames-v0.7.3-Arch-x86_64.pkg.tar.zst": ""
+      },
+      "installer_install_reinstall_uninstall": false
     },
     "macOS-arm64": {
       "passed": false,
@@ -251,7 +263,8 @@
       "evidence": "",
       "tested_at": "",
       "tester": "",
-      "artifact_name": ""
+      "artifact_name": "",
+      "tested_artifacts": {}
     },
     "iOS-simulator-x86_64": {
       "passed": false,
@@ -261,7 +274,8 @@
       "evidence": "",
       "tested_at": "",
       "tester": "",
-      "artifact_name": ""
+      "artifact_name": "",
+      "tested_artifacts": {}
     },
     "iPadOS-device-arm64": {
       "passed": false,
@@ -271,7 +285,8 @@
       "evidence": "",
       "tested_at": "",
       "tester": "",
-      "artifact_name": ""
+      "artifact_name": "",
+      "tested_artifacts": {}
     },
     "iPadOS-simulator-x86_64": {
       "passed": false,
@@ -281,7 +296,66 @@
       "evidence": "",
       "tested_at": "",
       "tester": "",
-      "artifact_name": ""
+      "artifact_name": "",
+      "tested_artifacts": {}
+    },
+    "Fedora-43-x86_64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Fedora-43-x86_64-native.tar.gz": "",
+        "LeoMiniGames-v0.7.3-Fedora-43-x86_64.rpm": ""
+      },
+      "installer_install_reinstall_uninstall": false
+    },
+    "Fedora-43-arm64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Fedora-43-arm64-native.tar.gz": "",
+        "LeoMiniGames-v0.7.3-Fedora-43-arm64.rpm": ""
+      },
+      "installer_install_reinstall_uninstall": false
+    },
+    "Flatpak-x86_64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Linux-x86_64.flatpak": ""
+      },
+      "installer_install_reinstall_uninstall": false
+    },
+    "Flatpak-aarch64": {
+      "passed": false,
+      "clean_system": false,
+      "environment": "",
+      "artifact_sha256": "",
+      "evidence": "",
+      "tested_at": "",
+      "tester": "",
+      "artifact_name": "",
+      "tested_artifacts": {
+        "LeoMiniGames-v0.7.3-Linux-aarch64.flatpak": ""
+      },
+      "installer_install_reinstall_uninstall": false
     }
   }
 }

@@ -50,6 +50,9 @@ EOF
 python3 "$ROOT/tools/validate_audio_deployment.py" "$APPDIR"
 
 tar -C "$DIST" -czf "$DIST/LeoMiniGames-v${VERSION}-Linux-${SUFFIX}.tar.gz" "$(basename "$APPDIR")"
+SETUP="$DIST/LeoMiniGames-v${VERSION}-Linux-${SUFFIX}-Setup.run"
+cat "$ROOT/installer/linux/install.sh" "$DIST/LeoMiniGames-v${VERSION}-Linux-${SUFFIX}.tar.gz" > "$SETUP"
+chmod +x "$SETUP"
 "$APPIMAGETOOL" "$APPDIR" "$DIST/LeoMiniGames-v${VERSION}-Linux-${SUFFIX}.AppImage"
 
 echo "Portable: $DIST/LeoMiniGames-v${VERSION}-Linux-${SUFFIX}.tar.gz"

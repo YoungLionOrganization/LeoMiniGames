@@ -87,6 +87,10 @@ if ci:
         (ok if v in runners else err)(f'CI Linux runner {v}')
 
     distro = job(ci, 'linux-distro')
+    if distro and distro.get('uses') == './.github/workflows/linux-native-packages.yml':
+        shared, raw = load_workflow('.github/workflows/linux-native-packages.yml')
+        distro = job(shared, 'packages')
+        cis += raw
     distro_labels = matrix_values(distro, 'label')
     for label in {'Debian-13-x86_64','Debian-13-arm64','Arch-x86_64'}:
         (ok if label in distro_labels else err)(f'CI Linux distro target {label}')
@@ -158,6 +162,10 @@ if art:
         (ok if label in matrix_values(linux, 'label') else err)(f'Artifact Linux portable target {label}')
 
     native = job(art, 'linux-native')
+    if native and native.get('uses') == './.github/workflows/linux-native-packages.yml':
+        shared, raw = load_workflow('.github/workflows/linux-native-packages.yml')
+        native = job(shared, 'packages')
+        arts += raw
     for label in {'Debian-13-x86_64','Debian-13-arm64','Arch-x86_64'}:
         (ok if label in matrix_values(native, 'label') else err)(f'Artifact Linux native target {label}')
     (err if 'Arch-arm64' in matrix_values(native, 'label') else ok)('Artifact workflow does not claim unsupported official Arch ARM64 container')

@@ -17,8 +17,8 @@ HEADERS={
 
 
 def render():
-    release=json.loads((ROOT/'release/release.json').read_text())
-    runtime=(ROOT/'src/core/GameRuntime.h').read_text()
+    release=json.loads((ROOT/'release/release.json').read_text(encoding='utf-8'))
+    runtime=(ROOT/'src/core/GameRuntime.h').read_text(encoding='utf-8')
     api=re.search(r'apiVersion\(\) const.*?QStringLiteral\("([^\"]+)"\)',runtime,re.S).group(1)
     parts=[f'# Host service reference — API {api} / application {release["version"]}\n\n',
         'Generated from `src/core` declarations with `python3 tools/sdk/generate_api_reference.py`. Do not edit the signature lists manually. Check drift with `--check`.\n\n',
@@ -26,7 +26,7 @@ def render():
         '**Properties are accessed without parentheses.** In particular use `GameRuntime.capabilities`, while other services with an invokable `capabilities()` use parentheses. `ready` means the service exists; `GameAudio.available`/`Haptics.available` probe their support. Required host capabilities do not guarantee an attached audio device, hardware input or network permission.\n\n',
         '`ThemeRuntime` in an external engine is an alias for the same scoped facade as `GameTheme`, not the host installer. `App.closeGame()` requests session navigation/teardown. Lifecycle attachment, `Viewport.update/windowInsets` and `GameInput.setFocusRoot/handleKey` are host integration concerns; games should use lifecycle callbacks, read viewport geometry and consume actions.\n\n']
     for context,header in HEADERS.items():
-        text=(ROOT/'src/core'/f'{header}.h').read_text()
+        text=(ROOT/'src/core'/f'{header}.h').read_text(encoding='utf-8')
         text=re.sub(r'//[^\n]*','',text)
         properties=re.findall(r'Q_PROPERTY\(([^\n]*?)\)',text)
         functions=[]
@@ -57,8 +57,8 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--check',action='store_true');args=parser.parse_args()
     target=ROOT/'docs/sdk/API_REFERENCE.md';expected=render()
     if args.check:
-        if not target.exists() or target.read_text()!=expected:raise SystemExit('API reference is stale; run generate_api_reference.py')
+        if not target.exists() or target.read_text(encoding='utf-8')!=expected:raise SystemExit('API reference is stale; run generate_api_reference.py')
         print('PASS: SDK signatures match host headers');return
-    target.write_text(expected);print('Generated:',target)
+    target.write_text(expected,encoding='utf-8');print('Generated:',target)
 
 if __name__=='__main__':main()
