@@ -88,8 +88,8 @@ int main(int argc, char *argv[])
     // Qt ignores applicationArguments intent extras in Release APKs.
     // This fixed diagnostic performs the same certificate-validated request.
     if (QNativeInterface::QAndroidApplication::isActivityContext()) {
-        const auto intent = QNativeInterface::QAndroidApplication::context()
-            .callObjectMethod("getIntent", "()Landroid/content/Intent;");
+        const QJniObject activity = QNativeInterface::QAndroidApplication::context();
+        const QJniObject intent = activity.callObjectMethod("getIntent", "()Landroid/content/Intent;");
         const auto key = QJniObject::fromString(QStringLiteral("xyz.younglion.leominigames.tlsSmokeTest"));
         tlsSmokeTest = tlsSmokeTest || (intent.isValid() && intent.callMethod<jboolean>(
             "getBooleanExtra", "(Ljava/lang/String;Z)Z", key.object<jstring>(), JNI_FALSE));
