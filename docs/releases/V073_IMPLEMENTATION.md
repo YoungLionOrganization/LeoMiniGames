@@ -12,6 +12,8 @@
 
 > 2 Ekim workflow hata düzeltmeleri: [V073_WORKFLOW_FIXES.md](V073_WORKFLOW_FIXES.md).
 
+> 12 Ekim kayıt kurtarma, katalog yenileme, kaynak URL, klavye ve CI tekrar koşusu düzeltmeleri: [V073_RUNTIME_FOLLOWUPS.md](V073_RUNTIME_FOLLOWUPS.md).
+
 ## İlk planın kod değişiklikleri
 
 | İş | Uygulanan değişiklik | Davranış doğrulaması / sınır |

@@ -61,7 +61,14 @@ int main(int argc, char **argv)
     for(auto *item:audio.findChildren<AudioClip *>(QString(),Qt::FindDirectChildrenOnly))if(item!=clip)resourceClip=item;
     check(resourceClip,"legacy resource uses common playback");
     const QString local=resourceClip->playbackUrl().toLocalFile();
-    audio.releasePrefix("qrc:/mods/test_audio/");check(resourceClip.isNull()&&!QFileInfo::exists(local),"unload releases decoder and temporary audio file");
+    audio.releasePrefix("qrc:/mods/test_audio/");check(resourceClip.isNull()&&wait([&]{return !QFileInfo::exists(local);}),"unload releases decoder and temporary audio file");
+    for (int i=0;i<3;++i) {
+        auto *loading=new AudioClip(QUrl("qrc:/mods/test_audio/tone.ogg"),AudioClip::Usage::Effect);
+        loading->load();const QString loadingPath=loading->playbackUrl().toLocalFile();
+        check(!loadingPath.isEmpty()&&QFileInfo::exists(loadingPath),"loading audio has a temporary native file");
+        delete loading;
+        check(wait([&]{return !QFileInfo::exists(loadingPath);}),"immediate async decoder retirement cleans temporary file");
+    }
     modern.preload(QUrl("tone%231.ogg"));legacy.preload(QUrl("qrc:/mods/test_audio/tone%231.ogg"));
     check(audio.findChildren<AudioClip *>(QString(),Qt::FindDirectChildrenOnly).size()==2,"encoded file names resolve equally through modern and legacy APIs");
     audio.releasePrefix("qrc:/mods/test_audio/");

@@ -345,11 +345,11 @@ void ModManager::refresh()
         fresh.reserve(dataArray.size() + installed.size());
 
         for (const QJsonValue &value : dataArray) {
+            if (!value.isObject()) { setError(tr("Catalog contains an invalid entry.")); return; }
             const QJsonObject object = value.toObject();
             Entry entry;
             entry.id = object.value(QStringLiteral("id")).toString();
-            if (!validId(entry.id))
-                continue;
+            if (!validId(entry.id)) { setError(tr("Catalog contains an invalid entry.")); return; }
 
             if (seenIds.contains(entry.id)) { setError(tr("Catalog contains duplicate IDs.")); return; }
             seenIds.insert(entry.id);

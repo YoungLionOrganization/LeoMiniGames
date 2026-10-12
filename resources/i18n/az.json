@@ -1,4 +1,6 @@
 {
+  "Catalog contains an invalid entry.": "Kataloqda etibarsız qeyd var.",
+  "Theme catalog contains an invalid entry.": "Tema kataloqunda etibarsız qeyd var.",
   "Games": "Oyunlar",
   "Settings": "Ayarlar",
   "Built-in plugin": "Daxili plugin",

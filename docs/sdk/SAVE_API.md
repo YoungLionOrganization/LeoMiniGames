@@ -13,7 +13,7 @@ GameSave stores a per-game CBOR map in atomic, checksummed `.lmgsave` files. Pre
 | `deleteSlot(slot)` | Explicit removal; check return. Do not delete failed-load saves to suppress an error. |
 | `listSlots()` | Primary `.lmgsave` names; backup-only slots are not listed. |
 | `hasStoredSlot(slot)` | App 0.7.3 additive QML helper: true when a primary **or backup** exists, regardless of validity. |
-| `restoreBackup(slot)` | Copies validated backup bytes to primary preserving schema; call load again to expose/migrate it. |
+| `restoreBackup(slot)` | Validates and migrates in memory before restoring; exposes the recovered state without a second load. Stored schema stays unchanged until save. Failed migration preserves both files and session memory. |
 | `clearMemory()` | Clears the in-memory map and marks it dirty; this is not disk deletion. |
 
 Slot names match `[A-Za-z0-9_.-]{1,64}` except `.` and `..`. Use autosave for the host-owned default path. Manual slots need explicit `save("slot")`/`load("slot")`; a loaded currentSlot does not redirect host autosave. Properties are `gameId`, `currentSlot`, `schemaVersion`, `loadedSchemaVersion`, `lastError`. Observe lastErrorChanged/saved/loaded/backupRestored.

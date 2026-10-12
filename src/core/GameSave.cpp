@@ -191,7 +191,8 @@ bool GameSave::save(const QString &slot)
         return false;
     }
     const ReadResult existing = readFile(path);
-    if ((existing.ok && existing.schema > m_schemaVersion) || (!existing.ok && QFile::exists(path) && !m_recoveredSlots.contains(slot))) {
+    const bool hasStoredData = QFile::exists(path) || QFile::exists(backupPath(slot));
+    if ((existing.ok && existing.schema > m_schemaVersion) || (!existing.ok && hasStoredData && !m_recoveredSlots.contains(slot))) {
         m_blockedSlots.insert(slot);
         setError(tr("Existing save must be loaded or recovered before replacement.")); return false;
     }
@@ -281,9 +282,24 @@ bool GameSave::forceSave(const QString &slot) { if (m_gameId.isEmpty()) return t
 bool GameSave::restoreBackup(const QString &slot)
 {
     const QString bak = backupPath(slot); const QString primary = slotPath(slot);
-    if (bak.isEmpty() || !readFile(bak).ok) { setError(QStringLiteral("No valid backup exists.")); return false; }
+    ReadResult backup = readFile(bak);
+    if (bak.isEmpty() || !backup.ok) { setError(QStringLiteral("No valid backup exists.")); return false; }
+    int version = backup.schema;
+    const int sourceSchema = version;
+    if (version > m_schemaVersion) { setError(QStringLiteral("Save schema is newer than this game.")); return false; }
+    if (version < m_schemaVersion && !applyMigrations(backup.payload, version)) return false;
+    // Validate/migrate before committing so a rejected recovery cannot replace
+    // a newer primary, and retain the original backup after a successful restore.
     if (!atomicCopy(bak, primary)) { setError(QStringLiteral("Backup restore failed.")); return false; }
-    setError(QString{}); emit backupRestored(slot); return load(slot);
+    m_payload = backup.payload;
+    m_currentSlot = slot;
+    m_loadedSchemaVersion = version;
+    m_dirty = sourceSchema != version;
+    m_blockedSlots.remove(slot);
+    m_recoveredSlots.insert(slot);
+    setError(QString{});
+    emit slotChanged(); emit loadedChanged(); emit loaded(slot); emit backupRestored(slot);
+    return true;
 }
 
 bool GameSave::registerMigration(int fromVersion, int toVersion, const QJSValue &callback)

@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc,argv); app.setOrganizationName("LMGTests"); app.setApplicationName("ExternalSession");
     int count=0; auto check=[&](bool ok,const char *name){++count; if (!ok) qFatal("FAIL: %s",name);};
     check(argc==2,"fixture argument");
-    AppPaths paths; GameSave original(&paths); original.activate("migration_v07","1.0.0",1); original.set("coins",7); check(original.save(),"old schema fixture");
+    AppPaths paths(data.path()+"/data",data.path()+"/cache"); GameSave original(&paths); original.activate("migration_v07","1.0.0",1); original.set("coins",7); check(original.save(),"old schema fixture");
     GameSave save(&paths); QJSEngine hostEngine; save.setEngine(&hostEngine); save.activate("migration_v07","1.0.0",2);
     PluginDiagnostics diagnostics; ExternalGameRuntime runtime(&diagnostics); AppController controller(nullptr); LegacyAppFacade facade(&controller);
     GameLifecycle lifecycle; QQuickItem container; container.setWidth(400);container.setHeight(300);

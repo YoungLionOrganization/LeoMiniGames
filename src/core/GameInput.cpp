@@ -96,14 +96,20 @@ QString GameInput::actionForKey(int key, quint32 nativeScanCode, const QString &
 bool GameInput::handleKey(int key, quint32 nativeScanCode, const QString &text, bool pressed, bool autoRepeat)
 {
     const QString action = actionForKey(key, nativeScanCode, text);
-    if (action.isEmpty()) return false;
-    if (autoRepeat) return true;
-    const quint64 token = (quint64(nativeScanCode) << 32) | quint32(key);
-    if (pressed) { m_physicalKeys.insert(token, action); press(action); }
-    else {
+    // A native scan identifies the physical key even if its logical Qt key
+    // changes while held (for example after switching keyboard layouts).
+    const quint64 token = nativeScanCode ? (quint64(nativeScanCode) << 32) : quint32(key);
+    if (autoRepeat) return !action.isEmpty() || m_physicalKeys.contains(token);
+    if (!pressed) {
         const QString previous = m_physicalKeys.take(token);
         if (!previous.isEmpty() && !m_physicalKeys.values().contains(previous)) release(previous);
+        return !previous.isEmpty() || !action.isEmpty();
     }
+    if (action.isEmpty()) return false;
+    const QString previous = m_physicalKeys.value(token);
+    m_physicalKeys.insert(token, action);
+    if (!previous.isEmpty() && previous != action && !m_physicalKeys.values().contains(previous)) release(previous);
+    press(action);
     return true;
 }
 void GameInput::reset() { m_physicalKeys.clear(); const auto keys = m_values.keys(); m_values.clear(); for (const QString &k : keys) { emit actionReleased(k); emit actionValueChanged(k, 0.0); } }

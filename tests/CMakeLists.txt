@@ -86,6 +86,7 @@ endif()
 add_test(NAME developer_auth_races COMMAND test_developer_manager)
 
 add_executable(test_patch_runtime test_patch_runtime.cpp
+    fixtures/resources/path.qrc
     ${CMAKE_SOURCE_DIR}/plugins/builtin/MemoryMatch/MemoryMatchGame.cpp
     ${CMAKE_SOURCE_DIR}/plugins/builtin/MemoryMatch/MemoryMatchGame.h
     ${CMAKE_SOURCE_DIR}/plugins/builtin/ReactionTap/ReactionTapGame.cpp

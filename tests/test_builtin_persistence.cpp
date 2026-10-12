@@ -47,7 +47,7 @@ template<class Game> static void session(AppPaths &paths, const QString &id) {
 int main(int argc,char **argv) {
     QTemporaryDir directory; qputenv("XDG_DATA_HOME",directory.path().toUtf8()); qputenv("XDG_CONFIG_HOME",directory.path().toUtf8());
     QGuiApplication app(argc,argv); app.setOrganizationName("LMGTests"); app.setApplicationName("BuiltinPersistence");
-    AppPaths paths;
+    AppPaths paths(directory.path()+"/data",directory.path()+"/cache");
     session<XoxGame>(paths,"xox"); session<BlackjackGame>(paths,"blackjack"); session<MinesweeperGame>(paths,"minesweeper");
     session<TwentyFortyEightGame>(paths,"2048"); session<MemoryMatchGame>(paths,"memory_match"); session<ReactionTapGame>(paths,"reaction_tap");
     XoxGame xox; xox.play(0); xox.play(4); XoxGame xoxCopy;
