@@ -53,7 +53,7 @@ Windows Qt Installer Framework installations use only backend repository URLs:
 
 `Updates.xml`, `.7z` payloads and `.sha1` files are proxied by the backend from the configured upstream provider. The installer and Maintenance Tool therefore do not embed a GitHub repository URL.
 
-Other platforms do not use a QtIFW repository. Their in-app update check opens the recommended backend download or release page, after which the platform package is installed by its usual method. The `updates` branch is not a mirror of all public assets.
+Other platforms do not use a QtIFW repository. Linux desktop clients open the validated backend release page so the user can select their distribution, architecture and installed package format. The metadata request does not identify the distribution or distinguish native packages from Flatpak, so its generic recommended binary is not sufficient for Linux upgrades. Other clients open the recommended backend download or release page. The platform package is then installed by its usual method. The `updates` branch is not a mirror of all public assets.
 
 The guarded `Publish Release` workflow still publishes the generated QtIFW repository to the repository's internal `updates` branch while GitHub remains the configured upstream. Moving that storage later does not require a LeoMiniGames client update as long as the backend routes above remain stable.
 
@@ -62,7 +62,7 @@ The guarded `Publish Release` workflow still publishes the generated QtIFW repos
 - **Stable** resolves the latest published non-prerelease release.
 - **Preview** resolves the highest valid SemVer release visible to the backend, including `alpha`, `beta` and `rc` prereleases.
 
-The application still performs a local SemVer comparison before presenting an update so a malformed or older server response cannot trigger a downgrade.
+The application performs a local SemVer comparison before presenting or launching an update. The update action refuses equal or older releases, including launching the Windows Maintenance Tool. Viewing release information remains available independently.
 
 ## Backend resilience
 

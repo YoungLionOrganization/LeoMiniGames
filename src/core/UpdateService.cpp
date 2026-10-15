@@ -315,11 +315,18 @@ bool UpdateService::launchMaintenance()
 
 bool UpdateService::openUpdate()
 {
+    if (!m_updateAvailable)
+        return false;
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+    // Metadata does not identify the Linux distribution or installed package format.
+    return openReleasePage();
+#else
     if (maintenanceAvailable() && launchMaintenance())
         return true;
     if (m_downloadUrl.isValid() && isAllowedUpdateUrl(m_downloadUrl))
         return QDesktopServices::openUrl(m_downloadUrl);
     return openReleasePage();
+#endif
 }
 
 bool UpdateService::openReleasePage()

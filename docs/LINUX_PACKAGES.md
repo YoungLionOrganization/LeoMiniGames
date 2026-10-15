@@ -17,7 +17,7 @@ The user installer needs Bash, tar and coreutils, and runs without root. The def
 
 Flatpak data lives under `~/.var/app/xyz.younglion.leominigames`. The sandbox grants network, graphics/audio and keyring access, and uses file portals instead of granting the entire home directory. Native L3 plugins must match the runtime ABI. Native and Flatpak builds have separate data directories. Uninstallation normally keeps user data; `flatpak uninstall --delete-data` explicitly deletes it.
 
-Updates use the same format/package manager. For a local Flatpak bundle already installed, remove the app without `--delete-data`, then install the new bundle; saves remain available. In-app update discovery opens the backend download page. QtIFW Maintenance Tool servicing remains Windows-only.
+Updates use the same format/package manager. For a local Flatpak bundle already installed, remove the app without `--delete-data`, then install the new bundle; saves remain available. In-app update discovery opens the backend release page for package selection. Select the same distribution, architecture and package format as the installed app; the generic Linux recommendation cannot distinguish them. QtIFW Maintenance Tool servicing remains Windows-only.
 
 ## Build and verification
 

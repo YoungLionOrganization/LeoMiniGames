@@ -32,6 +32,12 @@ External runtime requests also carry a generation. Retirement detaches current s
 
 The added external-session regression first failed at `unload from loading notification cancels creation`. It then passed cancellation from loading, replacement during retirement, cancellation from loaded, destruction of the parent during loading, and a real QML required-property fixture. Parent sizing callbacks are also scoped to the current request. Existing v0.5/v0.6/v0.7 fixtures remain covered.
 
+## Update navigation
+
+The update action now requires a newer validated release before opening a browser or starting the Windows Maintenance Tool. Linux desktop clients open the validated release page for package selection: the current metadata contract does not identify the distribution or installed package format, and the generic Linux recommendation may select an incompatible Ubuntu binary or bypass Flatpak updates. Other platforms retain their recommended download behavior. Viewing release information remains available without an update.
+
+The new navigation regression reproduced both older and equal versions launching a download before the fix. It records desktop URL requests without opening a browser, verifies the platform-specific destination, and checks that release information remains accessible.
+
 Native verification uses the existing Qt 6.10.2 Windows x86_64 Debug kit with Multimedia. Full native suite and fresh GitHub run outcomes are recorded in PR #7. Physical device, keyring and release-signing checks remain release QA requirements.
 
-The expanded native CTest suite passed **21/21**. Source/project/sanity/documentation validators passed; distribution reported 300 PASS, SDK tooling 10/10 and package validators 16/16. The Windows audio test's stale-registry failure was reproduced before explicit INI isolation and passed afterward. i18n retains 22 coverage warnings with zero errors.
+The expanded native CTest suite passed **22/22**. Source/project/sanity/documentation validators passed; distribution reported 300 PASS, SDK tooling 10/10 and package validators 16/16. The Windows audio test's stale-registry failure was reproduced before explicit INI isolation and passed afterward. i18n retains 22 coverage warnings with zero errors.
