@@ -26,6 +26,12 @@ The original reentrancy regression reported 10 failures out of 10 assertions. Bo
 
 SettingsManager accepts an explicit INI filename for host tests. Audio, catalog, external-session and SDK tests now use their temporary settings file. This fixes repeated Windows runs reading settings from the previous run's registry profile; XDG variables alone do not isolate QSettings there. Normal application construction retains native settings storage.
 
+## External QML load cancellation
+
+External runtime requests also carry a generation. Retirement detaches current state before changing the old item's visibility, so callbacks cannot clear a replacement engine. A changed/loaded observer can cancel a request without the old loader publishing ready afterward. Component completion failures, including missing required QML properties, retire the invalid root and publish an error. Destruction retires owned roots/engines before releasing the retained network factories.
+
+The added external-session regression first failed at `unload from loading notification cancels creation`. It then passed cancellation from loading, replacement during retirement, cancellation from loaded, destruction of the parent during loading, and a real QML required-property fixture. Parent sizing callbacks are also scoped to the current request. Existing v0.5/v0.6/v0.7 fixtures remain covered.
+
 Native verification uses the existing Qt 6.10.2 Windows x86_64 Debug kit with Multimedia. Full native suite and fresh GitHub run outcomes are recorded in PR #7. Physical device, keyring and release-signing checks remain release QA requirements.
 
 The expanded native CTest suite passed **21/21**. Source/project/sanity/documentation validators passed; distribution reported 300 PASS, SDK tooling 10/10 and package validators 16/16. The Windows audio test's stale-registry failure was reproduced before explicit INI isolation and passed afterward. i18n retains 22 coverage warnings with zero errors.

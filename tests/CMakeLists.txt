@@ -110,7 +110,7 @@ set_tests_properties(builtin_qml_sessions PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;XDG_DATA_HOME=${CMAKE_CURRENT_BINARY_DIR}/smoke-data;XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/smoke-config;XDG_CACHE_HOME=${CMAKE_CURRENT_BINARY_DIR}/smoke-cache"
     TIMEOUT 30)
 
-add_executable(test_external_session test_external_session.cpp)
+add_executable(test_external_session test_external_session.cpp fixtures/runtime/runtime.qrc)
 target_link_libraries(test_external_session PRIVATE lmg_core)
 add_dependencies(test_external_session compat_rcc_fixtures)
 add_test(NAME external_engine_session COMMAND test_external_session ${COMPAT_RCC_DIR})

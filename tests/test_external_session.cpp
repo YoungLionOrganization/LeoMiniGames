@@ -68,5 +68,36 @@ int main(int argc, char **argv) {
         check(runtime.load(&container,entry,id,false),"legacy QML creation");check(diagnostics.lastError().isEmpty(),"legacy services without QML errors");
         controller.closeGame();QCoreApplication::processEvents();RccPackageInspector::unmount(package,inspected);
     }
+    const QString modernFile=QString::fromLocal8Bit(argv[1])+"/v0_7_modern.rcc";
+    const auto modernInspection=RccPackageInspector::inspect(modernFile);
+    check(RccPackageInspector::mount(modernFile,modernInspection),"mount reentry fixture");
+    const QUrl modernUrl("qrc:/mods/modern_v07_fixture/Main.qml");
+    save.activate("modern_v07_fixture","fixture",1);
+    bool cancelled=false;
+    const auto cancelConnection=QObject::connect(&runtime,&ExternalGameRuntime::changed,&app,[&]{
+        if(runtime.status()=="loading"&&!cancelled){cancelled=true;runtime.unload();}
+    });
+    check(!runtime.load(&container,modernUrl,"modern_v07_fixture",false),"unload from loading notification cancels creation");
+    check(cancelled&&!runtime.item()&&runtime.status()=="null","cancelled load stays retired");
+    QObject::disconnect(cancelConnection);runtime.unload();QCoreApplication::processEvents();
+    QPointer<QQuickItem> transientParent=new QQuickItem;
+    const auto destroyParent=QObject::connect(&runtime,&ExternalGameRuntime::changed,&app,[&]{if(runtime.status()=="loading")delete transientParent.data();});
+    check(!runtime.load(transientParent,modernUrl,"modern_v07_fixture",false),"destroyed parent cancels load without dereferencing stale item");
+    check(!transientParent&&!runtime.item()&&runtime.status()=="error","parent destruction reports a clean load error");
+    QObject::disconnect(destroyParent);runtime.unload();QCoreApplication::processEvents();
+    bool replaced=false;QPointer<QObject> replacement;
+    const auto replaceConnection=QObject::connect(&runtime,&ExternalGameRuntime::changed,&app,[&]{
+        if(runtime.status()=="null"&&!replaced){replaced=true;runtime.load(&container,modernUrl,"modern_v07_fixture",false);replacement=runtime.item();}
+    });
+    check(!runtime.load(&container,modernUrl,"modern_v07_fixture",false),"replacement from retirement cancels older request");
+    check(replacement&&runtime.item()==replacement&&runtime.status()=="ready","replacement engine remains current");
+    QObject::disconnect(replaceConnection);runtime.unload();QCoreApplication::processEvents();
+    const auto closeLoaded=QObject::connect(&runtime,&ExternalGameRuntime::loaded,&app,[&]{runtime.unload();});
+    check(!runtime.load(&container,modernUrl,"modern_v07_fixture",false),"unload from loaded notification reports retired request");
+    check(!runtime.item()&&runtime.status()=="null","loaded observer cannot leave phantom ready state");
+    QObject::disconnect(closeLoaded);QCoreApplication::processEvents();RccPackageInspector::unmount(modernFile,modernInspection);
+    check(!runtime.load(&container,QUrl("qrc:/mods/runtime_required/Main.qml"),"runtime_required",false),"missing required QML property rejects root");
+    check(!runtime.item()&&runtime.status()=="error"&&!runtime.lastError().isEmpty(),"component completion errors are reported and retired");
+    runtime.unload();QCoreApplication::processEvents();
     qInfo()<<"PASS:"<<count<<"external session assertions";
 }
