@@ -14,6 +14,8 @@
 
 > 12 Ekim kayıt kurtarma, katalog yenileme, kaynak URL, klavye ve CI tekrar koşusu düzeltmeleri: [V073_RUNTIME_FOLLOWUPS.md](V073_RUNTIME_FOLLOWUPS.md).
 
+> 15 Ekim kayıt silme, sayısal servisler ve tekrar girişli oturum düzeltmeleri: [V073_SESSION_INTEGRITY.md](V073_SESSION_INTEGRITY.md).
+
 ## İlk planın kod değişiklikleri
 
 | İş | Uygulanan değişiklik | Davranış doğrulaması / sınır |

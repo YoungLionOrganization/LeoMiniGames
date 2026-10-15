@@ -6,6 +6,9 @@
 #include <QDir>
 #include <QJSEngine>
 #include <QDebug>
+#ifdef Q_OS_WIN
+#include <qt_windows.h>
+#endif
 
 int main(int argc, char **argv) {
     QCoreApplication app(argc, argv);
@@ -96,6 +99,31 @@ int main(int argc, char **argv) {
     GameSave backupOnlyRecovery(&paths); backupOnlyRecovery.activate("backup_only_game", "2.0.0", 2);
     check(backupOnlyRecovery.load() && backupOnlyRecovery.get("coins").toInt()==30, "backup-only data loads at compatible schema");
     check(backupOnlyRecovery.forceSave() && bytes(backupOnlyPath+".bak")==onlyBackup, "loaded backup-only data repairs primary safely");
+    GameSave deleted(&paths); deleted.activate("delete_game", "1.0.0", 1);
+    deleted.set("score", 3); check(deleted.save(), "delete fixture seeded");
+    const QString deletePath=paths.saves()+"/delete_game/autosave.lmgsave";
+    QFile broken(deletePath);check(broken.open(QIODevice::WriteOnly),"corrupt deletion fixture");broken.write("broken");broken.close();
+    check(!deleted.load(),"invalid slot protection seeded");
+    check(deleted.deleteSlot("autosave"),"explicitly delete protected slot");
+    deleted.set("score",4);check(deleted.forceSave(),"explicit deletion clears slot protection");
+    check(deleted.lastError().isEmpty(),"successful deletion and recreation clear stale error");
+    const QByteArray beforeInvalidDelete=bytes(deletePath);
+    check(QDir().mkdir(deletePath+".bak"),"non-file backup fixture");
+    check(!deleted.deleteSlot("autosave"),"non-file backup makes deletion fail");
+    check(bytes(deletePath)==beforeInvalidDelete,"failed backup deletion preserves primary");
+    check(!deleted.lastError().isEmpty(),"failed deletion reports a diagnostic");
+    check(QDir().rmdir(deletePath+".bak"),"remove non-file backup fixture");
+#ifdef Q_OS_WIN
+    deleted.set("score",5);check(deleted.save(),"locked primary fixture seeded");
+    const QByteArray lockedPrimary=bytes(deletePath),lockedBackup=bytes(deletePath+".bak");
+    const HANDLE locked=CreateFileW(reinterpret_cast<LPCWSTR>(deletePath.utf16()),GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE,nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
+    check(locked!=INVALID_HANDLE_VALUE,"hold primary without delete sharing");
+    check(!deleted.deleteSlot("autosave"),"locked primary rejects slot deletion");
+    check(bytes(deletePath)==lockedPrimary&&bytes(deletePath+".bak")==lockedBackup,"failed retirement restores staged backup");
+    CloseHandle(locked);
+#endif
+    check(deleted.deleteSlot("autosave")&&!deleted.hasStoredSlot("autosave"),"deletion removes both slot paths");
+    check(deleted.deleteSlot("autosave")&&deleted.lastError().isEmpty(),"missing slot deletion is idempotent");
     reopened.activate("..","1.0.0",1);check(!reopened.save(),"game id traversal rejected");
     reopened.activate("test_game","1.0.0",1);check(!reopened.save(".."),"dot-dot slot rejected");
     qInfo()<<"PASS:"<<count<<"save assertions";

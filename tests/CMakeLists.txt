@@ -25,6 +25,15 @@ target_include_directories(test_game_runtime PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_game_runtime PRIVATE Qt6::Core)
 add_test(NAME game_runtime_compat COMMAND test_game_runtime)
 
+add_executable(test_game_services test_game_services.cpp)
+target_link_libraries(test_game_services PRIVATE lmg_core)
+add_test(NAME game_services_regressions COMMAND test_game_services)
+set_tests_properties(game_services_regressions PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+add_executable(test_lifecycle_reentrancy test_lifecycle_reentrancy.cpp)
+target_link_libraries(test_lifecycle_reentrancy PRIVATE lmg_core)
+add_test(NAME lifecycle_reentrancy COMMAND test_lifecycle_reentrancy)
+
 add_executable(test_publisher_trust_resolver
     test_publisher_trust_resolver.cpp
     ${CMAKE_SOURCE_DIR}/src/core/PublisherTrustResolver.cpp

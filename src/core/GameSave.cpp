@@ -8,6 +8,8 @@
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
+#include <QTemporaryDir>
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QJSEngine>
@@ -273,7 +275,40 @@ bool GameSave::createSlot(const QString &slot)
     return true;
 }
 
-bool GameSave::deleteSlot(const QString &slot) { const QString p = slotPath(slot); if (p.isEmpty()) return false; QFile::remove(p + QStringLiteral(".bak")); return !QFile::exists(p) || QFile::remove(p); }
+bool GameSave::deleteSlot(const QString &slot)
+{
+    const QString primary = slotPath(slot);
+    if (primary.isEmpty()) { setError(QStringLiteral("Invalid save slot.")); return false; }
+    QStringList files;
+    for (const QString &path : {primary + QStringLiteral(".bak"), primary}) {
+        const QFileInfo info(path);
+        if (!info.exists() && !info.isSymLink()) continue;
+        if (!info.isFile() || info.isSymLink()) { setError(tr("Could not remove save slot.")); return false; }
+        files.append(path);
+    }
+    if (!files.isEmpty()) {
+        QTemporaryDir retired(gameDir() + QStringLiteral("/.slot-delete-XXXXXX"));
+        if (!retired.isValid()) { setError(tr("Could not remove save slot.")); return false; }
+        QStringList moved;
+        for (const QString &path : files) {
+            if (QFile::rename(path, retired.filePath(QFileInfo(path).fileName()))) { moved.append(path); continue; }
+            bool restored = true;
+            for (auto it = moved.crbegin(); it != moved.crend(); ++it)
+                if (!QFile::rename(retired.filePath(QFileInfo(*it).fileName()), *it)) restored = false;
+            if (!restored) {
+                retired.setAutoRemove(false);
+                setError(tr("Save deletion failed; recovery files remain in %1.").arg(retired.path()));
+            } else setError(tr("Could not remove save slot."));
+            return false;
+        }
+        m_blockedSlots.remove(slot); m_recoveredSlots.remove(slot);
+        setError(retired.remove() ? QString{} : tr("Save slot removed; temporary files could not be deleted."));
+        return true;
+    }
+    m_blockedSlots.remove(slot); m_recoveredSlots.remove(slot);
+    setError(QString{});
+    return true;
+}
 QStringList GameSave::listSlots() const { QStringList out; const QString dirPath=gameDir(); if(dirPath.isEmpty())return out; QDir dir(dirPath); const auto files = dir.entryList({QStringLiteral("*.lmgsave")}, QDir::Files, QDir::Name); for (const QString &f : files) out << f.left(f.size() - 8); return out; }
 bool GameSave::autosave() { if (m_gameId.isEmpty() || !m_dirty) return true; return save(QStringLiteral("autosave")); }
 bool GameSave::forceSave() { return forceSave(QStringLiteral("autosave")); }

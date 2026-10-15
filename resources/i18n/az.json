@@ -1,4 +1,7 @@
 {
+  "Could not remove save slot.": "Yadda saxlama yuvası silinə bilmədi.",
+  "Save deletion failed; recovery files remain in %1.": "Yaddaş silinə bilmədi; bərpa faylları %1 ünvanında saxlanılır.",
+  "Save slot removed; temporary files could not be deleted.": "Yadda saxlama yuvası çıxarıldı; müvəqqəti fayllar silinə bilmədi.",
   "Catalog contains an invalid entry.": "Kataloqda etibarsız qeyd var.",
   "Theme catalog contains an invalid entry.": "Tema kataloqunda etibarsız qeyd var.",
   "Games": "Oyunlar",

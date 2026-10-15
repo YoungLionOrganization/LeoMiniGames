@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     QCoreApplication::processEvents();check(!root,"root retired after callback");
     GameSave reopened(&paths);reopened.activate("migration_v07","1.0.0",2);check(reopened.load(),"migrated file reopens");check(reopened.get("coins").toInt()==8,"saved migrated payload");
     check(diagnostics.lastError().isEmpty(),"no QML errors");RccPackageInspector::unmount(file,inspection);
-    SettingsManager settings;
+    SettingsManager settings(data.filePath("settings.ini"));
     LegacySettingsFacade legacySettings(&settings); LegacyAudioFacade legacyAudio(nullptr);
     LanguageManager language(&settings); LegacyLanguageFacade legacyLanguage(&language);
     GameThemeFacade theme(nullptr); GameResources resources; GameRuntime gameRuntime;

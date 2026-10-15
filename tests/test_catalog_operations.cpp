@@ -19,7 +19,7 @@ int main(int argc,char **argv) {
  QTemporaryDir temp; qputenv("XDG_DATA_HOME",temp.path().toUtf8());qputenv("XDG_CONFIG_HOME",temp.path().toUtf8());
  QCoreApplication app(argc,argv);app.setOrganizationName("LMGTests");app.setApplicationName("CatalogOperations");app.setApplicationVersion("0.7.3");
  int count=0;auto check=[&](bool ok,const char *name){++count;if(!ok)qFatal("FAIL: %s",name);};
- check(argc==2,"fixtures supplied"); AppPaths paths(temp.path()+"/data",temp.path()+"/cache");SettingsManager settings; FakeNetwork network;
+ check(argc==2,"fixtures supplied"); AppPaths paths(temp.path()+"/data",temp.path()+"/cache");SettingsManager settings(temp.filePath("settings.ini")); FakeNetwork network;
  const QString id="modern_v07_fixture";const QString folder=paths.mods()+"/"+id+"/old";QDir().mkpath(folder);
  const QString package=folder+"/"+id+".rcc";check(QFile::copy(QString::fromLocal8Bit(argv[1])+"/v0_7_modern.rcc",package),"seed installed package");
  QFile index(paths.mods()+"/installed.json");check(index.open(QIODevice::WriteOnly),"seed index");

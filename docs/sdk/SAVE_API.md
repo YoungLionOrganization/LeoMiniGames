@@ -10,7 +10,7 @@ GameSave stores a per-game CBOR map in atomic, checksummed `.lmgsave` files. Pre
 | `autosave()` | Writes dirty data to **autosave**, not currentSlot. Returns true for a clean/no-op snapshot. |
 | `forceSave([slot])` | Default autosave; host invokes it after lifecycle save on background/close. It refuses protected failed-load slots. |
 | `createSlot(slot)` | Creates an **empty** slot without replacing an existing primary/backup; does not save current payload or select/load that slot. |
-| `deleteSlot(slot)` | Explicit removal; check return. Do not delete failed-load saves to suppress an error. |
+| `deleteSlot(slot)` | Explicit removal of primary/backup; clears that slot's protection only after both names are retired. Failed retirement restores staged files. Check return and lastError; do not delete failed-load saves to suppress an error. A cleanup warning may accompany a successful retirement. |
 | `listSlots()` | Primary `.lmgsave` names; backup-only slots are not listed. |
 | `hasStoredSlot(slot)` | App 0.7.3 additive QML helper: true when a primary **or backup** exists, regardless of validity. |
 | `restoreBackup(slot)` | Validates and migrates in memory before restoring; exposes the recovered state without a second load. Stored schema stays unchanged until save. Failed migration preserves both files and session memory. |

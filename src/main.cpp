@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
     });
     QObject::connect(&controller, &AppController::gameClosed, &app, [&] {
         mods.setActiveGameId(QString{});
-        gameStats.endSession();
+        gameStats.activate(QString{});
         gameInput.reset();
         gameAudio.stopMusic();
         externalRuntime.unload();
@@ -360,7 +360,7 @@ int main(int argc, char *argv[])
                 if (window) window->grabWindow().save(screenshotDir + QLatin1Char('/') + games.at(index) + QStringLiteral(".png"));
             }
             controller.closeGame();
-            if (!controller.currentGameId().isEmpty() || !lifecycle.gameId().isEmpty()) { app.exit(4); return; }
+            if (!controller.currentGameId().isEmpty() || !lifecycle.gameId().isEmpty() || !gameStats.gameId().isEmpty()) { app.exit(4); return; }
             ++index; opened = false;
         });
         timer->start(500);

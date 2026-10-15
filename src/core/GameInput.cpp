@@ -7,6 +7,7 @@
 #include <QKeyEvent>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <cmath>
 
 GameInput::GameInput(QObject *parent) : QObject(parent) { if (qApp) qApp->installEventFilter(this); }
 void GameInput::setFocusRoot(QObject *root) { reset(); m_focusRoot = root; }
@@ -31,6 +32,7 @@ void GameInput::press(const QString &action) { press(action, 1.0); }
 void GameInput::press(const QString &action, qreal value)
 {
     if (action.isEmpty()) return;
+    if (!std::isfinite(value)) { release(action); return; }
     value = qBound<qreal>(-1.0, value, 1.0);
     if (m_values.contains(action) && qFuzzyCompare(m_values.value(action) + 1.0, value + 1.0)) return;
     m_values.insert(action, value);

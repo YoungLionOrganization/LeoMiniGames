@@ -1,4 +1,7 @@
 {
+  "Could not remove save slot.": "Kayıt yuvası silinemedi.",
+  "Save deletion failed; recovery files remain in %1.": "Kayıt silinemedi; kurtarma dosyaları %1 konumunda korunuyor.",
+  "Save slot removed; temporary files could not be deleted.": "Kayıt yuvası kaldırıldı; geçici dosyalar silinemedi.",
   "Catalog contains an invalid entry.": "Katalogda geçersiz bir kayıt var.",
   "Theme catalog contains an invalid entry.": "Tema kataloğunda geçersiz bir kayıt var.",
   "Games": "Oyunlar",

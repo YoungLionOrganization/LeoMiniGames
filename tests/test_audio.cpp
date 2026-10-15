@@ -28,7 +28,7 @@ int main(int argc, char **argv)
     auto check=[&](bool ok,const char *name){++count;if(!ok)qFatal("FAIL: %s",name);};
     auto wait=[&](auto predicate){QElapsedTimer timer;timer.start();while(!predicate()&&timer.elapsed()<5000){app.processEvents();QThread::msleep(5);}return predicate();};
     auto near=[](qreal a,qreal b){return std::abs(a-b)<0.00001;};
-    SettingsManager settings; settings.setSoundEnabled(true); settings.setSoundVolume(1.0);
+    SettingsManager settings(config.filePath("settings.ini")); settings.setSoundEnabled(true); settings.setSoundVolume(1.0);
     AudioManager audio(&settings); GameAudio modern(&audio,&settings); LegacyAudioFacade legacy(&audio);
     modern.activate("test_audio",true);legacy.activate("test_audio");
     int errors=0; QObject::connect(&modern,&GameAudio::audioError,&app,[&]{++errors;});
