@@ -18,6 +18,8 @@ Normal builds require Qt Multimedia. Explicit testing/headless builds can opt ou
 
 Errors from effects and music are emitted through `GameAudio.audioError(message, source)` and recorded in host diagnostics. A decoder failure does not crash gameplay:
 
+An error handler may call `stopMusic()` or select a valid replacement with `playMusic()`. A newer nested music request takes precedence over the interrupted request. Avoid retrying the same invalid source unconditionally from its own error handler.
+
 ```qml
 Connections {
     target: GameAudio

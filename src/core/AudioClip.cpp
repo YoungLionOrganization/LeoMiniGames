@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QCoreApplication>
 #include <QTimer>
+#include <QPointer>
 #include <cmath>
 #ifdef LMG_HAS_MULTIMEDIA
 #include <QSoundEffect>
@@ -151,7 +152,9 @@ void AudioClip::useMediaPlayer()
         emit errorOccurred(QStringLiteral("Audio decoder/backend failed: %1").arg(message), m_impl->source.toString());
     });
     connect(m_impl->media, &QMediaPlayer::mediaStatusChanged, this, [this] { startIfReady(); });
+    const QPointer<AudioClip> lifetime(this);
     m_impl->media->setSource(m_impl->playback);
+    if (!lifetime) return;
     startIfReady();
 #endif
 }
@@ -172,11 +175,14 @@ void AudioClip::startIfReady()
 void AudioClip::play(bool loop)
 {
     if (m_impl->usage == Usage::Effect && (m_impl->paused || m_impl->volume <= 0.0)) return;
+    const QPointer<AudioClip> lifetime(this);
     stop();
+    if (!lifetime) return;
     m_impl->loop = loop;
     m_impl->pending = true;
     if (m_impl->paused && m_impl->usage == Usage::Music) m_impl->resume = true;
     load();
+    if (!lifetime) return;
     if (m_impl->playback.isEmpty()) m_impl->pending = false;
     startIfReady();
 }

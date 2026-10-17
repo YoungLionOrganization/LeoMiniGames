@@ -93,6 +93,32 @@ int main(int argc, char **argv)
     check(backgroundMusic&&backgroundMusic->paused()&&backgroundMusic->pendingPlay(),"music requested while paused waits for foreground");
     modern.resumeAll();check(!backgroundMusic->paused(),"background music request resumes through host");
     modern.activate("",false);check(modern.findChildren<AudioClip *>(QString(),Qt::FindDirectChildrenOnly).isEmpty(),"session close releases music");
+    const auto cancelFailedMusic=QObject::connect(&modern,&GameAudio::audioError,&app,[&]{modern.stopMusic();});
+    qInfo()<<"Checking music cancellation from synchronous audio error";
+    modern.playMusic(QUrl("qrc:/mods/test_audio/missing.ogg"));
+    QObject::disconnect(cancelFailedMusic);
+    check(modern.findChildren<AudioClip *>(QString(),Qt::FindDirectChildrenOnly).isEmpty(),"audio error observer can retire failed music during play");
+    bool replacedFailedMusic=false;
+    const auto replaceFailedMusic=QObject::connect(&modern,&GameAudio::audioError,&app,[&]{
+        if(!replacedFailedMusic){replacedFailedMusic=true;modern.playMusic(QUrl("qrc:/mods/test_audio/tone.ogg"));}
+    });
+    modern.playMusic(QUrl("qrc:/mods/test_audio/missing.ogg"));
+    QObject::disconnect(replaceFailedMusic);
+    check(replacedFailedMusic&&modern.findChildren<AudioClip *>(QString(),Qt::FindDirectChildrenOnly).size()==1,"audio error observer can replace failed music without stale playback");
+    modern.stopMusic();
+    modern.playMusic(QUrl("qrc:/mods/test_audio/tone.ogg"));
+    QPointer<AudioClip> retiringMusic=modern.findChild<AudioClip *>();
+    QObject::connect(retiringMusic,&QObject::destroyed,&app,[&]{modern.playMusic(QUrl("qrc:/mods/test_audio/tone.ogg"));});
+    modern.stopMusic();
+    check(!retiringMusic&&modern.findChildren<AudioClip *>(QString(),Qt::FindDirectChildrenOnly).size()==1,"retired music cannot clear or delete its replacement");
+    modern.stopMusic();
+    modern.playMusic(QUrl("qrc:/mods/test_audio/tone.ogg"));
+    auto *interruptedMusic=modern.findChild<AudioClip *>();
+    QObject::connect(interruptedMusic,&QObject::destroyed,&app,[&]{modern.playMusic(QUrl("qrc:/sfx/click.wav"));});
+    modern.playMusic(QUrl("qrc:/mods/test_audio/tone.ogg"));
+    const auto latestMusic=modern.findChildren<AudioClip *>(QString(),Qt::FindDirectChildrenOnly);
+    check(latestMusic.size()==1&&QFileInfo(latestMusic.first()->playbackUrl().toLocalFile()).suffix()=="wav","newest nested music request wins without orphaned playback");
+    modern.stopMusic();
     // Bound cached decoders/files even when preloading many package paths.
     for(int i=0;i<40;++i)audio.preload(QUrl::fromLocalFile(config.filePath(QString::number(i)+".wav")));
     check(audio.findChildren<AudioClip *>(QString(),Qt::FindDirectChildrenOnly).size()==32,"effect cache remains bounded");

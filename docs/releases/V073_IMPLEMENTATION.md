@@ -18,6 +18,8 @@
 
 > 17 Ekim Linux kurucusunda başarısız yükseltme ve kesinti kurtarması: [V073_INSTALLER_RECOVERY.md](V073_INSTALLER_RECOVERY.md).
 
+> 17 Ekim ses hata bildirimi sırasında durdurma/değiştirme çökmesi ve eski müzik isteği düzeltmeleri: [V073_AUDIO_CALLBACKS.md](V073_AUDIO_CALLBACKS.md).
+
 ## İlk planın kod değişiklikleri
 
 | İş | Uygulanan değişiklik | Davranış doğrulaması / sınır |
