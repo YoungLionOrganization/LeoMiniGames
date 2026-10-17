@@ -20,6 +20,8 @@
 
 > 17 Ekim ses hata bildirimi sırasında durdurma/değiştirme çökmesi ve eski müzik isteği düzeltmeleri: [V073_AUDIO_CALLBACKS.md](V073_AUDIO_CALLBACKS.md).
 
+> 17 Ekim kayıt dönüştürme ve bildirim çağrılarında oturum/engine yalıtımı: [V073_SAVE_CALLBACKS.md](V073_SAVE_CALLBACKS.md).
+
 ## İlk planın kod değişiklikleri
 
 | İş | Uygulanan değişiklik | Davranış doğrulaması / sınır |

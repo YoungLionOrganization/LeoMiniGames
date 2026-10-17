@@ -6,9 +6,17 @@
 #include <QDir>
 #include <QJSEngine>
 #include <QDebug>
+#include <functional>
 #ifdef Q_OS_WIN
 #include <qt_windows.h>
 #endif
+
+class SaveSessionProbe final : public QObject {
+    Q_OBJECT
+public:
+    std::function<void()> onSwitch;
+    Q_INVOKABLE void switchSession(){if(onSwitch)onSwitch();}
+};
 
 int main(int argc, char **argv) {
     QCoreApplication app(argc, argv);
@@ -124,7 +132,46 @@ int main(int argc, char **argv) {
 #endif
     check(deleted.deleteSlot("autosave")&&!deleted.hasStoredSlot("autosave"),"deletion removes both slot paths");
     check(deleted.deleteSlot("autosave")&&deleted.lastError().isEmpty(),"missing slot deletion is idempotent");
+    GameSave interruptedWriter(&paths);interruptedWriter.activate("interrupted_game","1.0.0",1);
+    interruptedWriter.set("coins",41);check(interruptedWriter.save("main"),"interrupted migration seed");
+    interruptedWriter.set("coins",42);check(interruptedWriter.save("main"),"interrupted migration backup seed");
+    const QString interruptedPath=paths.saves()+"/interrupted_game/main.lmgsave";
+    const QByteArray interruptedPrimary=bytes(interruptedPath),interruptedBackup=bytes(interruptedPath+".bak");
+    GameSave interrupted(&paths);SaveSessionProbe session;
+    engine.globalObject().setProperty("Session",engine.newQObject(&session));
+    bool closingSaveAccepted=false;
+    session.onSwitch=[&]{closingSaveAccepted=interrupted.forceSave("main");interrupted.activate("replacement_game","1.0.0",2);interrupted.set("marker","keep");};
+    for(bool restore : {false,true}) {
+        interrupted.activate("interrupted_game","2.0.0",2);interrupted.setEngine(&engine);
+        check(interrupted.registerMigration(1,2,engine.evaluate("(function(data){Session.switchSession();data.coins=99;return data;})")),"interrupted migration registered");
+        check(!(restore?interrupted.restoreBackup("main"):interrupted.load("main")),"session switch cancels migration operation");
+        check(!closingSaveAccepted,"closing save cannot overwrite a migrating slot");
+        check(interrupted.gameId()=="replacement_game"&&interrupted.get("marker")=="keep"&&!interrupted.contains("coins"),"interrupted migration cannot populate replacement memory");
+        check(bytes(interruptedPath)==interruptedPrimary&&bytes(interruptedPath+".bak")==interruptedBackup,"interrupted migration preserves both disk files");
+    }
+    interrupted.activate("interrupted_game","2.0.0",2);interrupted.setEngine(&engine);interrupted.set("marker","keep");
+    session.onSwitch=[&]{interrupted.setEngine(nullptr);};
+    check(interrupted.registerMigration(1,2,engine.evaluate("(function(data){Session.switchSession();return data;})")),"retired engine migration registered");
+    check(!interrupted.load("main")&&interrupted.get("marker")=="keep"&&!interrupted.contains("coins"),"engine retirement cancels migration without changing memory");
+    interrupted.activate("snapshot_old","1.0.0",1);
+    session.onSwitch=[&]{interrupted.activate("snapshot_new","1.0.0",1);interrupted.set("marker","keep");};
+    interrupted.set("state",QVariant::fromValue(engine.evaluate("({get value(){Session.switchSession();return 5;}})")));
+    check(interrupted.gameId()=="snapshot_new"&&interrupted.get("marker")=="keep"&&!interrupted.contains("state"),"snapshot getters cannot insert old data into a replacement session");
+    GameSave notification(&paths);notification.activate("notification_old","1.0.0",1);notification.set("score",7);
+    int lateSaves=0;
+    QObject::connect(&notification,&GameSave::saved,&app,[&]{++lateSaves;});
+    QObject::connect(&notification,&GameSave::slotChanged,&app,[&]{if(notification.gameId()=="notification_old"){notification.activate("notification_new","1.0.0",1);notification.set("marker","keep");}});
+    check(!notification.save("main"),"session switch during save notification retires the request");
+    check(lateSaves==0&&notification.gameId()=="notification_new"&&notification.get("marker")=="keep","retired save cannot emit a late saved signal");
+    GameSave errorBoundary(&paths);errorBoundary.activate("error_old","1.0.0",1);errorBoundary.set("score",9);
+    check(!errorBoundary.save(".."),"seed previous save error");
+    QObject::connect(&errorBoundary,&GameSave::lastErrorChanged,&app,[&]{if(errorBoundary.lastError().isEmpty()&&errorBoundary.gameId()=="error_old"){errorBoundary.activate("error_new","1.0.0",1);errorBoundary.set("marker","keep");}});
+    check(!errorBoundary.save("main"),"error-clear observer can retire a committing save");
+    check(errorBoundary.gameId()=="error_new"&&errorBoundary.autosave(),"retired save preserves replacement dirty state");
+    GameSave errorReopened(&paths);errorReopened.activate("error_new","1.0.0",1);
+    check(errorReopened.load()&&errorReopened.get("marker")=="keep","replacement state persists after reentrant error notification");
     reopened.activate("..","1.0.0",1);check(!reopened.save(),"game id traversal rejected");
     reopened.activate("test_game","1.0.0",1);check(!reopened.save(".."),"dot-dot slot rejected");
     qInfo()<<"PASS:"<<count<<"save assertions";
 }
+#include "test_save_safety.moc"

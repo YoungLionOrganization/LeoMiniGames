@@ -49,4 +49,6 @@ function load() {
 
 Callbacks must return a plain object; registration requires increasing versions. Missing chains, failed callbacks, payloads over 32 MiB/deeper than 64 and newer schemas fail rather than silently resetting progress. Register every supported path, test old fixtures and reopen after commit. Settings-key compatibility migration is a different process; it does not migrate gameplay snapshots.
 
+Closing/replacing the game or retiring its engine during a migration or snapshot getter cancels the operation. A session change inside a save/load notification also stops remaining notifications and returns false; it does not undo an already completed disk commit for the original game. The replacement session's memory and dirty state are retained. Backup restoration blocks close-triggered writes while its migration is pending.
+
 Portable Save Transfer/cloud synchronization and a general slot editor are not provided in 0.7.3. Six builtins now save actual boards/hands/state through the host; external games still define their own snapshots/migrations.

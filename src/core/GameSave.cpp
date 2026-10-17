@@ -38,7 +38,7 @@ quint32 readU32be(const QByteArray &b)
 }
 
 GameSave::GameSave(AppPaths *paths, QObject *parent) : QObject(parent), m_paths(paths) {}
-void GameSave::setEngine(QJSEngine *engine) { if (m_engine != engine) m_migrations.clear(); m_engine = engine; }
+void GameSave::setEngine(QJSEngine *engine) { if (m_engine != engine) { ++m_generation; m_migrations.clear(); } m_engine = engine; }
 QString GameSave::gameId() const { return m_gameId; }
 QString GameSave::currentSlot() const { return m_currentSlot; }
 int GameSave::schemaVersion() const { return m_schemaVersion; }
@@ -85,8 +85,10 @@ QVariant saveSnapshot(const QVariant &value, int depth, bool &ok)
 void GameSave::set(const QString &key, const QVariant &value)
 {
     if (key.isEmpty()) return;
+    const quint64 generation = m_generation;
     bool ok = true;
     const QVariant snapshot = saveSnapshot(value, 0, ok);
+    if (generation != m_generation) return;
     if (!ok) { setError(QStringLiteral("Save value exceeds the nesting limit.")); return; }
     if (!m_payload.contains(key) || m_payload.value(key) != snapshot) {
         m_payload.insert(key, snapshot); m_dirty = true;
@@ -186,6 +188,7 @@ bool GameSave::save() { return save(QStringLiteral("autosave")); }
 
 bool GameSave::save(const QString &slot)
 {
+    const quint64 generation = m_generation;
     const QString path = slotPath(slot);
     if (path.isEmpty()) { setError(QStringLiteral("Invalid save slot.")); return false; }
     if (m_blockedSlots.contains(slot)) {
@@ -200,40 +203,49 @@ bool GameSave::save(const QString &slot)
     }
     const bool unchanged = existing.ok && existing.schema == m_schemaVersion && existing.payload == m_payload;
     if (!unchanged && !writeFile(path, m_payload, m_schemaVersion, !m_recoveredSlots.contains(slot))) return false;
+    if (generation != m_generation) return false;
     m_recoveredSlots.remove(slot);
     m_currentSlot = slot;
     m_loadedSchemaVersion = m_schemaVersion;
     m_dirty = false;
     setError(QString{});
-    emit slotChanged(); emit loadedChanged(); emit saved(slot);
-    return true;
+    if (generation != m_generation) return false;
+    emit slotChanged(); if (generation != m_generation) return false;
+    emit loadedChanged(); if (generation != m_generation) return false;
+    emit saved(slot);
+    return generation == m_generation;
 }
 
 bool GameSave::applyMigrations(QVariantMap &payload, int &version)
 {
-    while (version < m_schemaVersion) {
+    const quint64 generation = m_generation;
+    const int targetVersion = m_schemaVersion;
+    while (version < targetVersion) {
         if (!m_migrations.contains(version)) { setError(QStringLiteral("Missing save migration from schema %1.").arg(version)); return false; }
         const Migration migration = m_migrations.value(version);
         if (migration.to <= version || !migration.callback.isCallable()) { setError(QStringLiteral("Invalid save migration.")); return false; }
         if (!m_engine) { setError(QStringLiteral("Save migration has no JavaScript engine.")); return false; }
         QJSValueList args; args << m_engine->toScriptValue(payload);
         const QJSValue output = migration.callback.call(args);
+        if (generation != m_generation) return false;
         if (output.isError() || !output.isObject()) { setError(QStringLiteral("Save migration failed at schema %1.").arg(version)); return false; }
         bool snapshotOk = true;
         const QVariant snapshot = saveSnapshot(QVariant::fromValue(output), 0, snapshotOk);
+        if (generation != m_generation) return false;
         if (!snapshotOk || snapshot.metaType() != QMetaType::fromType<QVariantMap>() || QCborValue::fromVariant(snapshot).toCbor().size() > kMaxSaveBytes) {
             setError(tr("Save migration produced invalid or oversized data.")); return false;
         }
         payload = snapshot.toMap();
         version = migration.to;
     }
-    return version == m_schemaVersion;
+    return generation == m_generation && version == targetVersion;
 }
 
 bool GameSave::load() { return load(QStringLiteral("autosave")); }
 
 bool GameSave::load(const QString &slot)
 {
+    const quint64 generation = m_generation;
     const QString primary = slotPath(slot);
     if (primary.isEmpty()) { setError(QStringLiteral("Invalid save slot.")); return false; }
     const bool hasExistingData = QFile::exists(primary) || QFile::exists(backupPath(slot));
@@ -251,6 +263,7 @@ bool GameSave::load(const QString &slot)
     const int sourceSchema = version;
     if (version > m_schemaVersion) { setError(QStringLiteral("Save schema is newer than this game.")); return false; }
     if (version < m_schemaVersion && !applyMigrations(payload, version)) return false;
+    if (generation != m_generation) return false;
     m_blockedSlots.remove(slot);
     if (usedBackup) m_recoveredSlots.insert(slot);
     else m_recoveredSlots.remove(slot);
@@ -259,24 +272,30 @@ bool GameSave::load(const QString &slot)
     m_loadedSchemaVersion = version;
     m_dirty = usedBackup || sourceSchema != version;
     setError(QString{});
-    emit slotChanged(); emit loadedChanged(); emit loaded(slot);
-    return true;
+    if (generation != m_generation) return false;
+    emit slotChanged(); if (generation != m_generation) return false;
+    emit loadedChanged(); if (generation != m_generation) return false;
+    emit loaded(slot);
+    return generation == m_generation;
 }
 
 bool GameSave::createSlot(const QString &slot)
 {
+    const quint64 generation = m_generation;
     const QString path = slotPath(slot);
     if (path.isEmpty()) { setError(QStringLiteral("Invalid save slot.")); return false; }
     if (QFile::exists(path) || QFile::exists(backupPath(slot))) {
         setError(QStringLiteral("Save slot already exists.")); return false;
     }
     if (!writeFile(path, {}, m_schemaVersion, false)) return false;
+    if (generation != m_generation) return false;
     emit saved(slot);
-    return true;
+    return generation == m_generation;
 }
 
 bool GameSave::deleteSlot(const QString &slot)
 {
+    const quint64 generation = m_generation;
     const QString primary = slotPath(slot);
     if (primary.isEmpty()) { setError(QStringLiteral("Invalid save slot.")); return false; }
     QStringList files;
@@ -303,11 +322,11 @@ bool GameSave::deleteSlot(const QString &slot)
         }
         m_blockedSlots.remove(slot); m_recoveredSlots.remove(slot);
         setError(retired.remove() ? QString{} : tr("Save slot removed; temporary files could not be deleted."));
-        return true;
+        return generation == m_generation;
     }
     m_blockedSlots.remove(slot); m_recoveredSlots.remove(slot);
     setError(QString{});
-    return true;
+    return generation == m_generation;
 }
 QStringList GameSave::listSlots() const { QStringList out; const QString dirPath=gameDir(); if(dirPath.isEmpty())return out; QDir dir(dirPath); const auto files = dir.entryList({QStringLiteral("*.lmgsave")}, QDir::Files, QDir::Name); for (const QString &f : files) out << f.left(f.size() - 8); return out; }
 bool GameSave::autosave() { if (m_gameId.isEmpty() || !m_dirty) return true; return save(QStringLiteral("autosave")); }
@@ -316,13 +335,16 @@ bool GameSave::forceSave(const QString &slot) { if (m_gameId.isEmpty()) return t
 
 bool GameSave::restoreBackup(const QString &slot)
 {
+    const quint64 generation = m_generation;
     const QString bak = backupPath(slot); const QString primary = slotPath(slot);
     ReadResult backup = readFile(bak);
     if (bak.isEmpty() || !backup.ok) { setError(QStringLiteral("No valid backup exists.")); return false; }
+    m_blockedSlots.insert(slot);
     int version = backup.schema;
     const int sourceSchema = version;
     if (version > m_schemaVersion) { setError(QStringLiteral("Save schema is newer than this game.")); return false; }
     if (version < m_schemaVersion && !applyMigrations(backup.payload, version)) return false;
+    if (generation != m_generation) return false;
     // Validate/migrate before committing so a rejected recovery cannot replace
     // a newer primary, and retain the original backup after a successful restore.
     if (!atomicCopy(bak, primary)) { setError(QStringLiteral("Backup restore failed.")); return false; }
@@ -333,8 +355,12 @@ bool GameSave::restoreBackup(const QString &slot)
     m_blockedSlots.remove(slot);
     m_recoveredSlots.insert(slot);
     setError(QString{});
-    emit slotChanged(); emit loadedChanged(); emit loaded(slot); emit backupRestored(slot);
-    return true;
+    if (generation != m_generation) return false;
+    emit slotChanged(); if (generation != m_generation) return false;
+    emit loadedChanged(); if (generation != m_generation) return false;
+    emit loaded(slot); if (generation != m_generation) return false;
+    emit backupRestored(slot);
+    return generation == m_generation;
 }
 
 bool GameSave::registerMigration(int fromVersion, int toVersion, const QJSValue &callback)
@@ -346,9 +372,13 @@ bool GameSave::registerMigration(int fromVersion, int toVersion, const QJSValue 
 void GameSave::activate(const QString &gameId, const QString &gameVersion, int schemaVersion)
 {
     if (m_gameId == gameId && m_gameVersion == gameVersion && m_schemaVersion == schemaVersion) return;
+    const quint64 generation = ++m_generation;
     m_gameId = gameId; m_gameVersion = gameVersion; m_schemaVersion = qMax(1, schemaVersion);
     m_loadedSchemaVersion = m_schemaVersion; m_currentSlot.clear(); m_payload.clear(); m_dirty = false; m_migrations.clear(); m_blockedSlots.clear(); m_recoveredSlots.clear(); setError(QString{});
-    emit gameChanged(); emit slotChanged(); emit loadedChanged();
+    if (generation != m_generation) return;
+    emit gameChanged(); if (generation != m_generation) return;
+    emit slotChanged(); if (generation != m_generation) return;
+    emit loadedChanged();
 }
 
 bool GameSave::hasStoredSlot(const QString &slot) const { const QString path = slotPath(slot); return !path.isEmpty() && (QFile::exists(path) || QFile::exists(backupPath(slot))); }
