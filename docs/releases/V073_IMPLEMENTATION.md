@@ -12,6 +12,16 @@
 
 > 2 Ekim workflow hata düzeltmeleri: [V073_WORKFLOW_FIXES.md](V073_WORKFLOW_FIXES.md).
 
+> 12 Ekim kayıt kurtarma, katalog yenileme, kaynak URL, klavye ve CI tekrar koşusu düzeltmeleri: [V073_RUNTIME_FOLLOWUPS.md](V073_RUNTIME_FOLLOWUPS.md).
+
+> 15 Ekim kayıt silme, sayısal servisler ve tekrar girişli oturum düzeltmeleri: [V073_SESSION_INTEGRITY.md](V073_SESSION_INTEGRITY.md).
+
+> 17 Ekim Linux kurucusunda başarısız yükseltme ve kesinti kurtarması: [V073_INSTALLER_RECOVERY.md](V073_INSTALLER_RECOVERY.md).
+
+> 17 Ekim ses hata bildirimi sırasında durdurma/değiştirme çökmesi ve eski müzik isteği düzeltmeleri: [V073_AUDIO_CALLBACKS.md](V073_AUDIO_CALLBACKS.md).
+
+> 17 Ekim kayıt dönüştürme ve bildirim çağrılarında oturum/engine yalıtımı: [V073_SAVE_CALLBACKS.md](V073_SAVE_CALLBACKS.md).
+
 ## İlk planın kod değişiklikleri
 
 | İş | Uygulanan değişiklik | Davranış doğrulaması / sınır |

@@ -8,6 +8,11 @@ SettingsManager::SettingsManager(QObject *parent) : QObject(parent)
 {
 }
 
+SettingsManager::SettingsManager(const QString &fileName, QObject *parent)
+    : QObject(parent), m_settings(fileName, QSettings::IniFormat)
+{
+}
+
 bool SettingsManager::soundEnabled() const
 {
     return m_settings.value(QStringLiteral("audio/enabled"), true).toBool();

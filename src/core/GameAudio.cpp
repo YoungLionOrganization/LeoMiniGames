@@ -7,7 +7,7 @@
 #include <QtGlobal>
 #include "AudioClip.h"
 #include <cmath>
-struct GameAudio::Impl { AudioClip *music=nullptr; bool paused=false; QString musicGroup=QStringLiteral("music"); };
+struct GameAudio::Impl { AudioClip *music=nullptr; bool paused=false; quint64 generation=0; QString musicGroup=QStringLiteral("music"); };
 GameAudio::GameAudio(AudioManager *legacy,SettingsManager *settings,QObject *parent):QObject(parent),m_impl(std::make_unique<Impl>()),m_legacy(legacy),m_settings(settings)
 {
     if (m_legacy) connect(m_legacy, &AudioManager::audioError, this, &GameAudio::audioError);
@@ -64,7 +64,9 @@ void GameAudio::playMusic(const QUrl &url,bool loop,const QString &group)
         emit audioError(QStringLiteral("Music source must be a local resource belonging to the active game."),url.toString()); return;
     }
     if(!available()) { emit audioError(QStringLiteral("This build has no Qt Multimedia audio support."),url.toString()); return; }
+    const quint64 generation=m_impl->generation+1;
     stopMusic();
+    if(generation!=m_impl->generation)return;
     m_impl->musicGroup=normalizedGroup(group);
     m_impl->music=new AudioClip(safe,AudioClip::Usage::Music,this);
     connect(m_impl->music,&AudioClip::errorOccurred,this,&GameAudio::audioError);
@@ -72,7 +74,7 @@ void GameAudio::playMusic(const QUrl &url,bool loop,const QString &group)
     if(m_impl->paused) m_impl->music->pause();
     m_impl->music->play(loop);
 }
-void GameAudio::stopMusic(){ delete m_impl->music; m_impl->music=nullptr; }
+void GameAudio::stopMusic(){ ++m_impl->generation; AudioClip *retired=m_impl->music; m_impl->music=nullptr; delete retired; }
 void GameAudio::pauseAll(){
     if(m_impl->paused) return;
     m_impl->paused=true;

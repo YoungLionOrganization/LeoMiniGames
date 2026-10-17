@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="/mods/runtime_required">
+    <file alias="Main.qml">Required.qml</file>
+  </qresource>
+</RCC>

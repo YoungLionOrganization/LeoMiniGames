@@ -25,6 +25,20 @@ target_include_directories(test_game_runtime PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_game_runtime PRIVATE Qt6::Core)
 add_test(NAME game_runtime_compat COMMAND test_game_runtime)
 
+add_executable(test_game_services test_game_services.cpp)
+target_link_libraries(test_game_services PRIVATE lmg_core)
+add_test(NAME game_services_regressions COMMAND test_game_services)
+set_tests_properties(game_services_regressions PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+add_executable(test_lifecycle_reentrancy test_lifecycle_reentrancy.cpp)
+target_link_libraries(test_lifecycle_reentrancy PRIVATE lmg_core)
+add_test(NAME lifecycle_reentrancy COMMAND test_lifecycle_reentrancy)
+
+add_executable(test_update_navigation test_update_navigation.cpp)
+target_link_libraries(test_update_navigation PRIVATE lmg_core)
+add_test(NAME update_navigation COMMAND test_update_navigation)
+set_tests_properties(update_navigation PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
 add_executable(test_publisher_trust_resolver
     test_publisher_trust_resolver.cpp
     ${CMAKE_SOURCE_DIR}/src/core/PublisherTrustResolver.cpp
@@ -86,6 +100,7 @@ endif()
 add_test(NAME developer_auth_races COMMAND test_developer_manager)
 
 add_executable(test_patch_runtime test_patch_runtime.cpp
+    fixtures/resources/path.qrc
     ${CMAKE_SOURCE_DIR}/plugins/builtin/MemoryMatch/MemoryMatchGame.cpp
     ${CMAKE_SOURCE_DIR}/plugins/builtin/MemoryMatch/MemoryMatchGame.h
     ${CMAKE_SOURCE_DIR}/plugins/builtin/ReactionTap/ReactionTapGame.cpp
@@ -100,7 +115,7 @@ set_tests_properties(builtin_qml_sessions PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;XDG_DATA_HOME=${CMAKE_CURRENT_BINARY_DIR}/smoke-data;XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/smoke-config;XDG_CACHE_HOME=${CMAKE_CURRENT_BINARY_DIR}/smoke-cache"
     TIMEOUT 30)
 
-add_executable(test_external_session test_external_session.cpp)
+add_executable(test_external_session test_external_session.cpp fixtures/runtime/runtime.qrc)
 target_link_libraries(test_external_session PRIVATE lmg_core)
 add_dependencies(test_external_session compat_rcc_fixtures)
 add_test(NAME external_engine_session COMMAND test_external_session ${COMPAT_RCC_DIR})

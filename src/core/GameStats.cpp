@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QSaveFile>
 #include <QtGlobal>
+#include <limits>
 
 namespace {
 constexpr qint64 kMaxStatsBytes = 2LL * 1024LL * 1024LL;
@@ -19,7 +20,23 @@ bool safeMetricName(const QString &name)
 
 bool canInsertMetric(const QVariantMap &data, const QString &key)
 {
+    if (data.contains(key)) return true;
+    // Leave room for the host's session fields before user metrics fill up.
+    const qsizetype reserved = !data.contains(QStringLiteral("gamesPlayed")) + !data.contains(QStringLiteral("totalTimeMs"));
+    return data.size() + reserved < kMaxStatsEntries;
+}
+
+bool canInsertSessionField(const QVariantMap &data, const QString &key)
+{
     return data.contains(key) || data.size() < kMaxStatsEntries;
+}
+
+qint64 saturatingAdd(qint64 left, qint64 right)
+{
+    constexpr qint64 maximum=std::numeric_limits<qint64>::max(), minimum=std::numeric_limits<qint64>::min();
+    if (right>0 && left>maximum-right) return maximum;
+    if (right<0 && left<minimum-right) return minimum;
+    return left+right;
 }
 }
 
@@ -36,8 +53,8 @@ bool GameStats::submitHighScore(qint64 score,const QString &name){ if(!safeMetri
 qint64 GameStats::counter(const QString &name) const{if(!safeMetricName(name))return 0;return m_data.value(QStringLiteral("counter/%1").arg(name),0).toLongLong();}
 void GameStats::setCounter(const QString &name,qint64 value){if(!safeMetricName(name))return;const QString key=QStringLiteral("counter/%1").arg(name);if(!canInsertMetric(m_data,key))return;m_data.insert(key,value);persist();emit changed();}
 qint64 GameStats::increment(const QString &name){return increment(name,1);}
-qint64 GameStats::increment(const QString &name,qint64 amount){if(!safeMetricName(name))return 0;const qint64 v=counter(name)+amount;setCounter(name,v);return v;}
+qint64 GameStats::increment(const QString &name,qint64 amount){if(!safeMetricName(name))return 0;const qint64 v=saturatingAdd(counter(name),amount);setCounter(name,v);return counter(name);}
 qint64 GameStats::gamesPlayed() const{return m_data.value(QStringLiteral("gamesPlayed"),0).toLongLong();}
 qint64 GameStats::totalTimeMs() const{return m_data.value(QStringLiteral("totalTimeMs"),0).toLongLong();}
-void GameStats::startSession(){ if(m_gameId.isEmpty())return; m_data.insert(QStringLiteral("gamesPlayed"),gamesPlayed()+1); m_session.restart(); persist(); emit changed(); }
-void GameStats::endSession(){ if(!m_session.isValid()||m_gameId.isEmpty())return; m_data.insert(QStringLiteral("totalTimeMs"),totalTimeMs()+m_session.elapsed());m_session.invalidate();persist();emit changed(); }
+void GameStats::startSession(){ if(m_gameId.isEmpty()||m_session.isValid())return; if(canInsertSessionField(m_data,QStringLiteral("gamesPlayed")))m_data.insert(QStringLiteral("gamesPlayed"),saturatingAdd(gamesPlayed(),1)); m_session.restart(); persist(); emit changed(); }
+void GameStats::endSession(){ if(!m_session.isValid()||m_gameId.isEmpty())return; if(canInsertSessionField(m_data,QStringLiteral("totalTimeMs")))m_data.insert(QStringLiteral("totalTimeMs"),saturatingAdd(totalTimeMs(),m_session.elapsed()));m_session.invalidate();persist();emit changed(); }

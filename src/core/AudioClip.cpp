@@ -4,11 +4,35 @@
 #include <QFileInfo>
 #include <QTemporaryDir>
 #include <QDir>
+#include <QCoreApplication>
+#include <QTimer>
+#include <QPointer>
 #include <cmath>
 #ifdef LMG_HAS_MULTIMEDIA
 #include <QSoundEffect>
 #include <QAudioOutput>
 #include <QMediaPlayer>
+
+namespace {
+// Windows cannot unlink files while an asynchronous decoder still holds them.
+// Keep cleanup alive after the clip has retired, without blocking the UI thread.
+class DeferredAudioFiles final : public QObject {
+public:
+    DeferredAudioFiles(const QString &path, QObject *parent) : QObject(parent), m_path(path) {
+        m_timer.setInterval(100);
+        connect(&m_timer, &QTimer::timeout, this, [this] {
+            if (QDir(m_path).removeRecursively()) {
+                m_timer.stop(); m_path.clear(); deleteLater();
+            }
+        });
+        m_timer.start();
+    }
+    ~DeferredAudioFiles() override { if (!m_path.isEmpty()) QDir(m_path).removeRecursively(); }
+private:
+    QString m_path;
+    QTimer m_timer;
+};
+}
 #endif
 
 struct AudioClip::Impl {
@@ -32,12 +56,25 @@ AudioClip::AudioClip(const QUrl &source, Usage usage, QObject *parent)
 AudioClip::~AudioClip()
 {
 #ifdef LMG_HAS_MULTIMEDIA
-    // Release decoder file handles before the temporary resource directory.
-    delete m_impl->wave;
-    // A fallback wave may still be queued for deleteLater in this event turn.
-    qDeleteAll(findChildren<QSoundEffect *>(QString(), Qt::FindDirectChildrenOnly));
-    delete m_impl->media;
+    m_impl->pending = m_impl->resume = false;
+    // Include fallback effects queued for deleteLater in this event turn.
+    for (QSoundEffect *wave : findChildren<QSoundEffect *>(QString(), Qt::FindDirectChildrenOnly)) {
+        disconnect(wave, nullptr, this, nullptr);
+        wave->stop(); wave->setSource(QUrl{}); delete wave;
+    }
+    m_impl->wave = nullptr;
+    if (m_impl->media) {
+        disconnect(m_impl->media, nullptr, this, nullptr);
+        m_impl->media->stop(); m_impl->media->setSource(QUrl{});
+        m_impl->media->setAudioOutput(nullptr);
+        delete m_impl->media;
+    }
     delete m_impl->output;
+    if (m_impl->files.isValid() && QCoreApplication::instance()) {
+        const QString path = m_impl->files.path();
+        m_impl->files.setAutoRemove(false);
+        if (!QDir(path).removeRecursively()) new DeferredAudioFiles(path, QCoreApplication::instance());
+    }
 #endif
 }
 void AudioClip::load()
@@ -115,7 +152,9 @@ void AudioClip::useMediaPlayer()
         emit errorOccurred(QStringLiteral("Audio decoder/backend failed: %1").arg(message), m_impl->source.toString());
     });
     connect(m_impl->media, &QMediaPlayer::mediaStatusChanged, this, [this] { startIfReady(); });
+    const QPointer<AudioClip> lifetime(this);
     m_impl->media->setSource(m_impl->playback);
+    if (!lifetime) return;
     startIfReady();
 #endif
 }
@@ -136,11 +175,14 @@ void AudioClip::startIfReady()
 void AudioClip::play(bool loop)
 {
     if (m_impl->usage == Usage::Effect && (m_impl->paused || m_impl->volume <= 0.0)) return;
+    const QPointer<AudioClip> lifetime(this);
     stop();
+    if (!lifetime) return;
     m_impl->loop = loop;
     m_impl->pending = true;
     if (m_impl->paused && m_impl->usage == Usage::Music) m_impl->resume = true;
     load();
+    if (!lifetime) return;
     if (m_impl->playback.isEmpty()) m_impl->pending = false;
     startIfReady();
 }

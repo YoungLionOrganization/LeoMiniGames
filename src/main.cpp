@@ -12,7 +12,11 @@
 #include <QQmlError>
 #include <QImage>
 #include <QDir>
+#include <QTemporaryDir>
+#include <QStandardPaths>
+#include <QSettings>
 #include <cstdio>
+#include <memory>
 #include <QtPlugin>
 #ifdef Q_OS_ANDROID
 #include <QJniObject>
@@ -96,10 +100,21 @@ int main(int argc, char *argv[])
     }
 #endif
     if (tlsSmokeTest) return TlsRuntime::probe();
+    const bool smokeTest = app.arguments().contains(QStringLiteral("--smoke-test"));
+    std::unique_ptr<QTemporaryDir> smokeDirectory;
+    if (smokeTest) {
+        smokeDirectory = std::make_unique<QTemporaryDir>();
+        if (!smokeDirectory->isValid()) { qCritical("Smoke: cannot create isolated storage"); return 1; }
+        QStandardPaths::setTestModeEnabled(true);
+        app.setApplicationName(QStringLiteral("LeoMiniGamesSmoke-%1").arg(QDir(smokeDirectory->path()).dirName()));
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, smokeDirectory->path() + QStringLiteral("/config"));
+    }
     app.setWindowIcon(QIcon(QStringLiteral(":/branding/leominigames_icon.png")));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
 
-    AppPaths paths;
+    AppPaths paths(smokeTest ? smokeDirectory->path() + QStringLiteral("/data") : QString{},
+                   smokeTest ? smokeDirectory->path() + QStringLiteral("/cache") : QString{});
     SettingsManager settings;
     UpdateService updates(&settings);
     ThemeManager theme(&paths);
@@ -179,7 +194,6 @@ int main(int argc, char *argv[])
     modsInstalled.setMode(QStringLiteral("installed"));
     modsInstalled.setSortMode(QStringLiteral("name"));
 
-    const bool smokeTest = app.arguments().contains(QStringLiteral("--smoke-test"));
     bool smokeQmlWarnings = false;
     QQmlApplicationEngine engine;
     QObject::connect(&engine, &QQmlEngine::warnings, &app, [&smokeQmlWarnings](const QList<QQmlError> &errors) { if (!errors.isEmpty()) smokeQmlWarnings = true; });
@@ -236,7 +250,7 @@ int main(int argc, char *argv[])
     });
     QObject::connect(&controller, &AppController::gameClosed, &app, [&] {
         mods.setActiveGameId(QString{});
-        gameStats.endSession();
+        gameStats.activate(QString{});
         gameInput.reset();
         gameAudio.stopMusic();
         externalRuntime.unload();
@@ -346,7 +360,7 @@ int main(int argc, char *argv[])
                 if (window) window->grabWindow().save(screenshotDir + QLatin1Char('/') + games.at(index) + QStringLiteral(".png"));
             }
             controller.closeGame();
-            if (!controller.currentGameId().isEmpty() || !lifecycle.gameId().isEmpty()) { app.exit(4); return; }
+            if (!controller.currentGameId().isEmpty() || !lifecycle.gameId().isEmpty() || !gameStats.gameId().isEmpty()) { app.exit(4); return; }
             ++index; opened = false;
         });
         timer->start(500);

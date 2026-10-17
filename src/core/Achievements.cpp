@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QSaveFile>
 #include <QtGlobal>
+#include <cmath>
 
 namespace {
 constexpr qint64 kMaxAchievementBytes = 2LL * 1024LL * 1024LL;
@@ -36,5 +37,5 @@ void Achievements::persist() const{const QString p=path();if(p.isEmpty())return;
 void Achievements::activate(const QString &gameId){if(m_gameId==gameId)return;m_gameId=gameId;load();emit changed();}
 bool Achievements::isUnlocked(const QString &id) const{if(!safeAchievementId(id))return false;return m_data.value(QStringLiteral("u/%1").arg(id),false).toBool();}
 bool Achievements::unlock(const QString &id){if(!safeAchievementId(id)||isUnlocked(id)||!canInsertAchievement(m_data,id))return false;m_data.insert(QStringLiteral("u/%1").arg(id),true);m_data.insert(QStringLiteral("p/%1").arg(id),1.0);persist();emit changed();emit unlocked(id);return true;}
-qreal Achievements::progress(const QString &id) const{if(!safeAchievementId(id))return 0.0;return qBound<qreal>(0.0,m_data.value(QStringLiteral("p/%1").arg(id),0.0).toReal(),1.0);}
-void Achievements::setProgress(const QString &id,qreal p){if(!safeAchievementId(id)||!canInsertAchievement(m_data,id))return;p=qBound<qreal>(0.0,p,1.0);m_data.insert(QStringLiteral("p/%1").arg(id),p);if(p>=1.0&&!isUnlocked(id)){unlock(id);return;}persist();emit changed();}
+qreal Achievements::progress(const QString &id) const{if(!safeAchievementId(id))return 0.0;const qreal value=m_data.value(QStringLiteral("p/%1").arg(id),0.0).toReal();return std::isfinite(value)?qBound<qreal>(0.0,value,1.0):0.0;}
+void Achievements::setProgress(const QString &id,qreal p){if(!std::isfinite(p)||!safeAchievementId(id)||!canInsertAchievement(m_data,id))return;p=qBound<qreal>(0.0,p,1.0);m_data.insert(QStringLiteral("p/%1").arg(id),p);if(p>=1.0&&!isUnlocked(id)){unlock(id);return;}persist();emit changed();}
