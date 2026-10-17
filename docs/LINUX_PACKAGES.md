@@ -15,6 +15,8 @@ Download the candidate/release package for your architecture. ARM64/aarch64 and 
 
 The user installer needs Bash, tar and coreutils, and runs without root. The default prefix is `~/.local/opt/LeoMiniGames`. `--prefix /absolute/path` chooses another dedicated directory; use that same prefix to upgrade or uninstall. `--no-integration` skips the launcher/menu entry. Reinstall replaces a managed payload and preserves user saves/settings; unrelated directories and symlinks are rejected. Use native package managers for system installation.
 
+A failed upgrade restores the previous payload, launcher and menu entry. An incomplete fresh installation is removed. If restoration also fails, the installer reports the retained recovery directory; keep that directory until the previous installation has been recovered.
+
 Flatpak data lives under `~/.var/app/xyz.younglion.leominigames`. The sandbox grants network, graphics/audio and keyring access, and uses file portals instead of granting the entire home directory. Native L3 plugins must match the runtime ABI. Native and Flatpak builds have separate data directories. Uninstallation normally keeps user data; `flatpak uninstall --delete-data` explicitly deletes it.
 
 Updates use the same format/package manager. For a local Flatpak bundle already installed, remove the app without `--delete-data`, then install the new bundle; saves remain available. In-app update discovery opens the backend release page for package selection. Select the same distribution, architecture and package format as the installed app; the generic Linux recommendation cannot distinguish them. QtIFW Maintenance Tool servicing remains Windows-only.

@@ -16,6 +16,8 @@
 
 > 15 Ekim kayıt silme, sayısal servisler ve tekrar girişli oturum düzeltmeleri: [V073_SESSION_INTEGRITY.md](V073_SESSION_INTEGRITY.md).
 
+> 17 Ekim Linux kurucusunda başarısız yükseltme ve kesinti kurtarması: [V073_INSTALLER_RECOVERY.md](V073_INSTALLER_RECOVERY.md).
+
 ## İlk planın kod değişiklikleri
 
 | İş | Uygulanan değişiklik | Davranış doğrulaması / sınır |
