@@ -16,6 +16,7 @@
 #include <cmath>
 
 int main(int argc, char **argv) {
+    qputenv("QT_FORCE_STDERR_LOGGING", "1");
     QGuiApplication app(argc, argv);
     QTemporaryDir directory;
     AppPaths paths(directory.path()+"/data",directory.path()+"/cache");
@@ -39,7 +40,9 @@ int main(int argc, char **argv) {
     stats.setCounter("score",maximum);check(stats.increment("score")==maximum,"counter overflow saturates at maximum");
     stats.setCounter("score",minimum);check(stats.increment("score",-1)==minimum,"counter underflow saturates at minimum");
     stats.setCounter("score",10);check(stats.increment("score",-15)==-5,"signed counter increments remain supported");
-    stats.startSession();QEventLoop loop;QTimer::singleShot(25,&loop,&QEventLoop::quit);loop.exec();
+    stats.startSession();QEventLoop loop;
+    // Coarse Windows timers may fire before the elapsed-time assertion's floor.
+    QTimer::singleShot(25,Qt::PreciseTimer,&loop,&QEventLoop::quit);loop.exec();
     stats.startSession();stats.endSession();
     check(stats.gamesPlayed()==1,"repeated session start counts once");
     check(stats.totalTimeMs()>=20,"repeated session start preserves elapsed time");
