@@ -19,17 +19,24 @@ bool AppController::openGame(const QString &id)
         if(game)game->deleteLater();emit openFailed(QStringLiteral("Could not open game: %1").arg(id));return false;
     }
     closeGame();
-    m_currentGame=game;m_currentGameUrl=url;m_currentGameId=id;m_currentGameVersion=m_registry->versionFor(id);m_currentGameSource=source;emit currentGameChanged();emit gameOpened();return true;
+    const quint64 generation=++m_generation;
+    m_currentGame=game;m_currentGameUrl=url;m_currentGameId=id;m_currentGameVersion=m_registry->versionFor(id);m_currentGameSource=source;
+    emit currentGameChanged();if(generation!=m_generation)return false;
+    emit gameOpened();return generation==m_generation;
 }
 bool AppController::openExternalSession(const QString &id,const QUrl &url,const QString &version)
 {
     if(m_closing||id.isEmpty()||!url.isValid()||url.scheme()!=QStringLiteral("qrc"))return false;
-    closeGame();m_currentGame.clear();m_currentGameUrl=url;m_currentGameId=id;m_currentGameVersion=version.isEmpty()?QStringLiteral("dev"):version;m_currentGameSource=QStringLiteral("DeveloperRcc");emit currentGameChanged();emit gameOpened();return true;
+    closeGame();const quint64 generation=++m_generation;
+    m_currentGame.clear();m_currentGameUrl=url;m_currentGameId=id;m_currentGameVersion=version.isEmpty()?QStringLiteral("dev"):version;m_currentGameSource=QStringLiteral("DeveloperRcc");
+    emit currentGameChanged();if(generation!=m_generation)return false;
+    emit gameOpened();return generation==m_generation;
 }
 void AppController::closeGame()
 {
     if (m_closing || (!m_currentGame && m_currentGameId.isEmpty())) return;
     m_closing = true;
+    ++m_generation;
     emit gameClosing();
     emit gameRetiring();
     if (m_currentGame) m_currentGame->deleteLater();

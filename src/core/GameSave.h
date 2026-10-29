@@ -72,6 +72,7 @@ private:
 
     AppPaths *m_paths = nullptr;
     QJSEngine *m_engine = nullptr;
+    quint64 m_generation = 0;
     QString m_gameId;
     QString m_gameVersion;
     QString m_currentSlot;

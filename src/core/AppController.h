@@ -25,5 +25,6 @@ signals:
     void currentGameChanged(); void gameOpened(); void gameClosed(); void openFailed(const QString &message);
 private:
     bool m_closing = false;
+    quint64 m_generation = 0;
     GameRegistry *m_registry = nullptr; QPointer<QObject> m_currentGame; QUrl m_currentGameUrl; QString m_currentGameId, m_currentGameVersion, m_currentGameSource;
 };

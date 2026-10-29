@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/mods/resource_fixture/assets">
+    <file alias="tile#1?.svg">../themes/valid/theme/assets/test.svg</file>
+    <file alias="tile%25.svg">../themes/valid/theme/assets/test.svg</file>
+  </qresource>
+</RCC>

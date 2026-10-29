@@ -2,6 +2,8 @@
 
 Consume actions instead of platform keycodes/scancodes. Methods are `press(action[,value])`, `release`, `setValue`, `isPressed`, `value`, `reset`; values are clamped to −1…1. Signals are actionPressed(action,value), actionReleased(action), actionValueChanged(action,value). A press is a state transition, not a repeating key timer; continuous motion should read isPressed/value during game ticks.
 
+NaN and infinite values release the affected action to neutral instead of creating a held input.
+
 | Physical/logical input | Action |
 | --- | --- |
 | Left / physical A | move_left |

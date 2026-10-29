@@ -7,7 +7,7 @@ on:
         required: true
         type: string
       report_json:
-        description: Completed platform-qa.json (21 targets with actual evidence)
+        description: Completed platform-qa.json (25 targets with actual evidence)
         required: true
         type: string
 permissions:

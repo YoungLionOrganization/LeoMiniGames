@@ -4,7 +4,10 @@
 #include <QDir>
 #include <QStandardPaths>
 
-AppPaths::AppPaths(QObject *parent) : QObject(parent)
+AppPaths::AppPaths(QObject *parent) : AppPaths(QString{}, QString{}, parent) {}
+
+AppPaths::AppPaths(const QString &dataRoot, const QString &cacheRoot, QObject *parent)
+    : QObject(parent), m_dataRoot(dataRoot), m_cacheRoot(cacheRoot)
 {
     appData();
     plugins();
@@ -23,7 +26,7 @@ QString AppPaths::ensure(const QString &path)
 
 QString AppPaths::appData() const
 {
-    return ensure(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+    return ensure(m_dataRoot.isEmpty() ? QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) : m_dataRoot);
 }
 
 QString AppPaths::plugins() const
@@ -38,7 +41,7 @@ QString AppPaths::saves() const
 
 QString AppPaths::cache() const
 {
-    return ensure(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+    return ensure(m_cacheRoot.isEmpty() ? QStandardPaths::writableLocation(QStandardPaths::CacheLocation) : m_cacheRoot);
 }
 
 QString AppPaths::mods() const

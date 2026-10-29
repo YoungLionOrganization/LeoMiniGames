@@ -1,61 +1,57 @@
-# v0.7.3 uygulama ve doğrulama kaydı
+# v0.7.3 implementation and verification record
 
-1 Ekim 2026. Çalışma dalı: `patch/v0.7.3`; başlangıç SHA'sı: `3f022fca55016e3f954662e4519d614b0c44bab4` (`v0.7.2`). Bu kayıt hem [ilk patch planının](V073_PATCH_PLAN.md) 16 işini hem kullanıcının [TODO](V073_TODO.md) ve [platform denetimi](V073_PLATFORM_AUDIT.md) belgelerini izler. API sürümü 0.7, uygulama sürümü 0.7.3, Android versionCode 703. Yeni güvenlik açığı araştırması kullanıcının talebiyle kapsam dışında bırakılmıştır; onaylanmış plandaki kayıt/paket bütünlüğü düzeltmeleri ve mevcut CI denetimleri uygulanmıştır.
+The initial implementation was recorded on 1 October 2026, based on v0.7.2 commit `3f022fca55016e3f954662e4519d614b0c44bab4`. Application version is 0.7.3, Android versionCode is 703, and the game API remains 0.7. This record tracks the [original patch plan](V073_PATCH_PLAN.md), [release blockers](V073_TODO.md) and [platform audit](V073_PLATFORM_AUDIT.md). Source implementation and publication readiness are separate.
 
-> Dokümantasyon/SDK sonraki tamamlama kaydı: [V073_SDK_DOCUMENTATION_UPDATE.md](V073_SDK_DOCUMENTATION_UPDATE.md).
+## Follow-up records
 
-> Tema/ses için sonraki inceleme ve ortak playback düzeltmeleri: [V073_THEME_AUDIO_UPDATE.md](V073_THEME_AUDIO_UPDATE.md).
+- [SDK documentation](V073_SDK_DOCUMENTATION_UPDATE.md) and [theme/audio changes](V073_THEME_AUDIO_UPDATE.md).
+- [Builtin persistence and Android TLS](V073_BUILTIN_TLS_UPDATE.md).
+- [Dependency updates](V073_DEPENDABOT_UPDATE.md) and [workflow repairs](V073_WORKFLOW_FIXES.md).
+- [12 October runtime follow-ups](V073_RUNTIME_FOLLOWUPS.md).
+- [15 October session/save integrity](V073_SESSION_INTEGRITY.md).
+- [17 October Linux installer recovery](V073_INSTALLER_RECOVERY.md), [audio lifetimes](V073_AUDIO_CALLBACKS.md) and [save callback isolation](V073_SAVE_CALLBACKS.md).
+- [Installation](../INSTALLATION.md), [current build matrix](../../BUILD_MATRIX.md) and [later patch priorities](../roadmap/NEXT_PATCHES.md).
 
-> Sonraki kullanıcı isteğiyle altı builtin’in tam oturum kaydı v0.7.3 kapsamına alındı. Ekran görüntüsündeki TLS sorunu için `extractNativeLibs` düzeltmesi ve gerçek HTTPS smoke kontrolü eklendi. Güncel ek çalışma: [V073_BUILTIN_TLS_UPDATE.md](V073_BUILTIN_TLS_UPDATE.md). Aşağıdaki tablo ilk uygulama anındaki kapsamı kaydeder.
+## Original patch implementation
 
-> Dependabot güncellemeleri ve kabul önerileri: [V073_DEPENDABOT_UPDATE.md](V073_DEPENDABOT_UPDATE.md).
-
-> 2 Ekim workflow hata düzeltmeleri: [V073_WORKFLOW_FIXES.md](V073_WORKFLOW_FIXES.md).
-
-## İlk planın kod değişiklikleri
-
-| İş | Uygulanan değişiklik | Davranış doğrulaması / sınır |
+| Item | Implemented behavior | Verification and limits |
 | --- | --- | --- |
-| P073-01 | `PackagePaths.h`: kanonik mod dizini, symlink/dizin kaçışı reddi, sürüm metni yerine SHA-256 disk anahtarı; ortak kesin ID kontrolü. | `catalog_operations`: dış dizin/symlink ve uninstall kontrolleri. |
-| P073-02 | `GameSave`: başarısız veya gelecekteki şemaya ait yükleme sonrasında otomatik yazmayı engelleme; kurtarılan backup'ı koruma; aynı payload/schema için tekrar yazmama; CBOR metadata tipleri ve migration derinlik/boyut sınırı. | `save_safety`: future schema, load-before-write, bozuk veri, backup ve tekrar kaydetme. |
-| P073-03 | Katalog yenilenirken kurulu sürümün gerçek manifest/API/capabilities/save schema bilgilerini koruma; harici runtime'a kurulu RCC'nin bilgilerini verme. | `catalog_operations`: katalog yeni, kurulu paket eski olduğunda runtime metadata korunur. |
-| P073-04 | `PackageCompatibility.h`: install/restart/Developer import ortak uyumluluk; aday doğrulama eski RCC'yi kaldırmadan önce; indeks commit hatasında rollback; çalışan paket için kullanım kilidi; uninstall staging/restore; eski `.part` temizliği. | `catalog_operations`: incompatible update, aktif paket, indeks hata/geri dönüş. Elektrik kesintisi ve bütün dosya sistemi hata kombinasyonları test edilmiş sayılmaz. |
-| P073-05 | `AppController` tek, tekrar girişe dayanıklı kapanış; save/forceSave/close/unload sırası; QML sayfasını engine retirement öncesi kaldırma; quit ve Developer temizliği aynı koordinatörle. | `external_engine_session`, altı builtin'in QML oturum testleri; kapanış bir kez ve JS callback bittikten sonra destruction. |
-| P073-06 | Save migration actual harici `QQmlEngine` ile component yaratılmadan önce bağlanır; engine değişiminde callback temizlenir; root/engine destruction ertelenir. | `external_engine_session`: nested migration, v0.5/v0.6/v0.7 gerçek fixture QML yükleme, reentrant close. |
-| P073-07 | Native `QKeyEvent`, gerçek focus kökü, metin alanı hariç tutma, focus/background reset, physical/logical token takibi, Linux xcb/Wayland scan normalizasyonu; 2048 ortak action servisi. | `patch_runtime`: aynı action için iki tuş, release ve clock/input reset. Windows/macOS native keyboard cihaz testi bekler. |
-| P073-08 | Memory callback iptal/pause/resume; Memory/Mines aktif zamanında kesirli saniyeyi koruma; Reaction background round'u geçersiz kılma; clock reset, idempotent audio pause. | `patch_runtime` timer/reset/false-start/background testleri; gerçek ses cihazında kontrol bekler. |
-| P073-09 | Tema ID/sürüm/API kontrolü, yalnız tema namespace/veri dosyaları, boyut sınırı; gerçek RCC mount prefix'ini asset URL'den ayırma; remove hata geri dönüşü. | `theme_package_identity`: uyumsuz kimlik, cache yolu, namespace, gerçek unmount ve başarılı remove. |
-| P073-10 | Mod/tema katalog malformed/duplicate yanıtlarında mevcut modeli koruma; loading/install yarışını engelleme; origin değişiminde eski yanıtı reddetme; indirmede buffer/boyut/deadline sınırı. | `catalog_operations` injected network. Canlı üretim backend'i değiştirilmedi; canlı uçtan uca TLS/katalog doğrulanmış değildir. |
-| P073-11 | Audio cache/release için aynı normalize edilmiş kaynak anahtarları; music pause/resume state koruma. | Multimedia modülüyle Release derleme. Gerçek platform ses çıkışı yayın QA'sında. |
-| P073-12 | Ortak strict SemVer: overflow, prerelease, stable/preview; 443/same-origin URL; reply generation; stale action temizliği; başarısız automatic check tekrar denenebilir. | `patch_runtime`, `catalog_operations`: parser precedence, stale reply/channel/link ve stable prerelease reddi. |
-| P073-13 | Tam 27 asset adı; nonempty/format/archive/native dependency/Windows CRT kontrolü; SHA-256/size/source SHA internal manifest; remote digest/size; üç QtIFW depo sürümü/payload SHA-1; Release'de etkin assertion ve gerçek fixture dependency. | `test_package_validators.py`, Release CTest. GitHub draft/upload/recovery uçtan uca çalıştırılmadı. |
-| P073-14 | Injectable credential store; sistem QtKeychain jobs sıralı; logout delete eski write ardından çalışır; stale read/write state'i değiştirmez; plaintext fallback kapalı. | `credential_store_order`: gecikmiş read/write/delete. Gerçek OS keyring/locked-store testleri platform QA'sında. |
-| P073-15 | Builtin'lerin yalnız istatistik tuttuğu doğru belgelenir; kısa ekranda scroll/adaptive layout; Qt >=6.9 native safe area, 6.8 fallback; bounded local stats ve yazma hatası raporu; EN/TR/AZ yeni hata metinleri. | Altı builtin QML launch/close ve 640×360 testi; QML uyarıları smoke testini başarısız kılar. Native safe area, RTL, 200% font ve cihaz dokunma QA'sı bekler. Board resume/save transfer 0.8 kapsamıdır. |
-| P073-16 | CMake/runtime/package/installer/workflow/release metadata 0.7.3/703; genel sürüm validator'ı; notes/changelog; eski backend açıkça historical reference. | Genel release/static validator'lar. Backend kurulmadı; production paket/tag/release yayımlanmadı. |
+| P073-01 | Canonical package directories, rejected symlink/path escapes, hashed storage keys and strict IDs. | Catalog tests cover external paths and uninstall ownership. |
+| P073-02 | Failed/future-schema save loads block automatic overwrite; unchanged snapshots preserve backups; metadata types, migration depth/size are bounded. | Save tests use actual CBOR files, recovery backups and write failures. |
+| P073-03 | Installed manifests retain their own API, capabilities, schema and entry metadata when the catalog changes. | Refresh/restart tests preserve the installed contract until successful replacement. |
+| P073-04 | Shared install/restart compatibility, rollback on index commit failure, active-package leases and staged uninstall. | Injected network/filesystem failures cover normal recovery; not every power-loss/filesystem combination. |
+| P073-05 | One guarded shutdown coordinates save, close/unload, navigation and deferred engine retirement. | External-engine and builtin tests cover reentrant close/replacement. |
+| P073-06 | Save migrations bind to the game's actual JavaScript engine before component creation; callbacks retire with that engine. | Real v0.5/v0.6/v0.7 RCC fixtures cover creation, nested migration and teardown. |
+| P073-07 | Native key events, focus/text-input exclusions, physical/logical key tracking and platform scan-code normalization. | Tests cover multiple keys per action and layout changes; physical layouts remain device QA. |
+| P073-08 | Cancellable Memory callbacks, active-time pause/resume, invalidated background Reaction timing and session-aware clock/audio reset. | Timer/lifecycle tests cover stale callbacks and repeated pause; physical sound remains separate. |
+| P073-09 | Theme identity, version/API, namespace, asset type and size checks before replacement. | Tests cover mismatches, unsupported APIs, unmount and failed removal. |
+| P073-10 | Invalid/duplicate catalogs preserve the previous model; stale-origin and refresh/install races are rejected; downloads have bounded buffers/deadlines. | Injected client tests do not establish production-backend health. |
+| P073-11 | Shared audio source keys, effect/media fallback, retained music pause state and bounded file/decoder cleanup. | Multimedia tests verify decoded buffers and callback lifetimes; device output/routing remains QA. |
+| P073-12 | Strict SemVer/channels, approved HTTPS origins, stale replies and guarded update navigation. | Tests cover precedence, prereleases, invalid metadata and rejected launch actions. |
+| P073-13 | Exact asset names, archive/native dependency checks, source/digest manifests and QtIFW repository integrity. | Package validators cover malformed outputs; actual candidate workflows and platform QA are still required. |
+| P073-14 | Ordered system-keychain operations, stale-result cancellation and no plaintext fallback. | Delayed credential operations are injected; native/locked keyrings require platform evidence. |
+| P073-15 | Adaptive layout, safe areas and bounded statistics; later follow-ups added full session snapshots for all six builtins. | Builtin state/session tests include 640x360; native insets, RTL, large fonts and touch need devices. Save Transfer remains later work. |
+| P073-16 | Runtime, CMake, Android, installer and release metadata agree on 0.7.3/703; historical backend references remain separate. | Canonical validators enforce consistency; publication is a later gated action. |
 
-## Sonradan verilen platform planı
+## Platform packaging corrections
 
-| Denetim bulgusu | Kodda uygulanan çözüm | Gerçek yayın kanıtı |
+| Finding | Source correction | Required candidate evidence |
 | --- | --- | --- |
-| Android `libssl_3.so` yanlış `DT_NEEDED` | OpenSSL script gerçek `libcrypto.so` veya `.so.3` adını `libcrypto_3.so` ile değiştirir; SONAME/needed zorunlu. | Yayımlanmış armeabi-v7a APK yeni bağımlılık kontrolünde reddedilir. Yeni beş APK'nin gerçek build çıktısı bekler. |
-| APK içeriği / bütün ABI'ler | Her `.so` için aynı ABI dependency closure; public NDK allowlist; 64-bit ELF ve iki TLS libinde 16 KiB; universal dört ABI; package/versionCode kontrolü. | Üretim APK'lerinde `apksigner` ve `zipalign`; mevcut v0.7.2 sertifika digest'i `release/android-signing.json` ile sabitlenir. Yeni imzalı APK/upgrade testi bekler. |
-| CI uygulamayı hiç açmıyor | x86 API28, x86_64/universal API35 emulator install/start/process/logcat evidence; hem CI hem imzalı artifact workflow. | Workflow kodu eklendi; bu yerel dal için GitHub çalışması henüz yapılmadı. ARM telefon, birkaç dakikalık kullanım ve v0.7.2 üstüne upgrade ayrıca bekler. |
-| Windows CRT eksik | Aynı mimaride MSVC redist DLL'leri ZIP ve installer ortak payload'ına eklenir; PE mimarisi/import closure doğrulanır. | Synthetic PE pozitif/negatif testleri geçer. Üç mimaride temiz Windows kurulum/upgrade/modify/uninstall bekler. |
-| Linux/macOS/iOS/iPadOS temiz açılış | 21 hedefli QA şablonu ve doğrulayıcı; exact source SHA ve aday artifact digest ile yayın ön koşulu; Apple mobile imzasız çıktılar test artifact olarak belgelenir. | Linux yerel offscreen testi diğer platform/hardware kanıtı sayılmaz. Temiz GUI sistemleri, Gatekeeper, native audio/TLS/keyring ve iOS signing testi bekler. |
+| Android TLS dependency names | Correct OpenSSL SONAME/DT_NEEDED names and 16 KiB alignment. | Validate every packaged ABI/universal slice, load the real backend and perform certificate-validated HTTPS. |
+| APK launch coverage | Intel emulators install/start APKs and retain process/logcat/TLS results. | ARM device launch and same-key upgrades are separate checks. |
+| Windows CRT deployment | Portable and Setup payloads include matching-architecture MSVC runtime DLLs. | PE closure checks plus deployed ZIP/Setup and real Maintenance Tool servicing. |
+| Linux package choices | DEB, RPM, Arch, Flatpak, native/portable tarballs, AppImage and Setup.run. | Install, launch, reinstall and remove; failed user-installer upgrades retain the previous payload. |
+| macOS distribution | Deployed Qt in ZIP/DMG; explicit app bundle and Applications shortcut. | Launch extracted ZIP/mounted DMG, record Gatekeeper and signing limits. |
+| Apple mobile | Unsigned iOS/iPadOS outputs remain developer test packages. | Signed device/simulator execution requires its own evidence. |
 
-## Yerel doğrulama
+## Historical local validation
 
-Yerel SDK: Qt 6.8.2, GCC, Linux x86_64; Multimedia etkin. CI üretim SDK'sı Qt 6.10.2 olarak korunur. Release (`NDEBUG`) testleri assertion'ları kaldırmaz.
+The initial 1 October Linux Qt 6.8.2 implementation passed 15 Release CTest entries, 10 package-validator tests, source/project/sanity checks and 293 distribution checks. Those dated results do not validate later commits. Subsequent native runs expanded to 22 CTest entries; follow-up records identify the changes and reproduction cases. Current verification must use the final source SHA and actual package digests.
 
-- Release CTest: **15/15 geçti**; 15 davranış/entegrasyon testi; bunlar save, runtime, catalog/trust, network, Developer auth, lifecycle/legacy engine, keychain, theme ve builtin QML oturumlarını kapsar.
-- Python paket doğrulayıcıları: **10/10 geçti**; 32/64-bit ELF, eski OpenSSL adı, eksik native bağımlılık, yanlış ABI/hizalama, bozuk arşiv, eksik/yanlış Windows CRT, APK certificate parser ve candidate QA/QtIFW integrity.
-- Source/project/sanity, mevcut security/static check, distribution, prebuilt audit ve canonical release validator; installer JavaScript kontrolleri; Bash syntax ve Python compile kontrolleri.
-- Distribution: 293 PASS, 0 ERROR. i18n: 0 ERROR, 22 mevcut kapsam uyarısı; diğer diller deterministic source fallback kullanır. Security static check: 15 PASS, 0 ERROR, 1 secret-persistence pattern uyarısı; gerçek credential writes QtKeychain üzerinden ve plaintext fallback kapalıdır. Bu çalışma yeni güvenlik araştırması veya tam güvenlik sertifikası değildir.
+## Publication conditions
 
-Test komutları `docs/BUILDING.md` ve `.github/workflows/ci.yml` içinde. Yerel kaynak ZIP’i de oluşturuldu ve içerik validator’ından geçirildi. Yerel derleme çıktıları/logları repo dışındadır. Release paketi, tam candidate SHA'da GitHub CI ve artifact build ile yeniden üretilmelidir.
+The workflows build an immutable candidate and enforce the current 39-file public asset contract. `release/platform-qa.template.json` starts pending/failed for 25 targets. Actual environment, tester, time, evidence, package names and SHA-256 values must match that candidate, including all formats required for each target.
 
-## Yayına kalan koşullar
+The platform QA workflow validates the report. Before draft/tag/publication, the publisher compares its source SHA and package digests to the validated manifest. Android ABI/signing/upgrade, Windows servicing, Linux installer lifecycle and macOS Gatekeeper retain distinct requirements. Compilation/offscreen results do not establish physical audio, touch, secure storage or device-signing behavior.
 
-`release/platform-qa.template.json` varsayılanları bilerek başarısızdır. Gerçek 21 hedef sonucunu environment/tester/time/evidence, artifact_name ve SHA-256 ile doldurun; `tested_artifacts` içinde her hedefin bütün yayın formatlarını (ZIP/Setup, tar/AppImage, ZIP/DMG) ayrı hash ile kaydedin; Android actual ABI, Windows servicing ve macOS Gatekeeper alanları zorunludur. **Record candidate platform QA** workflow'u bu JSON'u denetler ve `platform-qa` artifact üretir. Publish Release `qa_run_id` bu koşunun numarasıdır; publish aşaması tested digest'i gerçek candidate manifest ile karşılaştırır. QA geçmeden draft/tag/yayın aşamasına gidilmez.
-
-Bu makinede Android cihaz/emulator SDK, Windows, macOS veya iOS imzalama ortamı bulunmadığından bu sonuçlar üretilemedi. QA şablonu geçer gösterilmedi. Her iki planın yerel kod değişiklikleri uygulandı; release acceptance bütün platform kanıtları gelince tamamlanır. Kullanıcının talebi kod uygulamasıdır; remote push, production backend değişikliği veya public yayın yapılmadı.
+See the [release operator guide](../GITHUB_RELEASES.md). Current workflow results and the candidate QA report determine release readiness.

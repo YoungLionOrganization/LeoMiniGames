@@ -8,6 +8,8 @@ seed(text), nextInt(minInclusive,maxInclusive), nextReal() in [0,1), chance(prob
 
 reset(), pause(), resume(), elapsedMs(), elapsedSeconds(), paused, timeScale. The host resets on lifecycle start and connects pause/resume. reset restores normal timeScale/paused state. elapsed getters are methods, not tick signals; use a Timer/render tick for UI refresh. timeScale is bounded 0…8; 0 freezes accumulation. The clock is in-memory active-session timing, not a persisted timestamp; store accumulated game time in GameSave for reopen.
 
+NaN and infinite timeScale assignments are ignored, preserving the current speed.
+
 ## GameEvents
 
 emitEvent(name,payload) emits eventEmitted(name,payload). Use plain data and namespace event names for game components (HUD, quests, achievements). Events are not persisted/replayed and are not a public cross-plugin network/event transport. Consume them only during your active session.

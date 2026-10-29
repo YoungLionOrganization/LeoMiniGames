@@ -302,11 +302,11 @@ void ThemeCatalogManager::refresh()
         const QJsonArray rows = document.object().value(QStringLiteral("data")).toArray();
         fresh.reserve(rows.size());
         for (const QJsonValue &value : rows) {
+            if (!value.isObject()) { setError(tr("Theme catalog contains an invalid entry.")); return; }
             const QJsonObject object = value.toObject();
             Entry entry;
             entry.id = object.value(QStringLiteral("id")).toString();
-            if (!validId(entry.id))
-                continue;
+            if (!validId(entry.id)) { setError(tr("Theme catalog contains an invalid entry.")); return; }
             if (seenIds.contains(entry.id)) { setError(tr("Theme catalog contains duplicate IDs.")); return; }
             seenIds.insert(entry.id);
             entry.name = object.value(QStringLiteral("name")).toString(entry.id);

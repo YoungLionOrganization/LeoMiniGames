@@ -300,12 +300,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: validated-release-assets
           path: _release-assets
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: validated-update-repositories
           path: _update-repositories
@@ -388,7 +388,17 @@ jobs:
           # create response gives the immutable numeric release id and upload URL.
           # Read the body before listing/deleting any existing draft releases.
           [[ -s "$NOTES" ]] || { echo "Release notes missing or empty: $NOTES" >&2; exit 24; }
-          body="$(cat "$NOTES")"
+          body="$(python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          notes = Path(os.environ['NOTES']).read_text(encoding='utf-8').rstrip()
+          manifest = json.loads(Path('_release-manifest.json').read_text(encoding='utf-8'))
+          if manifest.get('source_sha') != os.environ['TARGET_SHA']:
+              raise SystemExit('release-note checksum source differs from candidate')
+          checksums = '\n'.join(f"{record['sha256']}  {name}" for name, record in sorted(manifest['assets'].items()))
+          print(notes + '\n\n## SHA-256\n\nSource: `' + manifest['source_sha'] + '`\n\n```text\n' + checksums + '\n```\n')
+          PY
+          )"
 
           releases_json="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100")"
           plan="$(RELEASES_JSON="$releases_json" TAG="$TAG" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'

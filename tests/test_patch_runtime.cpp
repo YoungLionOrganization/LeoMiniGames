@@ -1,5 +1,6 @@
 #include "core/GameInput.h"
 #include "core/GameClock.h"
+#include "core/GameResources.h"
 #include "core/SemVer.h"
 #include "MemoryMatch/MemoryMatchGame.h"
 #include "ReactionTap/ReactionTapGame.h"
@@ -26,6 +27,12 @@ int main(int argc, char **argv) {
     check(parseSemVer("0.7.3+build.2").valid, "valid metadata");
     check(compareSemVer(parseSemVer("1.0.0-99999999999999999999999"),parseSemVer("1.0.0-100000000000000000000000"))<0, "arbitrary prerelease numeric ordering");
     check(compareSemVer(parseSemVer("1.0.0"),parseSemVer("1.0.0-rc.1"))>0, "stable outranks prerelease");
+    GameResources resources; resources.activate("resource_fixture");
+    for (const QString &path : {"assets/tile#1?.svg", "assets/tile%25.svg"}) {
+        const QUrl url=resources.url(path);
+        check(resources.exists(path), "special-character resource fixture exists");
+        check(url.scheme()=="qrc" && !url.hasQuery() && !url.hasFragment() && url.path(QUrl::FullyDecoded)=="/mods/resource_fixture/"+path, "resource URL preserves literal file name");
+    }
     GameInput input;
     input.handleKey(Qt::Key_A,30,"a",true);
     input.handleKey(Qt::Key_Left,105,"",true);
@@ -33,6 +40,14 @@ int main(int argc, char **argv) {
     check(input.isPressed("move_left"), "second key keeps action held");
     input.handleKey(Qt::Key_Left,105,"",false);
     check(!input.isPressed("move_left"), "last key releases action");
+    input.handleKey(Qt::Key_W,17,"w",true);
+    input.handleKey(Qt::Key_Z,17,"z",false);
+    check(!input.isPressed("up"), "changed logical key still releases its physical key");
+    input.handleKey(Qt::Key_W,17,"w",true);
+    input.handleKey(Qt::Key_Left,17,"",true);
+    check(!input.isPressed("up") && input.isPressed("move_left"), "physical key remapping releases previous action");
+    input.handleKey(Qt::Key_Left,17,"",false);
+    check(!input.isPressed("move_left"), "remapped physical key releases current action");
     input.handleKey(Qt::Key_W,17,"w",true);
     input.handleKey(Qt::Key_W,17,"w",false,true);
     check(input.isPressed("up"), "autorepeat release ignored"); input.reset();

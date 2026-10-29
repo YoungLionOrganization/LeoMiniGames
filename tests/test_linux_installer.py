@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
 import tarfile
 import tempfile
@@ -105,6 +106,87 @@ class LinuxInstallerTests(unittest.TestCase):
         launcher.write_text(f'#!/usr/bin/env bash\n# LeoMiniGames prefix: {self.prefix}-other\n')
         self.run_setup('--uninstall')
         self.assertTrue(launcher.is_file())
+
+    def fake_tool(self, name, body):
+        original = shutil.which(name)
+        self.assertIsNotNone(original)
+        tools = self.root/'fake-tools'
+        tools.mkdir(exist_ok=True)
+        tool = tools/name
+        tool.write_text('#!/usr/bin/env bash\n'+body+'\nexec '+shlex.quote(original)+' "$@"\n')
+        tool.chmod(0o755)
+        self.env['PATH'] = str(tools)+os.pathsep+self.env.get('PATH',os.defpath)
+
+    def test_failed_integration_removes_incomplete_fresh_install(self):
+        self.fake_tool('install', 'echo "injected launcher write failure" >&2; exit 71')
+        self.run_setup(success=False)
+        self.assertFalse(self.prefix.exists())
+        self.assertFalse((self.home/'bin/leominigames').exists())
+        self.assertFalse((self.home/'data/applications/xyz.younglion.leominigames.desktop').exists())
+        self.assertEqual(list(self.home.glob('.lmg-install.*')), [])
+
+    def test_partial_integration_failure_restores_upgrade_and_launchers(self):
+        self.run_setup()
+        marker=self.prefix/'preserve-on-failure'; marker.write_text('previous payload')
+        launcher=self.home/'bin/leominigames'
+        desktop=self.home/'data/applications/xyz.younglion.leominigames.desktop'
+        previous_launcher=launcher.read_bytes(); previous_desktop=desktop.read_bytes()
+        self.fake_tool('install', '''
+if [[ "${!#}" == *"$TEST_FAIL_SUFFIX" ]]; then
+  printf 'partial write' > "${!#}"
+  echo 'injected integration write failure' >&2
+  exit 71
+fi''')
+        for suffix in ('/leominigames','.desktop'):
+            with self.subTest(destination=suffix):
+                self.env['TEST_FAIL_SUFFIX']=suffix
+                self.run_setup(success=False)
+                self.assertEqual(marker.read_text(),'previous payload')
+                self.assertEqual(launcher.read_bytes(),previous_launcher)
+                self.assertEqual(desktop.read_bytes(),previous_desktop)
+                self.assertTrue(os.access(launcher,os.X_OK))
+                self.assertEqual(list(self.home.glob('.lmg-install.*')), [])
+
+    def test_failed_payload_promotion_restores_previous_install(self):
+        self.run_setup('--no-integration')
+        marker=self.prefix/'preserve-on-failure'; marker.write_text('previous payload')
+        self.fake_tool('mv', '[[ "${@: -2:1}" != */LeoMiniGames.AppDir ]] || exit 72')
+        self.run_setup('--no-integration',success=False)
+        self.assertEqual(marker.read_text(),'previous payload')
+        self.assertEqual(list(self.home.glob('.lmg-install.*')), [])
+
+    def test_failed_rollback_retains_recovery_payload(self):
+        self.run_setup('--no-integration')
+        (self.prefix/'preserve-on-failure').write_text('previous payload')
+        self.fake_tool('mv', 'case "${@: -2:1}" in */LeoMiniGames.AppDir|*/previous) exit 72;; esac')
+        result=self.run_setup('--no-integration',success=False)
+        self.assertIn('recovery files remain',result.stderr)
+        retained=list(self.home.glob('.lmg-install.*/previous/preserve-on-failure'))
+        self.assertEqual(len(retained),1)
+        self.assertEqual(retained[0].read_text(),'previous payload')
+
+    def test_interrupted_payload_promotion_restores_previous_install(self):
+        self.run_setup('--no-integration')
+        marker=self.prefix/'preserve-on-failure'; marker.write_text('previous payload')
+        self.fake_tool('mv', '''
+if [[ "${@: -2:1}" == */LeoMiniGames.AppDir ]]; then
+  /usr/bin/mv "$@" || exit
+  kill -TERM "$PPID"
+  exit 0
+fi''')
+        self.run_setup('--no-integration',success=False)
+        self.assertEqual(marker.read_text(),'previous payload')
+        self.assertEqual(list(self.home.glob('.lmg-install.*')), [])
+
+    def test_upgrade_without_integration_keeps_uninstall_records(self):
+        self.run_setup()
+        launcher=self.home/'bin/leominigames'
+        previous=launcher.read_bytes()
+        self.run_setup('--no-integration')
+        self.assertEqual(launcher.read_bytes(),previous)
+        self.run_setup('--uninstall')
+        self.assertFalse(launcher.exists())
+        self.assertFalse((self.home/'data/applications/xyz.younglion.leominigames.desktop').exists())
 
 
 if __name__=='__main__': unittest.main()

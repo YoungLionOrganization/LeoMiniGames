@@ -2,6 +2,8 @@
 #pragma once
 #include <QObject>
 #include <QPointer>
+#include <QSet>
+#include <QByteArray>
 
 class GameLifecycle final : public QObject
 {
@@ -16,7 +18,10 @@ public:
 signals:
     void gameChanged(); void loaded(); void started(); void paused(); void resumed(); void backgrounded(); void foregrounded(); void saveRequested(); void closed(); void unloaded();
 private:
-    void invoke(const char *method);
+    bool invoke(const char *method);
+    bool active() const;
+    quint64 m_generation = 0;
+    QSet<QByteArray> m_invoking;
     bool m_paused = false;
     bool m_started = false;
     bool m_closed = false;

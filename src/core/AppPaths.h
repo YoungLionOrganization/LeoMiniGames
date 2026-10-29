@@ -16,6 +16,7 @@ class AppPaths final : public QObject
 
 public:
     explicit AppPaths(QObject *parent = nullptr);
+    AppPaths(const QString &dataRoot, const QString &cacheRoot, QObject *parent = nullptr);
 
     QString appData() const;
     QString plugins() const;
@@ -26,4 +27,6 @@ public:
 
 private:
     static QString ensure(const QString &path);
+    QString m_dataRoot;
+    QString m_cacheRoot;
 };

@@ -20,10 +20,16 @@ cp "$ROOT/LICENSE" "$ROOT/NOTICE" \
 cp "$ROOT/licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt" \
    "$ROOT/licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt" "$LEGAL/licenses/"
 cp "$ROOT/docs/THIRD_PARTY_NOTICES.md" "$ROOT/docs/QT_LGPL_COMPLIANCE.md" "$LEGAL/"
+mkdir -p "$DIST/LeoMiniGames.app/Contents/Resources/Documentation"
+cp "$ROOT/docs/INSTALLATION.md" "$DIST/LeoMiniGames.app/Contents/Resources/Documentation/"
 ditto -c -k --sequesterRsrc --keepParent "$DIST/LeoMiniGames.app" "$DIST/LeoMiniGames-v${VERSION}-macOS-${SUFFIX}.zip"
 DMG="$DIST/LeoMiniGames-v${VERSION}-macOS-${SUFFIX}.dmg"
 TMP_DMG_DIR="$(mktemp -d)"
 TMP_DMG="$TMP_DMG_DIR/LeoMiniGames.dmg"
+DMG_ROOT="$TMP_DMG_DIR/volume"
+mkdir -p "$DMG_ROOT"
+cp -R "$DIST/LeoMiniGames.app" "$DMG_ROOT/LeoMiniGames.app"
+ln -s /Applications "$DMG_ROOT/Applications"
 VOLUME_NAME="LeoMiniGames-${SUFFIX}"
 cleanup_dmg() { rm -rf "$TMP_DMG_DIR"; }
 trap cleanup_dmg EXIT
@@ -32,7 +38,7 @@ for attempt in 1 2 3; do
   hdiutil detach "/Volumes/$VOLUME_NAME" -force >/dev/null 2>&1 || true
   rm -f "$TMP_DMG"
   sync
-  if hdiutil create -volname "$VOLUME_NAME" -srcfolder "$DIST/LeoMiniGames.app" -format UDZO "$TMP_DMG"; then
+  if hdiutil create -volname "$VOLUME_NAME" -srcfolder "$DMG_ROOT" -format UDZO "$TMP_DMG"; then
     mv "$TMP_DMG" "$DMG"
     break
   fi

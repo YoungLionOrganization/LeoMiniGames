@@ -9,7 +9,7 @@
 int main(int argc,char **argv) {
  QTemporaryDir data;qputenv("XDG_DATA_HOME",data.path().toUtf8());QCoreApplication app(argc,argv);app.setOrganizationName("LMGTests");app.setApplicationName("ThemePackage");
  int count=0;auto check=[&](bool ok,const char *name){++count;if(!ok)qFatal("FAIL: %s",name);};check(argc==2,"fixtures supplied");
- AppPaths paths;ThemeManager themes(&paths);const QString source=QString::fromLocal8Bit(argv[1])+"/valid.rcc";
+ AppPaths paths(data.path()+"/data",data.path()+"/cache");ThemeManager themes(&paths);const QString source=QString::fromLocal8Bit(argv[1])+"/valid.rcc";
  QFile file(source);check(file.open(QIODevice::ReadOnly),"fixture bytes");const QString hash=QString::fromLatin1(QCryptographicHash::hash(file.readAll(),QCryptographicHash::Sha256).toHex());
  const QString mounted=":/__lmgtheme/"+hash.left(24)+"/theme/theme.json";
  check(!themes.installThemeRcc(source,hash,"other_theme","1.0.0",1),"catalog ID mismatch rejected");check(!QFile::exists(mounted),"rejected identity unmounts exact resource root");

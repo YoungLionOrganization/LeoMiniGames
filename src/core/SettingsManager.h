@@ -14,6 +14,7 @@ class SettingsManager final : public QObject
 
 public:
     explicit SettingsManager(QObject *parent = nullptr);
+    explicit SettingsManager(const QString &fileName, QObject *parent = nullptr);
 
     bool soundEnabled() const;
     qreal soundVolume() const;

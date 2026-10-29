@@ -1,4 +1,9 @@
 {
+  "Could not remove save slot.": "Could not remove save slot.",
+  "Save deletion failed; recovery files remain in %1.": "Save deletion failed; recovery files remain in %1.",
+  "Save slot removed; temporary files could not be deleted.": "Save slot removed; temporary files could not be deleted.",
+  "Catalog contains an invalid entry.": "Catalog contains an invalid entry.",
+  "Theme catalog contains an invalid entry.": "Theme catalog contains an invalid entry.",
   "language": "English",
   "app_name": "LeoMiniGames",
   "coming_soon": true,

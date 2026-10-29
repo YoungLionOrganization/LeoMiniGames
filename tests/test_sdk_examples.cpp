@@ -58,7 +58,7 @@ int main(int argc,char **argv) {
     const auto cleanup=qScopeGuard([&]{QDir(appData).removeRecursively();QDir(cache).removeRecursively();});
     int count=0;auto check=[&](bool ok,const char *name){++count;if(!ok){std::fprintf(stderr,"FAIL: SDK assertion %d: %s\n",count,name);std::fflush(stderr);std::abort();}};check(argc==2,"SDK fixtures supplied");
     const QString dir=QString::fromLocal8Bit(argv[1]);
-    AppPaths paths;SettingsManager settings;LanguageManager language(&settings);AudioManager audio(&settings);GameAudio gameAudio(&audio,&settings);
+    AppPaths paths(data.path()+"/data",data.path()+"/cache");SettingsManager settings(data.filePath("settings.ini"));LanguageManager language(&settings);AudioManager audio(&settings);GameAudio gameAudio(&audio,&settings);
     LegacySettingsFacade legacySettings(&settings);LegacyLanguageFacade legacyLanguage(&language);LegacyAudioFacade legacyAudio(&audio);
     AppController controller(nullptr);LegacyAppFacade legacyApp(&controller);
     GameSave save(&paths);GameSettings prefs(&settings);GameInput input;GameI18n i18n;GameResources resources;GameStats stats(&paths);Achievements achievements(&paths);Haptics haptics;
