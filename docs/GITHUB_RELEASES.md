@@ -8,7 +8,8 @@ This document describes the v0.7.3 release pipeline. The pipeline is intentional
 | --- | --- | --- | --- |
 | `ci.yml` | push / PR / manual | Static validation plus cross-platform compile/test coverage | No |
 | `build-artifacts.yml` | manual | Builds the exact v0.7.3 artifacts, `release-assets` and QtIFW `update-repositories` | No |
-| `platform-qa.yml` | manual | Validates/upload actual candidate device/platform evidence | No |
+| `platform-qa.yml` | manual | Validates/uploads actual candidate device/platform evidence | No |
+| `qt-next.yml` | PR / manual | Qt 6.12 desktop compatibility build and CTest on GitHub | No |
 | `publish-release.yml` | manual | Validates release gates; in publish mode creates and publishes the GitHub Release | Yes, only in `publish` mode |
 
 Release metadata comes from `release/release.json`. The public asset contract comes from `release/assets.json`. Authorized release publishers come from `release/authorized_publishers.json`.
@@ -45,11 +46,11 @@ Wait until the whole workflow is green. In addition to per-platform artifacts it
 - `release-assets`
 - `update-repositories`
 
-`release-assets` is the only artifact set used for public GitHub Release upload. The current allowlist expects 27 public files. Files such as `*.aab`, `*.sha256`, `*-unsigned.zip`, `*-Legal.zip`, `Updates.xml` and repository metadata are intentionally not public Release assets.
+`release-assets` is the only artifact set used for public GitHub Release upload. The current allowlist expects 39 public files, including Arch, Debian, Fedora, Flatpak and Linux user installers. Files such as `*.aab`, `*.sha256`, `*-unsigned.zip`, `*-Legal.zip`, `Updates.xml` and repository metadata are intentionally not public Release assets.
 
 ## Candidate platform QA (required before publishing)
 
-Record actual clean-system/device results for the 21 targets using release/platform-qa.template.json, exact candidate source SHA and tested artifact digests. Run **Record candidate platform QA** with candidate_sha/report_json; preserve its successful run ID. The template starts failed and must not be relabeled passing without tests. Android upgrade/signing/TLS/audio, Windows servicing and macOS Gatekeeper evidence are separate from CTest.
+Record actual clean-system/device results for the 25 targets using `release/platform-qa.template.json`, exact candidate source SHA and tested artifact digests. Run **Record candidate platform QA** with candidate_sha/report_json; preserve its successful run ID. The template starts failed and must not be relabeled passing without tests. Android upgrade/signing/TLS/audio, Windows servicing and macOS Gatekeeper evidence are separate from CTest.
 
 In Publish Release provide qa_run_id (the run containing platform-qa) and, when selecting a particular successful artifact build, build_run_id. Publishing compares QA artifact names/digests to the candidate manifest before the draft/tag stage. Docs/operator-only commit reuse is controlled by the workflow; source changes require a fresh candidate build and matching QA.
 

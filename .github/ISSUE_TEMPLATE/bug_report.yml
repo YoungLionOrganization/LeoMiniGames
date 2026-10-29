@@ -1,41 +1,41 @@
-name: Bug report
-description: Report a reproducible LeoMiniGames bug or regression.
+name: Bug report / Hata bildirimi
+description: Report a reproducible application, package or installer problem.
 title: "[Bug]: "
 labels: [bug]
 body:
-  - type: textarea
-    id: summary
-    attributes:
-      label: What happened?
-      description: Include the expected and actual behavior.
-    validations:
-      required: true
   - type: dropdown
     id: platform
     attributes:
       label: Platform
-      options: [Windows, Linux X11, Linux Wayland, Android, iOS, macOS, Other]
+      options: [Windows, Linux X11, Linux Wayland, Android, iOS, iPadOS, macOS, Other]
     validations:
       required: true
   - type: input
     id: version
     attributes:
-      label: LeoMiniGames version / commit
-      placeholder: v0.7.1 or commit SHA
+      label: Application version and package filename
+      placeholder: v0.7.3, LeoMiniGames-v0.7.3-Arch-x86_64.pkg.tar.zst
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Operating system, version and architecture
+      placeholder: Arch Linux, x86_64, Wayland
     validations:
       required: true
   - type: textarea
-    id: reproduce
+    id: steps
     attributes:
-      label: Reproduction steps
-      placeholder: "1. Open...\n2. Install...\n3. ..."
+      label: Steps and expected / actual behavior
+      description: Include whether this was a fresh install or an upgrade.
     validations:
       required: true
   - type: textarea
-    id: logs
+    id: evidence
     attributes:
-      label: Logs / QML warnings / crash output
-      render: shell
+      label: Logs or screenshots
+      description: Remove API keys, passwords, signed download URLs and personal data.
   - type: input
     id: content
     attributes:

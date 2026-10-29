@@ -1,21 +1,22 @@
-# LeoMiniGames v0.7.2 Build Matrix
+# LeoMiniGames v0.7.3 Build Matrix
 
 This matrix distinguishes **configured CI coverage** from **physically verified release behavior**. A successful GitHub Actions job proves that the source builds/packages on that runner; it does not replace real-device QA.
 
 ## Current GitHub evidence
 
-On 2026-09-28, **LeoMiniGames CI** run `36463250529` and **Build Release Artifacts** run `36463284261` both completed successfully for exact commit `a020647bfd7dacb49727b4683bede6807eec7d67`. The subsequent Publish Release run `36470448493` passed preflight but failed when its publish job tried to read the absent v0.7.2 release notes file. This source fixes that failure; successful CI and Build Release Artifacts runs are required on the new commit before another publish attempt.
+CI run [39050064290](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/39050064290) for `3747c5f2f0ed4fdf348d056f354928eea714423e` initially passed 23 jobs, including Windows, Linux distro servicing and both Flatpak architectures. Three Android emulator catalog probes received HTTP 500 after successful APK compilation and OpenSSL loading. The public mods/themes APIs returned HTTP 200 when rechecked on 30 October; the failed jobs were rerun. These results apply only to that source SHA. A new source commit requires its own CI and artifact validation.
 
 This is CI/build evidence only. It does not convert any platform row into a physical-device verification claim.
 
 | Target | CPU / ABI | Toolchain / runner | CI action | Release artifact |
 | --- | --- | --- | --- | --- |
-| Ubuntu 22.04 | x86_64 | Qt 6.10.2 | build + CTest | tar.gz + AppImage |
-| Ubuntu 24.04 | x86_64 | Qt 6.10.2 | build + CTest | tar.gz + AppImage |
-| Ubuntu 24.04 | arm64 | native ARM runner + Qt 6.10.2 | build + CTest | tar.gz + AppImage |
-| Debian 13 | x86_64 | distro Qt 6.8.x | build + CTest | native tar.gz |
-| Debian 13 | arm64 | native ARM runner + distro Qt 6.8.x | build + CTest | native tar.gz |
-| Arch Linux | x86_64 | official `archlinux:latest` container | build + CTest | native tar.gz |
+| Ubuntu 22.04 | x86_64 | Qt 6.10.2 | build + CTest; packaged installer lifecycle + Xvfb | tar.gz + AppImage + Setup.run |
+| Ubuntu 24.04 | x86_64 | Qt 6.10.2 | build + CTest; packaged installer lifecycle + Xvfb | tar.gz + AppImage + Setup.run |
+| Ubuntu 24.04 | arm64 | native ARM runner + Qt 6.10.2 | build + CTest; packaged installer lifecycle + Xvfb | tar.gz + AppImage + Setup.run |
+| Debian 13 | x86_64 / arm64 | distro Qt; native ARM runner for arm64 | build + CTest; install/reinstall/uninstall + Xvfb | DEB + native tar.gz |
+| Fedora 43 | x86_64 / arm64 | distro Qt; native ARM runner for arm64 | build + CTest; install/reinstall/uninstall + Xvfb | RPM + native tar.gz |
+| Arch Linux | x86_64 | official `archlinux:latest` container | build + CTest; install/reinstall/uninstall + Xvfb | pkg.tar.zst + native tar.gz |
+| Flatpak | x86_64 / aarch64 | KDE 6.10 SDK/runtime | sandbox build; install/reinstall/uninstall + Xvfb | flatpak bundle |
 | Windows | x86_64 baseline and AVX2 | MSVC 2022 | build + CTest | ZIP + QtIFW Setup EXE for each CPU profile |
 | Windows | x86_64 | LLVM-MinGW | build + CTest | compatibility lane |
 | Windows | ARM64 | native MSVC 2022 ARM runner | build | ZIP + QtIFW Setup EXE |
@@ -38,11 +39,13 @@ The official Docker `archlinux` image does not currently publish a Linux/arm64 m
 
 The Qt 6.10.2 online iOS kit used by CI supplies an arm64 **device** slice and an x86_64 **simulator** slice. It does not provide a usable arm64 simulator slice for the Qt libraries/plugins in this lane. Therefore CI does not claim an iOS/iPadOS arm64-simulator build. Device arm64 and simulator x86_64 remain covered for both iOS and iPadOS.
 
-Qt 6.11.1 remains a supported local-development kit. CI uses 6.10.2 for Qt online-package lanes because that version is currently resolved reliably by the pinned installer action. The source-level minimum remains Qt 6.5.
+The source minimum is Qt **6.8**. The v0.7.3 online-package release lanes use **6.10.2**. The separate `Qt 6.12 compatibility` workflow builds/tests **6.12.0** on Linux, Windows and macOS GitHub runners. It does not install Qt onto the maintainer's computer or change the release kit. A configured lane is not a passing result until its own run completes.
 
 ## Compatibility and packaging notes
 
-Debian 13 intentionally validates the documented Qt 6.5+ source floor with distro Qt 6.8.x. Filter refresh code therefore uses the Qt 6.10 filter-change API when available and `invalidateRowsFilter()` on Qt 6.5-6.9.
+Debian 13 validates the Qt 6.8 source floor with distro Qt. Filter refresh uses the Qt 6.10 filter-change API when available and the older API on supported earlier kits. Native distro tarballs depend on system Qt; AppImage/portable tarballs deploy their runtime. Flatpak uses its declared KDE runtime and keeps its own data directory.
+
+Package selection and installation are documented in [Türkçe kurulum rehberi](docs/KURULUM.md) and [Linux packages](docs/LINUX_PACKAGES.md). HarmonyOS/HAP work is [planned separately](docs/roadmap/HARMONYOS.md); it is not a v0.7.3 release target.
 
 Ubuntu AppImage packaging installs both GStreamer Good and Bad runtime plugin libraries before linuxdeploy scans Qt Multimedia, covering `libgstphotography` and `libgstplay` dependencies on supported Ubuntu runners.
 

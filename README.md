@@ -14,6 +14,7 @@
 
 ## Contents
 
+- [Install and documentation](#install-and-documentation)
 - [v0.7.3 changes](#v073-changes)
 - [v0.7.2 highlights](#v072-highlights)
 - [v0.7.0 compatibility baseline](#v070-compatibility-baseline)
@@ -44,7 +45,17 @@
 
 The source implements atomic save/session/package fixes, all six builtin state snapshots, Android OpenSSL/plugin discovery and package checks, and a shared effect/media audio fallback for modern/legacy APIs. Themes now resolve relative assets and inherit partial surface fields. The updated [SDK](docs/sdk/OVERVIEW.md) includes API 0.7 examples, a minimal distinct theme, a native ABI compile example, a common RCC builder and a header-generated reference checked in CI.
 
-Fresh signed artifacts, upgrade/device tests and the 21-target platform acceptance remain release requirements; local/offscreen tests do not prove those results. Source implementation records are in [docs/releases](docs/releases/V073_IMPLEMENTATION.md).
+Fresh signed artifacts, upgrade/device tests and the candidate platform acceptance remain release requirements; local/offscreen tests do not prove those results. Source implementation records are in [docs/releases](docs/releases/V073_IMPLEMENTATION.md).
+
+## Install and documentation
+
+Download a published package from [Releases](https://github.com/YoungLionOrganization/LeoMiniGames/releases). The version badge describes this source tree; it does not mean the candidate has been published. Windows Setup/ZIP, Linux native/portable/Flatpak, Android APK and macOS packages have separate architecture choices.
+
+**[Türkçe kurulum rehberi](docs/KURULUM.md)** covers installation, upgrades, removal and save preservation. **[Documentation index](docs/README.md)** links user, build and SDK guides.
+
+Arch builds include a native `.pkg.tar.zst` and x86_64 Flatpak bundle. Flatpak also has an aarch64 build; Debian DEB, Fedora RPM, AppImage, portable tar.gz and the user-level `Setup.run` are included in the Linux matrix. See [Linux package choices](docs/LINUX_PACKAGES.md). No AUR/Flathub store publication is claimed.
+
+The primary release kit remains Qt 6.10.2. A separate [Qt 6.12 compatibility workflow](.github/workflows/qt-next.yml) builds and tests on GitHub runners. [HarmonyOS preparation](docs/roadmap/HARMONYOS.md) is tracked for a later patch; v0.7.3 does not contain a HarmonyOS package.
 
 ## v0.7.2 highlights
 
@@ -300,7 +311,7 @@ Lifecycle events use forced-save paths where a normal dirty optimization could o
 
 ## Audio, haptics and input
 
-Qt Multimedia is optional at configure time. The host exposes an audio capability/fallback rather than crashing when a platform/backend cannot provide sound. Dynamic effects are lazily allocated and bounded.
+Normal and release builds require Qt Multimedia. Deliberate headless builds may disable it with `LEOMINIGAMES_ENABLE_AUDIO=OFF`; the host then reports audio unavailable. Dynamic effects are lazily allocated and bounded.
 
 Android haptics use the Qt Android context and fail safely when vibrator capability is unavailable.
 
