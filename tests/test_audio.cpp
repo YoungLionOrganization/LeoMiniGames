@@ -16,6 +16,7 @@
 #include <QMediaPlayer>
 #include <QAudioBufferOutput>
 #include <QAudioBuffer>
+#include <QSoundEffect>
 #endif
 
 int main(int argc, char **argv)
@@ -72,10 +73,18 @@ int main(int argc, char **argv)
     modern.preload(QUrl("tone%231.ogg"));legacy.preload(QUrl("qrc:/mods/test_audio/tone%231.ogg"));
     check(audio.findChildren<AudioClip *>(QString(),Qt::FindDirectChildrenOnly).size()==2,"encoded file names resolve equally through modern and legacy APIs");
     audio.releasePrefix("qrc:/mods/test_audio/");
-    // Force the QSoundEffect decoder rejection while keeping a valid Ogg stream.
-    // The shared host must fall back, decode real PCM, and preserve the request.
+    // Newer QSoundEffect backends can decode Ogg even with a .wav suffix.
+    // Reject the effect's decoder source explicitly while retaining the valid
+    // clip playback URL. The real error signal must trigger the shared fallback,
+    // which must still decode PCM and preserve repeated playback.
     AudioClip fallback(QUrl("qrc:/mods/test_audio/fallback.wav"),AudioClip::Usage::Effect);
-    fallback.load();check(wait([&]{return fallback.usesMediaPlayer();}),"WAV decoder rejection falls back to media backend");
+    fallback.load();
+    if (!fallback.usesMediaPlayer()) {
+        auto *effect=fallback.findChild<QSoundEffect *>();
+        check(effect,"WAV effect decoder was created before rejection");
+        effect->setSource(QUrl::fromLocalFile(config.filePath("missing-decoder-source.wav")));
+    }
+    check(wait([&]{return fallback.usesMediaPlayer();}),"effect decoder rejection falls back to media backend");
     auto *player=fallback.findChild<QMediaPlayer *>();
     QAudioBufferOutput buffers; qint64 decoded=0;
     QObject::connect(&buffers,&QAudioBufferOutput::audioBufferReceived,&app,[&](const QAudioBuffer &buffer){decoded+=buffer.byteCount();});

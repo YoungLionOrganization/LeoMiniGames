@@ -317,6 +317,13 @@ jobs:
         env:
           LMG_PLATFORM_SUFFIX: ${{ matrix.label }}
         run: bash tools/package/package_macos.sh build
+      - name: Launch deployed ZIP and mounted DMG; assess Gatekeeper
+        run: bash tools/ci/macos_package_smoke.sh '${{ matrix.label }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: macos-${{ matrix.label }}-package-evidence
+          path: macos-package-smoke/
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ env.LMG_VERSION }}-macos-${{ matrix.label }}
