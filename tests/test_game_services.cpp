@@ -6,8 +6,8 @@
 #include "core/GameInput.h"
 #include <QGuiApplication>
 #include <QTemporaryDir>
-#include <QEventLoop>
-#include <QTimer>
+#include <QElapsedTimer>
+#include <QThread>
 #include <QDebug>
 #include <QFile>
 #include <QDir>
@@ -40,9 +40,10 @@ int main(int argc, char **argv) {
     stats.setCounter("score",maximum);check(stats.increment("score")==maximum,"counter overflow saturates at maximum");
     stats.setCounter("score",minimum);check(stats.increment("score",-1)==minimum,"counter underflow saturates at minimum");
     stats.setCounter("score",10);check(stats.increment("score",-15)==-5,"signed counter increments remain supported");
-    stats.startSession();QEventLoop loop;
-    // Coarse Windows timers may fire before the elapsed-time assertion's floor.
-    QTimer::singleShot(25,Qt::PreciseTimer,&loop,&QEventLoop::quit);loop.exec();
+    stats.startSession();QElapsedTimer observed;observed.start();
+    // Observe a real monotonic interval rather than assuming one timer wakeup
+    // proves enough time passed on a Windows runner.
+    while(observed.elapsed()<30)QThread::msleep(1);
     stats.startSession();stats.endSession();
     check(stats.gamesPlayed()==1,"repeated session start counts once");
     check(stats.totalTimeMs()>=20,"repeated session start preserves elapsed time");
