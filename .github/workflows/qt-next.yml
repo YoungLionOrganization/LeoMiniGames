@@ -32,6 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install Qt on the GitHub runner
+        if: runner.os != 'Windows'
         uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
         with:
           version: "6.12.0"
@@ -39,6 +40,18 @@ jobs:
           modules: qtmultimedia
           aqtversion: "==3.3.*"
           cache: true
+      - name: Install Qt from the split Windows MSVC repository
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m pip install aqtinstall==3.3.0
+          python tools/ci/install_qt_next.py install-qt windows desktop 6.12.0 win64_msvc2022_64 --outputdir "$env:RUNNER_TEMP/Qt" --modules qtmultimedia
+          if ($LASTEXITCODE -ne 0) { throw 'Qt 6.12 installation failed' }
+          $qtNextRoot = "$env:RUNNER_TEMP/Qt/6.12.0/msvc2022_64"
+          if (!(Test-Path "$qtNextRoot/bin/Qt6Core.dll")) { throw 'Qt runtime missing' }
+          "CMAKE_PREFIX_PATH=$qtNextRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "QT_ROOT_DIR=$qtNextRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "$qtNextRoot/bin" | Out-File -FilePath $env:GITHUB_PATH -Append
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
       - name: Build
