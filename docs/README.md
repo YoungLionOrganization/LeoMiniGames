@@ -15,6 +15,7 @@
 
 ## Next work
 
+- [Next patch priorities and package-layer groundwork](roadmap/NEXT_PATCHES.md).
 - [Qt 6.12 and HarmonyOS preparation](roadmap/HARMONYOS.md).
 
 Documents under `releases/` and root audit reports record the state at their stated date/commit. Earlier unchecked plans and historical failures are not the current source status. Use the exact candidate's Actions results and platform QA report for publication decisions. The `deployment/` folder contains historical backend reference material; the active backend is maintained separately.

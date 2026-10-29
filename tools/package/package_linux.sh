@@ -24,6 +24,7 @@ export APPIMAGE_EXTRACT_AND_RUN=1
 cp "$EXE" "$APPDIR/usr/bin/LeoMiniGames"
 cp -a "$ROOT/LICENSE" "$ROOT/NOTICE" \
   "$ROOT/COPYRIGHT" "$ROOT/LICENSING.md" "$ROOT/LICENSE_HISTORY.md" "$ROOT/LICENSE_METADATA.json" "$ROOT/README.md" "$APPDIR/"
+cp "$ROOT/docs/KURULUM.md" "$APPDIR/"
 mkdir -p "$APPDIR/licenses"
 cp "$ROOT/licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt" \
    "$ROOT/licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt" "$APPDIR/licenses/"

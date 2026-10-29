@@ -44,6 +44,7 @@ Copy-Item $Exe.FullName $Stage
 
 $LegalFiles = @('LICENSE','NOTICE','COPYRIGHT','LICENSING.md','LICENSE_HISTORY.md','LICENSE_METADATA.json')
 foreach ($Legal in $LegalFiles) { Copy-Item (Join-Path $Root $Legal) $Stage }
+Copy-Item (Join-Path $Root 'docs/KURULUM.md') $Stage
 New-Item (Join-Path $Stage 'licenses') -ItemType Directory -Force | Out-Null
 Copy-Item (Join-Path $Root 'licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt') (Join-Path $Stage 'licenses')
 Copy-Item (Join-Path $Root 'licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt') (Join-Path $Stage 'licenses')

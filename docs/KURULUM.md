@@ -21,7 +21,7 @@ Tam adların başında `LeoMiniGames-v0.7.3-` bulunur. Linux mimarisini `uname -
 
 ## Dosya bütünlüğü
 
-İndirdiğiniz dosyanın SHA-256 değerini aynı release içindeki `SHA256SUMS` ile karşılaştırın. Linux'ta örnek:
+İndirdiğiniz dosyanın SHA-256 değerini aynı release açıklamasının **SHA-256** bölümünde o dosya için verilen değerle karşılaştırın. Linux'ta örnek:
 
 ```sh
 sha256sum LeoMiniGames-v0.7.3-Arch-x86_64.pkg.tar.zst
@@ -138,4 +138,4 @@ Uygulamayı kapatarak kullanıcı veri klasörünün tamamını yedekleyin. Nati
 
 İlk açılışta altı yerleşik oyundan birini açıp kapatın, kaydın tekrar açıldığında korunduğunu ve katalog/tema ekranını kontrol edin. Ses yoksa sistem ses çıkışını ve uygulama ses ayarını kontrol edin. Linux keyring kapalıysa Developer Lab anahtarını kalıcı saklama çalışmayabilir; anahtarınızı hata raporuna eklemeyin.
 
-Bir hata bildirimine işletim sistemi/sürümü, mimari, paket dosya adı, uygulama sürümü ve tekrar etme adımlarını ekleyin. Katalog sunucusunun 500 yanıtı vermesiyle yerel açılış hatası farklı sorunlardır. [Hata bildirimi](https://github.com/YoungLionOrganization/LeoMiniGames/issues/new/choose) ve [teknik Linux paket rehberi](LINUX_PACKAGES.md) ek ayrıntı sağlar.
+Bir hata bildirimine işletim sistemi/sürümü, mimari, paket dosya adı, uygulama sürümü ve tekrar etme adımlarını ekleyin. Katalog sunucusunun 500 yanıtı vermesiyle yerel açılış hatası farklı sorunlardır. [Hata bildirimi](https://github.com/YoungLionOrganization/LeoMiniGames/issues/new/choose) ve [teknik Linux paket rehberi](https://github.com/YoungLionOrganization/LeoMiniGames/blob/main/docs/LINUX_PACKAGES.md) ek ayrıntı sağlar.

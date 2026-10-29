@@ -102,6 +102,14 @@ jobs:
           LMG_WINDOWS_ARCH: x86_64
           LMG_WINDOWS_CPU_PROFILE: baseline
         run: ./tools/package/package_windows.ps1 -BuildDir build
+      - name: Test deployed Windows packages and Maintenance Tool
+        shell: pwsh
+        run: ./tools/ci/windows_package_smoke.ps1 -Suffix x86_64
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: windows-x86_64-servicing-evidence
+          path: windows-package-smoke/
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ env.LMG_VERSION }}-windows-x86_64
@@ -140,6 +148,14 @@ jobs:
           LMG_WINDOWS_ARCH: x86_64
           LMG_WINDOWS_CPU_PROFILE: avx2
         run: ./tools/package/package_windows.ps1 -BuildDir build
+      - name: Test deployed AVX2 packages and Maintenance Tool
+        shell: pwsh
+        run: ./tools/ci/windows_package_smoke.ps1 -Suffix x86_64-AVX2
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: windows-x86_64-avx2-servicing-evidence
+          path: windows-package-smoke/
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ env.LMG_VERSION }}-windows-x86_64-avx2
@@ -176,6 +192,14 @@ jobs:
           LMG_WINDOWS_ARCH: arm64
           LMG_WINDOWS_CPU_PROFILE: baseline
         run: ./tools/package/package_windows.ps1 -BuildDir build
+      - name: Test deployed ARM64 packages and Maintenance Tool
+        shell: pwsh
+        run: ./tools/ci/windows_package_smoke.ps1 -Suffix ARM64
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: windows-arm64-servicing-evidence
+          path: windows-package-smoke/
       - uses: actions/upload-artifact@v7
         with:
           name: LeoMiniGames-${{ env.LMG_VERSION }}-windows-arm64
