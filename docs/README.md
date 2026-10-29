@@ -2,7 +2,7 @@
 
 ## Install and use
 
-- [Türkçe kurulum rehberi](KURULUM.md): package selection, Arch/Flatpak, upgrading, removal and user data.
+- [Installation guide](INSTALLATION.md): package selection, Arch/Flatpak, upgrading, removal and user data.
 - [Linux packages](LINUX_PACKAGES.md): native formats, portable installer and lifecycle verification.
 - [Application updates](UPDATES.md): download selection and Windows Maintenance Tool.
 - [Current build matrix](../BUILD_MATRIX.md): toolchains, package formats and test limits.

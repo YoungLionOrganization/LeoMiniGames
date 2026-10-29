@@ -21,7 +21,7 @@ cp "$ROOT/licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt" \
    "$ROOT/licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt" "$LEGAL/licenses/"
 cp "$ROOT/docs/THIRD_PARTY_NOTICES.md" "$ROOT/docs/QT_LGPL_COMPLIANCE.md" "$LEGAL/"
 mkdir -p "$DIST/LeoMiniGames.app/Contents/Resources/Documentation"
-cp "$ROOT/docs/KURULUM.md" "$DIST/LeoMiniGames.app/Contents/Resources/Documentation/"
+cp "$ROOT/docs/INSTALLATION.md" "$DIST/LeoMiniGames.app/Contents/Resources/Documentation/"
 ditto -c -k --sequesterRsrc --keepParent "$DIST/LeoMiniGames.app" "$DIST/LeoMiniGames-v${VERSION}-macOS-${SUFFIX}.zip"
 DMG="$DIST/LeoMiniGames-v${VERSION}-macOS-${SUFFIX}.dmg"
 TMP_DMG_DIR="$(mktemp -d)"

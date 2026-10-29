@@ -20,7 +20,7 @@ cleanup() {
 trap cleanup EXIT
 launch() {
   local app="$1" name="$2"
-  [[ -f "$app/Contents/Resources/Documentation/KURULUM.md" ]] || {
+  [[ -f "$app/Contents/Resources/Documentation/INSTALLATION.md" ]] || {
     echo 'Packaged installation guide missing.' >&2; return 1;
   }
   env -u DYLD_LIBRARY_PATH -u DYLD_FRAMEWORK_PATH -u LD_LIBRARY_PATH \

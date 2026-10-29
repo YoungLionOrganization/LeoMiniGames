@@ -1,4 +1,4 @@
-name: Bug report / Hata bildirimi
+name: Bug report
 description: Report a reproducible application, package or installer problem.
 title: "[Bug]: "
 labels: [bug]

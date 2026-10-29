@@ -15,7 +15,7 @@ EXE="$(find "$BUILD_DIR" -type f -name LeoMiniGames -perm -111 | head -n1)"
 cp "$EXE" "$STAGE/LeoMiniGames"
 cp "$ROOT/LICENSE" "$ROOT/NOTICE" \
    "$ROOT/COPYRIGHT" "$ROOT/LICENSING.md" "$ROOT/LICENSE_HISTORY.md" "$ROOT/LICENSE_METADATA.json" "$STAGE/"
-cp "$ROOT/docs/KURULUM.md" "$STAGE/"
+cp "$ROOT/docs/INSTALLATION.md" "$STAGE/"
 cp "$ROOT/licenses/YOUNGLION_LMG_SDK_LICENSE_1.0.txt" \
    "$ROOT/licenses/YOUNGLION_PACKAGE_LICENSE_1.0.txt" "$STAGE/licenses/"
 mkdir -p "$STAGE/Legal"

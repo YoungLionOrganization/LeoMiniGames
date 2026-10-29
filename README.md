@@ -51,7 +51,7 @@ Fresh signed artifacts, upgrade/device tests and the candidate platform acceptan
 
 Download a published package from [Releases](https://github.com/YoungLionOrganization/LeoMiniGames/releases). The version badge describes this source tree; it does not mean the candidate has been published. Windows Setup/ZIP, Linux native/portable/Flatpak, Android APK and macOS packages have separate architecture choices.
 
-**[Türkçe kurulum rehberi](docs/KURULUM.md)** covers installation, upgrades, removal and save preservation. **[Documentation index](docs/README.md)** links user, build and SDK guides.
+**[Installation guide](docs/INSTALLATION.md)** covers installation, upgrades, removal and save preservation. **[Documentation index](docs/README.md)** links user, build and SDK guides.
 
 Arch builds include a native `.pkg.tar.zst` and x86_64 Flatpak bundle. Flatpak also has an aarch64 build; Debian DEB, Fedora RPM, AppImage, portable tar.gz and the user-level `Setup.run` are included in the Linux matrix. See [Linux package choices](docs/LINUX_PACKAGES.md). No AUR/Flathub store publication is claimed.
 
@@ -297,7 +297,7 @@ Runtime theme changes should propagate without forcing a game restart when the g
 
 The host normalizes locale values, supports deterministic fallback and propagates runtime language changes. English source strings are the canonical fallback. Missing translations are reported rather than filled with fake translated text.
 
-Minimum ecosystem target languages include English, Türkçe, Azərbaycanca, Русский, Deutsch, Français, Español, Português, 中文 and 日本語; actual per-string coverage is reported by the validator.
+Minimum ecosystem target languages include English, Turkish, Azerbaijani, Russian, German, French, Spanish, Portuguese, Chinese and Japanese; actual per-string coverage is reported by the validator.
 
 ```bash
 python3 tools/validate_i18n.py

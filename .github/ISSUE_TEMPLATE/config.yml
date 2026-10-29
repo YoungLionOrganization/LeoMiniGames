@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Installation / Kurulum
-    url: https://github.com/YoungLionOrganization/LeoMiniGames/blob/main/docs/KURULUM.md
+  - name: Installation
+    url: https://github.com/YoungLionOrganization/LeoMiniGames/blob/main/docs/INSTALLATION.md
     about: Choose the right package and follow install, upgrade and removal steps.
   - name: Security vulnerability
     url: https://github.com/YoungLionOrganization/LeoMiniGames/security/policy

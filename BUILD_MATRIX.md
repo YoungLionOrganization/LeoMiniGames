@@ -45,7 +45,7 @@ The source minimum is Qt **6.8**. The v0.7.3 online-package release lanes use **
 
 Debian 13 validates the Qt 6.8 source floor with distro Qt. Filter refresh uses the Qt 6.10 filter-change API when available and the older API on supported earlier kits. Native distro tarballs depend on system Qt; AppImage/portable tarballs deploy their runtime. Flatpak uses its declared KDE runtime and keeps its own data directory.
 
-Package selection and installation are documented in [Türkçe kurulum rehberi](docs/KURULUM.md) and [Linux packages](docs/LINUX_PACKAGES.md). HarmonyOS/HAP work is [planned separately](docs/roadmap/HARMONYOS.md); it is not a v0.7.3 release target.
+Package selection and installation are documented in [Installation guide](docs/INSTALLATION.md) and [Linux packages](docs/LINUX_PACKAGES.md). HarmonyOS/HAP work is [planned separately](docs/roadmap/HARMONYOS.md); it is not a v0.7.3 release target.
 
 Ubuntu AppImage packaging installs both GStreamer Good and Bad runtime plugin libraries before linuxdeploy scans Qt Multimedia, covering `libgstphotography` and `libgstplay` dependencies on supported Ubuntu runners.
 
