@@ -25,7 +25,7 @@ function Invoke-Checked([string]$Exe, [string[]]$Arguments, [string]$Name) {
   $Info.RedirectStandardOutput = $true
   $Info.RedirectStandardError = $true
   if ([IO.Path]::GetFileName($Exe) -eq 'LeoMiniGames.exe') {
-    $Info.Environment['QT_QPA_PLATFORM'] = 'offscreen'
+    $Info.Environment['QT_QPA_PLATFORM'] = 'windows'
   }
   foreach ($Argument in $Arguments) { $Info.ArgumentList.Add($Argument) }
   $Process = [System.Diagnostics.Process]::new()

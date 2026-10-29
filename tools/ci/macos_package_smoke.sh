@@ -25,7 +25,7 @@ launch() {
   }
   env -u DYLD_LIBRARY_PATH -u DYLD_FRAMEWORK_PATH -u LD_LIBRARY_PATH \
     -u QT_PLUGIN_PATH -u QT_QPA_PLATFORM_PLUGIN_PATH -u QML2_IMPORT_PATH -u QML_IMPORT_PATH \
-    QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_FORCE_STDERR_LOGGING=1 \
+    QT_QPA_PLATFORM=cocoa QT_QUICK_BACKEND=software QT_FORCE_STDERR_LOGGING=1 \
     python3 - "$app/Contents/MacOS/LeoMiniGames" "$OUT/$name.log" <<'PY'
 import subprocess, sys
 from pathlib import Path
