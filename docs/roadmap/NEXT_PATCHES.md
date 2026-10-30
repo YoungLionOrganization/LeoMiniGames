@@ -23,6 +23,15 @@ The public mods/themes services returned 200 and schema health reported ready du
 
 v0.7.4 must not turn a package-format experiment into a forced migration for existing games. Save Transfer remains a separately planned feature for the v0.8 line unless its scope is explicitly changed.
 
+### Prepared reliability changes
+
+The separate development branch now contains an update-request generation guard and a pending-QA helper. Neither changes the v0.7.3 package candidate.
+
+- An update-state observer can synchronously clear the request, select another channel or start a replacement check. Retired requests must not create a second network reply afterward. Observer-driven service deletion must also stop the original method safely.
+- The new regression reproduces a duplicate request against the previous implementation and passes against the prepared fix with the existing local Qt 6.11.1 kit. Full GitHub platform validation is still required before merging.
+- `prepare_platform_qa.py` binds pending rows to the candidate manifest and clears all test claims. It validates names, sizes and hashes without downloading the package payloads. Real platform evidence remains required.
+- QA package names follow the canonical release version, and manifest version checks reject an otherwise matching report from another release.
+
 ## YLSpec / YLPlugin / YLPkg boundaries
 
 The maintainer's later design separates three responsibilities:

@@ -16,6 +16,8 @@ from validate_platform_qa import TARGETS, target_artifacts
 
 
 def prepare(manifest: dict, template: dict, policy: dict, build_run: str) -> dict:
+    if not isinstance(manifest, dict):
+        raise ValueError('Candidate manifest must be a JSON object')
     version = template['version']
     if manifest.get('version') != version or policy.get('version') != version:
         raise ValueError('Candidate, QA template and asset policy versions differ')
@@ -25,9 +27,13 @@ def prepare(manifest: dict, template: dict, policy: dict, build_run: str) -> dic
         raise ValueError('Build run must be a numeric GitHub Actions run ID')
     expected = {name.format(version=version) for name in policy['expected_names']}
     assets = manifest.get('assets', {})
+    if not isinstance(assets, dict):
+        raise ValueError('Candidate assets must be a JSON object')
     if set(assets) != expected:
         raise ValueError('Candidate manifest does not match the exact public asset set')
     for name, record in assets.items():
+        if not isinstance(record, dict):
+            raise ValueError(f'{name}: package record must be a JSON object')
         if not re.fullmatch(r'[0-9a-f]{64}', str(record.get('sha256', ''))):
             raise ValueError(f'{name}: invalid SHA-256')
         size = record.get('size')
@@ -54,7 +60,7 @@ def prepare(manifest: dict, template: dict, policy: dict, build_run: str) -> dic
             row[field] = ''
         if 'device_abis' in row:
             row['device_abis'] = []
-        names = sorted(target_artifacts(target))
+        names = sorted(target_artifacts(target, version))
         if names:
             row['tested_artifacts'] = {name: assets[name]['sha256'] for name in names}
             row['artifact_name'] = names[0]

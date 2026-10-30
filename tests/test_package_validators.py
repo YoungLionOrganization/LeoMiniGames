@@ -181,13 +181,13 @@ class PackageValidators(unittest.TestCase):
 
     def test_qa_matches_every_candidate_artifact(self):
         sha='a'*40;digest='b'*64
-        report={'version':'0.7.3','source_sha':sha,'targets':{}}
+        report={'version':qa.VERSION,'source_sha':sha,'targets':{}}
         for name in qa.TARGETS:
             report['targets'][name]={'passed':True,'clean_system':True,'environment':'test fixture',
                 'artifact_sha256':digest,'artifact_name':'fixture.zip','evidence':'fixture only',
                 'tested_at':'2026-10-01','tester':'test', 'device_abis':['x86_64'],
                 'installer_upgrade_modify_uninstall':True,'installer_install_reinstall_uninstall':True,'gatekeeper_assessed':True}
-        manifest={'source_sha':sha,'assets':{}}
+        manifest={'version':qa.VERSION,'source_sha':sha,'assets':{}}
         for target,row in report['targets'].items():
             candidates=qa.target_artifacts(target)
             if candidates:
@@ -195,6 +195,10 @@ class PackageValidators(unittest.TestCase):
                 row['tested_artifacts']={name:digest for name in candidates}
                 for name in candidates:manifest['assets'][name]={'sha256':digest}
         qa.validate(report,sha,manifest)
+        wrong_version = dict(manifest, version='0.0.0')
+        with self.assertRaisesRegex(ValueError,'manifest version'):
+            qa.validate(report,sha,wrong_version)
+        with self.assertRaises(ValueError):qa.validate(report,sha,{})
         next(iter(manifest['assets'].values()))['sha256']='c'*64
         with self.assertRaises(ValueError):qa.validate(report,sha,manifest)
         manifest['source_sha']='d'*40
@@ -217,5 +221,11 @@ class PackageValidators(unittest.TestCase):
         report={'version':'0.7.3','source_sha':'a','targets':{name:{'passed':False} for name in qa.TARGETS}}
         with self.assertRaises(ValueError):qa.validate(report,'a')
         with self.assertRaises(ValueError):qa.validate(report,'b')
+
+    def test_qa_artifact_names_can_follow_the_next_release(self):
+        self.assertEqual(qa.target_artifacts('Windows-ARM64','0.7.4'),
+                         {'LeoMiniGames-v0.7.4-Windows-ARM64.zip', 'LeoMiniGames-v0.7.4-Windows-ARM64-Setup.exe'})
+        self.assertEqual(qa.target_artifacts('Flatpak-aarch64','0.7.4'),
+                         {'LeoMiniGames-v0.7.4-Linux-aarch64.flatpak'})
 
 if __name__=='__main__':unittest.main()

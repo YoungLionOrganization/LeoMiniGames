@@ -169,9 +169,9 @@ $bytes = [IO.File]::ReadAllBytes("C:\path\to\your-upload-key.jks")
 
 Retain the correct signing/upload key for application update continuity. If Google Play App Signing is enabled, CI normally uses the registered upload key rather than Google's protected app-signing key.
 
-## Current v0.7.3 state
+## Historical publication failure
 
-At candidate `a020647bfd7dacb49727b4683bede6807eec7d67`, CI and Build Release Artifacts succeeded, with 27 public assets validated. [Publish Release run 36470448493](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/36470448493) failed during `Prepare draft and upload exact asset set`: `cat: release/notes/v0.7.3.md: No such file or directory`. No public v0.7.3 release was created.
+The earlier candidate `a020647bfd7dacb49727b4683bede6807eec7d67` used a historical 27-file contract. [Publish Release run 36470448493](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/36470448493) failed during `Prepare draft and upload exact asset set`: `cat: release/notes/v0.7.3.md: No such file or directory`. That failed run did not create a public v0.7.3 release. It does not describe the current 39-file asset contract or current candidate test results.
 
 The notes file is now present, and preflight checks it before the publisher can delete a stale draft. A new source commit requires successful CI and **Build Release Artifacts** on the new exact SHA, followed by `mode=validate` and `mode=publish`. Do not select the old build run ID.
 
