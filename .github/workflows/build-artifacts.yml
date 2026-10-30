@@ -630,6 +630,11 @@ jobs:
           python3 tools/release/validate_release_assets.py _release-assets --manifest _release-manifest.json --source-sha "$GITHUB_SHA"
       - uses: actions/upload-artifact@v7
         with:
+          name: release-manifest
+          path: _release-manifest.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
           name: release-assets
           path: _release-assets/*
           if-no-files-found: error
