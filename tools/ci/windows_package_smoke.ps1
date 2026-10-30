@@ -1,5 +1,6 @@
 param(
   [Parameter(Mandatory=$true)][string]$Suffix,
+  [Parameter(Mandatory=$true)][string]$InstallerSourceDir,
   [string]$DistDir = 'dist/windows',
   [string]$OutDir = 'windows-package-smoke'
 )
@@ -74,7 +75,7 @@ if (!$Text.Contains('PASS: six builtin QML sessions opened and closed')) { throw
 # The older fixture uses this candidate's binary with previous package metadata.
 # It tests QtIFW upgrade operations; it is not a v0.7.2 gameplay/device claim.
 $Fixture = Join-Path $Work 'older-fixture'
-Copy-Item -LiteralPath (Join-Path $Dist 'installer-src') -Destination $Fixture -Recurse
+Copy-Item -LiteralPath $InstallerSourceDir -Destination $Fixture -Recurse
 foreach ($Xml in @('config/config.xml','packages/xyz.younglion.leominigames/meta/package.xml')) {
   $Path = Join-Path $Fixture $Xml
   $Text = [IO.File]::ReadAllText($Path).Replace("<Version>$Version</Version>", '<Version>0.7.2</Version>')

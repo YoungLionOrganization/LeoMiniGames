@@ -101,10 +101,10 @@ jobs:
           LMG_PLATFORM_SUFFIX: x86_64
           LMG_WINDOWS_ARCH: x86_64
           LMG_WINDOWS_CPU_PROFILE: baseline
-        run: ./tools/package/package_windows.ps1 -BuildDir build
+        run: ./tools/package/package_windows.ps1 -BuildDir build -InstallerSourceDir "$env:RUNNER_TEMP/lmg-ifw-source"
       - name: Test deployed Windows packages and Maintenance Tool
         shell: pwsh
-        run: ./tools/ci/windows_package_smoke.ps1 -Suffix x86_64
+        run: ./tools/ci/windows_package_smoke.ps1 -Suffix x86_64 -InstallerSourceDir "$env:RUNNER_TEMP/lmg-ifw-source"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -147,10 +147,10 @@ jobs:
           LMG_PLATFORM_SUFFIX: x86_64-AVX2
           LMG_WINDOWS_ARCH: x86_64
           LMG_WINDOWS_CPU_PROFILE: avx2
-        run: ./tools/package/package_windows.ps1 -BuildDir build
+        run: ./tools/package/package_windows.ps1 -BuildDir build -InstallerSourceDir "$env:RUNNER_TEMP/lmg-ifw-source"
       - name: Test deployed AVX2 packages and Maintenance Tool
         shell: pwsh
-        run: ./tools/ci/windows_package_smoke.ps1 -Suffix x86_64-AVX2
+        run: ./tools/ci/windows_package_smoke.ps1 -Suffix x86_64-AVX2 -InstallerSourceDir "$env:RUNNER_TEMP/lmg-ifw-source"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -191,10 +191,10 @@ jobs:
           LMG_PLATFORM_SUFFIX: ARM64
           LMG_WINDOWS_ARCH: arm64
           LMG_WINDOWS_CPU_PROFILE: baseline
-        run: ./tools/package/package_windows.ps1 -BuildDir build
+        run: ./tools/package/package_windows.ps1 -BuildDir build -InstallerSourceDir "$env:RUNNER_TEMP/lmg-ifw-source"
       - name: Test deployed ARM64 packages and Maintenance Tool
         shell: pwsh
-        run: ./tools/ci/windows_package_smoke.ps1 -Suffix ARM64
+        run: ./tools/ci/windows_package_smoke.ps1 -Suffix ARM64 -InstallerSourceDir "$env:RUNNER_TEMP/lmg-ifw-source"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
