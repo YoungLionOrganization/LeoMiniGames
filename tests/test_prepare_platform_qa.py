@@ -3,6 +3,9 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,6 +68,20 @@ class PrepareQaTests(unittest.TestCase):
             mutate(manifest)
             with self.assertRaises(ValueError):
                 prepare_qa.prepare(manifest, self.template, self.policy, '123')
+
+    def test_command_preserves_existing_review_results(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            manifest = root/'manifest.json'
+            manifest.write_text(json.dumps(self.manifest), encoding='utf-8')
+            output = root/'review.json'
+            output.write_text('existing review evidence', encoding='utf-8')
+            result = subprocess.run(
+                [sys.executable, str(ROOT/'tools/release/prepare_platform_qa.py'),
+                 str(manifest), '--build-run', '123', '--output', str(output)],
+                capture_output=True, text=True, timeout=10)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(output.read_text(), 'existing review evidence')
 
 
 if __name__ == '__main__':

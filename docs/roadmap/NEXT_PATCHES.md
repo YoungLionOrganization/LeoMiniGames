@@ -31,6 +31,7 @@ The separate development branch now contains an update-request generation guard 
 - The new regression reproduces a duplicate request against the previous implementation and passes against the prepared fix with the existing local Qt 6.11.1 kit. Full GitHub platform validation is still required before merging.
 - `prepare_platform_qa.py` binds pending rows to the candidate manifest and clears all test claims. It validates names, sizes and hashes without downloading the package payloads. Real platform evidence remains required.
 - QA package names follow the canonical release version, and manifest version checks reject an otherwise matching report from another release.
+- Update guidance no longer labels every installation without a Maintenance Tool as portable. Linux native packages, Flatpak and mobile packages retain their installation-format choices.
 
 ## YLSpec / YLPlugin / YLPkg boundaries
 
