@@ -36,6 +36,8 @@ The separate development branch now contains an update-request generation guard 
 
 ## YLSpec / YLPlugin / YLPkg boundaries
 
+The later pixel-format discussions are tracked separately in [Pixel asset format groundwork](PIXEL_FORMATS.md). `.ylpix` and `.ylpxm` describe visual assets and must not be conflated with plugin execution or installation permissions.
+
 The maintainer's later design separates three responsibilities:
 
 - **YLSpec** carries inspectable metadata, profiles and required-feature declarations. Its fixed frame header is separate from the variable-length document. A valid document does not authorize code execution.
