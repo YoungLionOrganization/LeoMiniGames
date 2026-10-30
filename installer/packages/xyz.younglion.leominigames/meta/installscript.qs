@@ -59,6 +59,10 @@ Component.prototype.createOperations = function()
 {
     component.createOperations();
     if (systemInfo.productType !== "windows") return;
+    // Maintenance keeps the original config.xml ProductVersion. The component
+    // metadata contains the version being installed by an online update.
+    var packageVersion = component.value("Version");
+    if (!packageVersion) throw new Error("Application component version is missing.");
 
     var options = typeof gui !== "undefined" && gui ? gui.pageWidgetByObjectName("DynamicInstallOptionsPage") : null;
     if (!options) options = component.userInterface("InstallOptionsPage");
@@ -101,9 +105,9 @@ Component.prototype.createOperations = function()
 
     // These QSettings-backed markers let a future Setup locate a non-default install.
     component.addElevatedOperation("GlobalConfig", "SystemScope", "YoungLion", "LeoMiniGames", "InstallDir", "@TargetDir@");
-    component.addElevatedOperation("GlobalConfig", "SystemScope", "YoungLion", "LeoMiniGames", "Version", "@ProductVersion@");
+    component.addElevatedOperation("GlobalConfig", "SystemScope", "YoungLion", "LeoMiniGames", "Version", packageVersion);
     component.addElevatedOperation("GlobalConfig", "SystemScope", "YoungLion", "LeoMiniGames", "Architecture", "__LMG_WINDOWS_ARCH__");
     component.addElevatedOperation("GlobalConfig", "SystemScope", "YoungLion", "LeoMiniGames", "CpuProfile", "__LMG_WINDOWS_CPU_PROFILE__");
     component.addOperation("GlobalConfig", "YoungLion", "LeoMiniGames", "InstallDir", "@TargetDir@");
-    component.addOperation("GlobalConfig", "YoungLion", "LeoMiniGames", "Version", "@ProductVersion@");
+    component.addOperation("GlobalConfig", "YoungLion", "LeoMiniGames", "Version", packageVersion);
 }

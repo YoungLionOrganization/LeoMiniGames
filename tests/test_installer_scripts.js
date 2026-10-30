@@ -115,6 +115,7 @@ function optionsHarness(widget) {
     const operations = [];
     const component = {
         createOperations: () => {},
+        value: key => key === 'Version' ? '0.7.3' : '',
         userInterface: () => widget,
         addOperation: (name, ...args) => operations.push([name, ...args]),
         addElevatedOperation: (name, ...args) => operations.push([name, ...args]),
@@ -137,6 +138,7 @@ assert.equal(optionsHarness({ DesktopShortcutCheckBox: { checked: false },
     const selected = { DesktopShortcutCheckBox: { checked: false },
         StartMenuShortcutCheckBox: { checked: true }, MaintenanceShortcutCheckBox: { checked: false } };
     const component = { createOperations: () => {}, userInterface: () => widget,
+        value: key => key === 'Version' ? '0.7.3' : '',
         addOperation: (name, ...args) => operations.push([name, ...args]),
         addElevatedOperation: () => {} };
     const context = { component, installer: { isInstaller: () => false, isCommandLineInstance: () => false },
@@ -146,4 +148,23 @@ assert.equal(optionsHarness({ DesktopShortcutCheckBox: { checked: false },
     new context.Component().createOperations();
     assert.equal(operations.filter(x => x[0] === 'CreateShortcut').length, 1);
 }
-console.log('PASS: QtIFW existing install routing, launch failure, and shortcut options');
+// ProductVersion stays tied to the original installer after online updates.
+// Both registry markers must use the newly installed component version.
+{
+    const operations = [];
+    const component = { createOperations: () => {}, userInterface: () => undefined,
+        value: key => key === 'Version' ? '0.7.4' : '',
+        addOperation: (...args) => operations.push(args),
+        addElevatedOperation: (...args) => operations.push(args) };
+    const context = { component,
+        installer: { value: () => '0.7.2', isInstaller: () => false, isCommandLineInstance: () => true },
+        systemInfo: { productType: 'windows' } };
+    vm.runInNewContext(script, context);
+    const instance = new context.Component();
+    instance.createOperations();
+    const versions = operations.filter(op => op[0] === 'GlobalConfig' && op.at(-2) === 'Version');
+    assert.deepEqual(versions.map(op => op.at(-1)), ['0.7.4', '0.7.4']);
+    component.value = () => '';
+    assert.throws(() => instance.createOperations(), /component version is missing/);
+}
+console.log('PASS: QtIFW existing install routing, component version registration, launch failure, and shortcut options');
