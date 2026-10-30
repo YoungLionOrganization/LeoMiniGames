@@ -85,6 +85,9 @@ $Older = Join-Path $Work 'older-setup.exe'
 $null = Invoke-Checked (Join-Path $env:QT_IFW_BIN 'binarycreator.exe') @('--offline-only','-c',"$Fixture/config/config.xml",'-p',"$Fixture/packages",$Older) 'fixture-create'
 $Options = @('--default-answer','--accept-licenses','--confirm-command','--cache-path',$Cache,'--set-temp-repository',$Repository)
 $null = Invoke-Checked $Older ($Options + @('--root',$Prefix,'install')) 'older-install'
+foreach ($Key in @('HKLM:\Software\YoungLion\LeoMiniGames','HKCU:\Software\YoungLion\LeoMiniGames')) {
+  if ((Get-ItemProperty -LiteralPath $Key -Name Version).Version -ne '0.7.2') { throw 'Older fixture registration has the wrong version' }
+}
 $Maintenance = Join-Path $Prefix 'LeoMiniGamesMaintenance.exe'
 if (!(Test-Path -LiteralPath $Maintenance)) { throw 'Maintenance Tool was not installed' }
 # QtIFW returns EssentialUpdated (6) after successfully updating our essential
@@ -92,6 +95,9 @@ if (!(Test-Path -LiteralPath $Maintenance)) { throw 'Maintenance Tool was not in
 $null = Invoke-Checked $Maintenance ($Options + @('update')) 'candidate-upgrade' @(0,6)
 $Text = Invoke-Checked $Maintenance @('list') 'installed-components'
 if (!$Text.Contains($Version)) { throw 'Candidate version missing after upgrade' }
+foreach ($Key in @('HKLM:\Software\YoungLion\LeoMiniGames','HKCU:\Software\YoungLion\LeoMiniGames')) {
+  if ((Get-ItemProperty -LiteralPath $Key -Name Version).Version -ne $Version) { throw 'Upgrade left stale registered version metadata' }
+}
 $Text = Invoke-Checked (Join-Path $Prefix 'LeoMiniGames.exe') @('--smoke-test') 'installed-launch'
 if (!$Text.Contains('PASS: six builtin QML sessions opened and closed')) { throw 'Installed launch evidence missing' }
 

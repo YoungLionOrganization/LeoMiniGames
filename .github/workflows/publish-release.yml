@@ -49,6 +49,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install package inspection tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm libarchive-tools flatpak ostree
+          for tool in rpm rpm2cpio bsdtar flatpak ostree; do command -v "$tool"; done
+
       - name: Read canonical release metadata
         id: meta
         shell: bash
@@ -299,6 +305,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      - name: Install package inspection tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm libarchive-tools flatpak ostree
+          for tool in rpm rpm2cpio bsdtar flatpak ostree; do command -v "$tool"; done
 
       - uses: actions/download-artifact@v8
         with:
