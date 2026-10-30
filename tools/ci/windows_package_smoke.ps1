@@ -18,7 +18,7 @@ $Setup = Join-Path $Dist "LeoMiniGames-v$Version-Windows-$Suffix-Setup.exe"
 $Repository = ([uri](Join-Path $Dist "update-repository/$Suffix")).AbsoluteUri
 $Cache = Join-Path $Work 'repository-cache'
 
-function Invoke-Checked([string]$Exe, [string[]]$Arguments, [string]$Name) {
+function Invoke-Checked([string]$Exe, [string[]]$Arguments, [string]$Name, [int[]]$AllowedExitCodes = @(0)) {
   $Info = [System.Diagnostics.ProcessStartInfo]::new()
   $Info.FileName = $Exe
   $Info.UseShellExecute = $false
@@ -38,7 +38,7 @@ function Invoke-Checked([string]$Exe, [string[]]$Arguments, [string]$Name) {
   if ($TimedOut) { $Process.Kill($true); $Process.WaitForExit() }
   $Text = $Stdout.GetAwaiter().GetResult() + $Stderr.GetAwaiter().GetResult()
   [IO.File]::WriteAllText((Join-Path $Output "$Name.log"), $Text)
-  if ($TimedOut -or $Process.ExitCode -ne 0) {
+  if ($TimedOut -or $Process.ExitCode -notin $AllowedExitCodes) {
     Write-Host $Text
     throw "$Name failed (timeout=$TimedOut, exit=$($Process.ExitCode))"
   }
@@ -87,7 +87,9 @@ $Options = @('--default-answer','--accept-licenses','--confirm-command','--cache
 $null = Invoke-Checked $Older ($Options + @('--root',$Prefix,'install')) 'older-install'
 $Maintenance = Join-Path $Prefix 'LeoMiniGamesMaintenance.exe'
 if (!(Test-Path -LiteralPath $Maintenance)) { throw 'Maintenance Tool was not installed' }
-$null = Invoke-Checked $Maintenance ($Options + @('update')) 'candidate-upgrade'
+# QtIFW returns EssentialUpdated (6) after successfully updating our essential
+# app component. The next invocation restarts the tool and checks its version.
+$null = Invoke-Checked $Maintenance ($Options + @('update')) 'candidate-upgrade' @(0,6)
 $Text = Invoke-Checked $Maintenance @('list') 'installed-components'
 if (!$Text.Contains($Version)) { throw 'Candidate version missing after upgrade' }
 $Text = Invoke-Checked (Join-Path $Prefix 'LeoMiniGames.exe') @('--smoke-test') 'installed-launch'
