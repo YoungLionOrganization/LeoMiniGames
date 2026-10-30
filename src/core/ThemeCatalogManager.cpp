@@ -266,7 +266,7 @@ void ThemeCatalogManager::refresh()
         return;
     setError(QString{});
     const QUrl catalogUrl(apiBaseUrl() + QStringLiteral("/themes?limit=100"));
-    if (!catalogUrl.isValid() || catalogUrl.scheme() != QStringLiteral("https") || catalogUrl.host().isEmpty()) {
+    if (!catalogUrl.userInfo().isEmpty() || !catalogUrl.isValid() || catalogUrl.scheme() != QStringLiteral("https") || catalogUrl.host().isEmpty()) {
         setError(QStringLiteral("Theme catalog requires a valid HTTPS API base URL."));
         return;
     }
@@ -398,8 +398,9 @@ void ThemeCatalogManager::requestDownloadTicket(int row)
     const QString endpoint = m_entries.at(row).downloadEndpoint.isEmpty()
         ? QStringLiteral("/api/v1/themes/%1/download").arg(entryId)
         : m_entries.at(row).downloadEndpoint;
-    const QUrl baseUrl(apiBaseUrl());
-    const QUrl url = resolveEndpoint(apiBaseUrl(), endpoint);
+    const QString ticketOrigin = apiBaseUrl();
+    const QUrl baseUrl(ticketOrigin);
+    const QUrl url = resolveEndpoint(ticketOrigin, endpoint);
     if (!url.userInfo().isEmpty() || !url.isValid() || url.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0 || url.host().isEmpty() ||
         url.scheme().compare(baseUrl.scheme(), Qt::CaseInsensitive) != 0 ||
         url.host().compare(baseUrl.host(), Qt::CaseInsensitive) != 0 || url.port(-1) != baseUrl.port(-1)) {
@@ -412,11 +413,15 @@ void ThemeCatalogManager::requestDownloadTicket(int row)
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::SameOriginRedirectPolicy);
     QNetworkReply *reply = m_impl->network->get(request);
     NetworkSafety::boundJsonReply(reply, kMaxThemeJsonBytes);
-    connect(reply, &QNetworkReply::finished, this, [this, reply, entryId] {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, entryId, ticketOrigin] {
         std::unique_ptr<QNetworkReply, void(*)(QNetworkReply*)> guard(reply, [](QNetworkReply *r) { r->deleteLater(); });
         const int currentRow = indexOf(entryId);
         if (currentRow < 0) {
             m_impl->activeOperations.remove(entryId);
+            return;
+        }
+        if (apiBaseUrl() != ticketOrigin) {
+            failEntry(currentRow, tr("Catalog origin changed; refresh again."));
             return;
         }
         if (reply->error() != QNetworkReply::NoError) {
@@ -452,6 +457,11 @@ void ThemeCatalogManager::startDownload(int row, const QUrl &url, const QString 
 {
     if (row < 0 || row >= m_entries.size() || !m_paths || !m_themes)
         return;
+    if (!url.userInfo().isEmpty() || !url.isValid() ||
+        url.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0 || url.host().isEmpty()) {
+        failEntry(row, QStringLiteral("Theme downloads require a valid HTTPS URL without embedded credentials."));
+        return;
+    }
     Entry &entry = m_entries[row];
     auto job = std::make_shared<Impl::DownloadJob>();
     job->row = row;

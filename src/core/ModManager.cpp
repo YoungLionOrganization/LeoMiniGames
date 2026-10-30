@@ -515,9 +515,10 @@ void ModManager::requestDownloadTicket(int row)
         ? QStringLiteral("/api/v1/mods/%1/download").arg(entry.id)
         : entry.downloadEndpoint;
 
-    const QUrl baseUrl(apiBaseUrl());
-    const QUrl ticketUrl = resolveEndpoint(apiBaseUrl(), endpoint);
-    if (!ticketUrl.isValid() || ticketUrl.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0 ||
+    const QString ticketOrigin = apiBaseUrl();
+    const QUrl baseUrl(ticketOrigin);
+    const QUrl ticketUrl = resolveEndpoint(ticketOrigin, endpoint);
+    if (!ticketUrl.userInfo().isEmpty() || !ticketUrl.isValid() || ticketUrl.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) != 0 ||
         ticketUrl.host().isEmpty() || ticketUrl.scheme().compare(baseUrl.scheme(), Qt::CaseInsensitive) != 0 ||
         ticketUrl.host().compare(baseUrl.host(), Qt::CaseInsensitive) != 0 || ticketUrl.port(-1) != baseUrl.port(-1)) {
         failEntry(row, QStringLiteral("Download ticket endpoint must remain on the configured catalog origin."));
@@ -530,7 +531,7 @@ void ModManager::requestDownloadTicket(int row)
     QNetworkReply *reply = m_impl->network->get(request);
     NetworkSafety::boundJsonReply(reply, kMaxJsonResponseBytes);
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply, row] {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, row, ticketOrigin] {
         const QByteArray payload = reply->readAll();
         if (payload.size() > 512 * 1024) { reply->deleteLater(); failEntry(row, QStringLiteral("Download ticket response is too large.")); return; }
         const auto error = reply->error();
@@ -539,6 +540,10 @@ void ModManager::requestDownloadTicket(int row)
 
         if (row < 0 || row >= m_entries.size())
             return;
+        if (apiBaseUrl() != ticketOrigin) {
+            failEntry(row, tr("Catalog origin changed; refresh again."));
+            return;
+        }
         if (error != QNetworkReply::NoError) {
             QString serverMessage;
             QJsonParseError serverParseError;
@@ -556,8 +561,10 @@ void ModManager::requestDownloadTicket(int row)
         const QJsonDocument document = QJsonDocument::fromJson(payload, &parseError);
         const QJsonObject data = document.object().value(QStringLiteral("data")).toObject();
         const QUrl url(data.value(QStringLiteral("url")).toString());
-        const QString sha = data.value(QStringLiteral("sha256")).toString(m_entries[row].sha256).toLower();
-        const qint64 size = data.value(QStringLiteral("size_bytes")).toVariant().toLongLong();
+        const QString sha = data.contains(QStringLiteral("sha256"))
+            ? data.value(QStringLiteral("sha256")).toString().toLower() : m_entries[row].sha256;
+        const qint64 size = data.contains(QStringLiteral("size_bytes"))
+            ? data.value(QStringLiteral("size_bytes")).toVariant().toLongLong() : m_entries[row].sizeBytes;
 
         if (parseError.error != QJsonParseError::NoError || !url.isValid() ||
             !QRegularExpression(QStringLiteral("^[a-f0-9]{64}$")).match(sha).hasMatch()) {
@@ -565,7 +572,13 @@ void ModManager::requestDownloadTicket(int row)
             return;
         }
 
-        startPackageDownload(row, url, sha, size > 0 ? size : m_entries[row].sizeBytes);
+        // Older providers may omit these fields. Supplied metadata can locate
+        // the reviewed package but cannot redefine its catalog identity.
+        if (sha != m_entries[row].sha256 || size != m_entries[row].sizeBytes) {
+            failEntry(row, QStringLiteral("Download ticket metadata does not match the catalog."));
+            return;
+        }
+        startPackageDownload(row, url, m_entries[row].sha256, m_entries[row].sizeBytes);
     });
 }
 

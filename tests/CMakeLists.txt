@@ -39,6 +39,19 @@ target_link_libraries(test_update_navigation PRIVATE lmg_core)
 add_test(NAME update_navigation COMMAND test_update_navigation)
 set_tests_properties(update_navigation PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
+add_executable(test_update_reentrancy test_update_reentrancy.cpp)
+target_link_libraries(test_update_reentrancy PRIVATE lmg_core)
+add_test(NAME update_reentrancy COMMAND test_update_reentrancy)
+
+add_executable(test_input_reentrancy test_input_reentrancy.cpp)
+target_link_libraries(test_input_reentrancy PRIVATE lmg_core)
+add_test(NAME input_reentrancy COMMAND test_input_reentrancy)
+set_tests_properties(input_reentrancy PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
+add_executable(test_catalog_tickets test_catalog_tickets.cpp)
+target_link_libraries(test_catalog_tickets PRIVATE lmg_core)
+add_test(NAME catalog_tickets COMMAND test_catalog_tickets)
+
 add_executable(test_publisher_trust_resolver
     test_publisher_trust_resolver.cpp
     ${CMAKE_SOURCE_DIR}/src/core/PublisherTrustResolver.cpp

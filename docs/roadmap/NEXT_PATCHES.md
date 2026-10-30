@@ -23,7 +23,21 @@ The public mods/themes services returned 200 and schema health reported ready du
 
 v0.7.4 must not turn a package-format experiment into a forced migration for existing games. Save Transfer remains a separately planned feature for the v0.8 line unless its scope is explicitly changed.
 
+### Prepared reliability changes
+
+The separate development branch now contains an update-request generation guard and a pending-QA helper. Neither changes the v0.7.3 package candidate.
+
+- An update-state observer can synchronously clear the request, select another channel or start a replacement check. Retired requests must not create a second network reply afterward. Observer-driven service deletion must also stop the original method safely.
+- The new regression reproduces a duplicate request against the previous implementation and passes against the prepared fix with the existing local Qt 6.11.1 kit. Full GitHub platform validation is still required before merging.
+- Input callbacks receive matching action/value transitions: retired presses, releases, reset batches and physical-key mappings cannot overwrite replacement input or focus. The regression fails against the old implementation and passes 12 checks with the existing local Qt 6.11.1 kit.
+- `prepare_platform_qa.py` binds pending rows to the candidate manifest and clears all test claims. It validates names, sizes and hashes without downloading the package payloads. Real platform evidence remains required.
+- QA package names follow the canonical release version, and manifest version checks reject an otherwise matching report from another release.
+- Update guidance no longer labels every installation without a Maintenance Tool as portable. Linux native packages, Flatpak and mobile packages retain their installation-format choices.
+- Mod download tickets cannot replace the catalog's digest or package length. Older providers that omit these fields continue to use the catalog identity. Pending mod/theme tickets stop when the configured catalog changes, and catalog/download URLs reject embedded credentials. The regression reproduces the previous digest mismatch and passes 22 local assertions; existing catalog operations and theme-package identity tests also pass.
+
 ## YLSpec / YLPlugin / YLPkg boundaries
+
+The later pixel-format discussions are tracked separately in [Pixel asset format groundwork](PIXEL_FORMATS.md). `.ylpix` and `.ylpxm` describe visual assets and must not be conflated with plugin execution or installation permissions.
 
 The maintainer's later design separates three responsibilities:
 

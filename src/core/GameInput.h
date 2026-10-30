@@ -31,7 +31,11 @@ signals:
     void actionReleased(const QString &action);
     void actionValueChanged(const QString &action, qreal value);
 private:
+    bool ownsNotification(const QString &action, quint64 serial) const;
     QHash<QString, qreal> m_values;
     QHash<quint64, QString> m_physicalKeys;
+    QHash<QString, quint64> m_pendingNotifications;
+    quint64 m_notificationSerial = 0;
+    quint64 m_resetGeneration = 0;
     QPointer<QObject> m_focusRoot;
 };

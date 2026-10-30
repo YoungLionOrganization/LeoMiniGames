@@ -45,12 +45,21 @@ Wait until the whole workflow is green. In addition to per-platform artifacts it
 
 - `release-assets`
 - `update-repositories`
+- `release-manifest` (a small internal JSON file with the candidate SHA, package sizes and SHA-256 values)
 
 `release-assets` is the only artifact set used for public GitHub Release upload. The current allowlist expects 39 public files, including Arch, Debian, Fedora, Flatpak and Linux user installers. Files such as `*.aab`, `*.sha256`, `*-unsigned.zip`, `*-Legal.zip`, `Updates.xml` and repository metadata are intentionally not public Release assets.
 
 ## Candidate platform QA (required before publishing)
 
 Record actual clean-system/device results for the 25 targets using `release/platform-qa.template.json`, exact candidate source SHA and tested artifact digests. Run **Record candidate platform QA** with candidate_sha/report_json; preserve its successful run ID. The template starts failed and must not be relabeled passing without tests. Android upgrade/signing/TLS/audio, Windows servicing and macOS Gatekeeper evidence are separate from CTest.
+
+Download only the `release-manifest` artifact to prepare a pending report without downloading the complete package set:
+
+```sh
+python tools/release/prepare_platform_qa.py _release-manifest.json --build-run RUN_ID --output platform-qa.pending.json
+```
+
+Use the successful build's actual numeric run ID. The tool checks the exact public asset names, sizes, digests and source SHA. It fills candidate hashes and clears all test results; it cannot create a passing QA report. Existing output files are never overwritten. Review the environment and source-bound evidence for each target before entering its real results. Apple mobile developer outputs require their separate artifact digests because they are outside the public manifest.
 
 In Publish Release provide qa_run_id (the run containing platform-qa) and, when selecting a particular successful artifact build, build_run_id. Publishing compares QA artifact names/digests to the candidate manifest before the draft/tag stage. Docs/operator-only commit reuse is controlled by the workflow; source changes require a fresh candidate build and matching QA.
 
@@ -160,9 +169,9 @@ $bytes = [IO.File]::ReadAllBytes("C:\path\to\your-upload-key.jks")
 
 Retain the correct signing/upload key for application update continuity. If Google Play App Signing is enabled, CI normally uses the registered upload key rather than Google's protected app-signing key.
 
-## Current v0.7.3 state
+## Historical publication failure
 
-At candidate `a020647bfd7dacb49727b4683bede6807eec7d67`, CI and Build Release Artifacts succeeded, with 27 public assets validated. [Publish Release run 36470448493](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/36470448493) failed during `Prepare draft and upload exact asset set`: `cat: release/notes/v0.7.3.md: No such file or directory`. No public v0.7.3 release was created.
+The earlier candidate `a020647bfd7dacb49727b4683bede6807eec7d67` used a historical 27-file contract. [Publish Release run 36470448493](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/36470448493) failed during `Prepare draft and upload exact asset set`: `cat: release/notes/v0.7.3.md: No such file or directory`. That failed run did not create a public v0.7.3 release. It does not describe the current 39-file asset contract or current candidate test results.
 
 The notes file is now present, and preflight checks it before the publisher can delete a stale draft. A new source commit requires successful CI and **Build Release Artifacts** on the new exact SHA, followed by `mode=validate` and `mode=publish`. Do not select the old build run ID.
 
