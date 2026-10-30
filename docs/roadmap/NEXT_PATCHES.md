@@ -33,6 +33,7 @@ The separate development branch now contains an update-request generation guard 
 - `prepare_platform_qa.py` binds pending rows to the candidate manifest and clears all test claims. It validates names, sizes and hashes without downloading the package payloads. Real platform evidence remains required.
 - QA package names follow the canonical release version, and manifest version checks reject an otherwise matching report from another release.
 - Update guidance no longer labels every installation without a Maintenance Tool as portable. Linux native packages, Flatpak and mobile packages retain their installation-format choices.
+- Mod download tickets cannot replace the catalog's digest or package length. Older providers that omit these fields continue to use the catalog identity. Pending mod/theme tickets stop when the configured catalog changes, and catalog/download URLs reject embedded credentials. The regression reproduces the previous digest mismatch and passes 22 local assertions; existing catalog operations and theme-package identity tests also pass.
 
 ## YLSpec / YLPlugin / YLPkg boundaries
 
