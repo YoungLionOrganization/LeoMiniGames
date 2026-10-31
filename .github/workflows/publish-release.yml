@@ -17,7 +17,7 @@ on:
         default: ""
         type: string
       qa_run_id:
-        description: "Run containing platform-qa artifact (platform-qa.json); required for publishing."
+        description: "Optional additional manual platform-qa run. Without it, publish using verified GitHub test evidence and disclose device-test limits."
         required: false
         default: ""
         type: string
@@ -278,6 +278,82 @@ jobs:
           python3 tools/release/validate_release_assets.py _release-assets --manifest _release-manifest.json --source-sha "${{ steps.candidate.outputs.target_sha }}"
           python3 tools/release/validate_update_repositories.py _update-repositories
 
+      - name: Download exact-build automated package evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN_ID: ${{ steps.candidate.outputs.build_run_id }}
+        run: |
+          set -euo pipefail
+          for name in windows-x86_64-servicing-evidence windows-x86_64-avx2-servicing-evidence windows-arm64-servicing-evidence macos-arm64-package-evidence macos-x86_64-package-evidence macos-universal-package-evidence; do
+            gh run download "$BUILD_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$name" --dir "_automated-qa/$name"
+          done
+
+      - name: Verify automated evidence and document test limits
+        env:
+          TARGET_SHA: ${{ steps.candidate.outputs.target_sha }}
+          BUILD_RUN_ID: ${{ steps.candidate.outputs.build_run_id }}
+        run: &verify_automated_evidence |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          manifest = json.loads(Path('_release-manifest.json').read_text(encoding='utf-8'))
+          if manifest.get('source_sha') != os.environ['TARGET_SHA']:
+              raise SystemExit('automated evidence manifest source mismatch')
+          version = manifest['version']
+          run_url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['BUILD_RUN_ID']}"
+          targets = [
+              ('Windows-x86_64', 'windows-x86_64-servicing-evidence', 'servicing.json'),
+              ('Windows-x86_64-AVX2', 'windows-x86_64-avx2-servicing-evidence', 'servicing.json'),
+              ('Windows-ARM64', 'windows-arm64-servicing-evidence', 'servicing.json'),
+              ('macOS-arm64', 'macos-arm64-package-evidence', 'package-checks.json'),
+              ('macOS-x86_64', 'macos-x86_64-package-evidence', 'package-checks.json'),
+              ('macOS-universal', 'macos-universal-package-evidence', 'package-checks.json'),
+          ]
+          rows = []
+          for target, artifact, filename in targets:
+              report = json.loads((Path('_automated-qa')/artifact/filename).read_text(encoding='utf-8-sig'))
+              if (report.get('source_sha') != os.environ['TARGET_SHA'] or report.get('version') != version
+                  or report.get('target') != target or report.get('evidence') != run_url):
+                  raise SystemExit(f'{target}: automated evidence provenance mismatch')
+              windows = target.startswith('Windows-')
+              fields = ('portable_launch', 'fresh_install_launch_uninstall', 'installer_upgrade_modify_uninstall', 'user_data_preserved') if windows else ('zip_launch', 'dmg_launch', 'gatekeeper_assessed')
+              if not all(report.get(field) is True for field in fields):
+                  raise SystemExit(f'{target}: automated package checks incomplete')
+              prefix = f'LeoMiniGames-v{version}-{target}'
+              expected = {prefix+'.zip', prefix+('-Setup.exe' if windows else '.dmg')}
+              tested = report.get('tested_artifacts', {})
+              if set(tested) != expected or any(manifest['assets'].get(name, {}).get('sha256') != digest for name, digest in tested.items()):
+                  raise SystemExit(f'{target}: automated package hashes differ from candidate')
+              environment = report.get('environment', '')
+              if not environment or not report.get('tester') or not report.get('tested_at'):
+                  raise SystemExit(f'{target}: test environment record missing')
+              result = 'ZIP/Setup launch, fixture upgrade, modify, uninstall and data preservation passed'
+              if not windows:
+                  status = report.get('gatekeeper_exit_code')
+                  if type(status) is not int or status not in (0, 3):
+                      raise SystemExit(f'{target}: unexpected Gatekeeper assessment')
+                  result = f'ZIP/DMG launch and signature checks passed; Gatekeeper status {status}'
+              rows.append(f'| {target} | {environment.replace(chr(124), chr(47))} | {result} |')
+          summary = [
+              '## Validation and device-test limits', '',
+              f'Exact-source CI and the [release artifact build]({run_url}) passed for `{manifest["source_sha"]}`. All {len(manifest["assets"])} public asset names, contents and SHA-256 values were validated.', '',
+              '| Target | GitHub runner environment | Automated package checks |', '| --- | --- | --- |', *rows, '',
+              '- Linux Ubuntu portable installers, AppImages/tarballs, Debian/Fedora/Arch packages and both Flatpak architectures passed automated install/reinstall/uninstall and builtin-game launch checks on GitHub runners or containers.',
+              '- Android x86, x86_64 and universal APKs were installed/launched on emulators with a certificate-validated HTTPS catalog probe. ARM64/ARMv7 packages were built and inspected; physical ARM device behavior was not tested.',
+              '- macOS apps are ad-hoc signed, without Developer ID signing or notarization. Gatekeeper can reject these downloads. The universal bundle was launched only on its runner architecture; both slices were not independently launched by that job.',
+              '- iOS/iPadOS unsigned developer bundles were compiled only. They are excluded from public release assets and were not tested on signed physical devices.',
+              '- Physical-device touch/haptics, interactive sound output and credential-store persistence have not been qualified by these automated checks. No completed manual 25-target QA report is claimed.',
+          ]
+          Path('_validation-summary.md').write_text('\n'.join(summary)+'\n', encoding='utf-8')
+          PY
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: validated-automated-evidence
+          path: _automated-qa/
+          if-no-files-found: error
+          retention-days: 1
+
       - uses: actions/upload-artifact@v7
         with:
           name: validated-release-assets
@@ -321,6 +397,11 @@ jobs:
         with:
           name: validated-update-repositories
           path: _update-repositories
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: validated-automated-evidence
+          path: _automated-qa
 
       - name: Re-run destructive-operation guards
         env:
@@ -372,13 +453,24 @@ jobs:
       - name: Verify candidate update repositories
         run: python3 tools/release/validate_update_repositories.py _update-repositories
 
-      - name: Verify candidate clean-platform QA
+      - name: Re-verify automated evidence and device-test disclosures
+        env:
+          TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
+          BUILD_RUN_ID: ${{ needs.preflight.outputs.build_run_id }}
+        run: *verify_automated_evidence
+
+      - name: Verify optional manual platform QA
         env:
           GH_TOKEN: ${{ github.token }}
           QA_RUN_ID: ${{ inputs.qa_run_id }}
           TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
         run: |
-          [[ "$QA_RUN_ID" =~ ^[0-9]+$ ]] || { echo "Publishing requires a platform QA evidence run." >&2; exit 1; }
+          set -euo pipefail
+          if [[ -z "$QA_RUN_ID" ]]; then
+            echo 'Publishing from verified GitHub evidence; physical device-test limits are included in the release description.'
+            exit 0
+          fi
+          [[ "$QA_RUN_ID" =~ ^[0-9]+$ ]] || { echo 'Optional manual QA run ID must be numeric.' >&2; exit 1; }
           gh run download "$QA_RUN_ID" --repo "$GITHUB_REPOSITORY" --name platform-qa --dir _platform-qa
           python3 tools/validate_platform_qa.py _platform-qa/platform-qa.json --sha "$TARGET_SHA" --manifest _release-manifest.json
 
@@ -408,7 +500,10 @@ jobs:
           if manifest.get('source_sha') != os.environ['TARGET_SHA']:
               raise SystemExit('release-note checksum source differs from candidate')
           checksums = '\n'.join(f"{record['sha256']}  {name}" for name, record in sorted(manifest['assets'].items()))
-          print(notes + '\n\n## SHA-256\n\nSource: `' + manifest['source_sha'] + '`\n\n```text\n' + checksums + '\n```\n')
+          validation = Path('_validation-summary.md').read_text(encoding='utf-8').strip()
+          if not validation or '## Validation and device-test limits' not in validation:
+              raise SystemExit('release validation disclosures missing')
+          print(notes + '\n\n' + validation + '\n\n## SHA-256\n\nSource: `' + manifest['source_sha'] + '`\n\n```text\n' + checksums + '\n```\n')
           PY
           )"
 
