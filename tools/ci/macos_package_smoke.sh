@@ -20,6 +20,9 @@ cleanup() {
 trap cleanup EXIT
 launch() {
   local app="$1" name="$2"
+  codesign --verify --deep --strict --verbose=2 "$app" > "$OUT/$name-signature.log" 2>&1 || {
+    cat "$OUT/$name-signature.log" >&2; return 1;
+  }
   [[ -f "$app/Contents/Resources/Documentation/INSTALLATION.md" ]] || {
     echo 'Packaged installation guide missing.' >&2; return 1;
   }

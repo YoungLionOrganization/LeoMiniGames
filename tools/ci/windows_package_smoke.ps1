@@ -1,5 +1,6 @@
 param(
   [Parameter(Mandatory=$true)][string]$Suffix,
+  [Parameter(Mandatory=$true)][string]$InstallerSourceDir,
   [string]$DistDir = 'dist/windows',
   [string]$OutDir = 'windows-package-smoke'
 )
@@ -17,7 +18,7 @@ $Setup = Join-Path $Dist "LeoMiniGames-v$Version-Windows-$Suffix-Setup.exe"
 $Repository = ([uri](Join-Path $Dist "update-repository/$Suffix")).AbsoluteUri
 $Cache = Join-Path $Work 'repository-cache'
 
-function Invoke-Checked([string]$Exe, [string[]]$Arguments, [string]$Name) {
+function Invoke-Checked([string]$Exe, [string[]]$Arguments, [string]$Name, [int[]]$AllowedExitCodes = @(0)) {
   $Info = [System.Diagnostics.ProcessStartInfo]::new()
   $Info.FileName = $Exe
   $Info.UseShellExecute = $false
@@ -37,7 +38,7 @@ function Invoke-Checked([string]$Exe, [string[]]$Arguments, [string]$Name) {
   if ($TimedOut) { $Process.Kill($true); $Process.WaitForExit() }
   $Text = $Stdout.GetAwaiter().GetResult() + $Stderr.GetAwaiter().GetResult()
   [IO.File]::WriteAllText((Join-Path $Output "$Name.log"), $Text)
-  if ($TimedOut -or $Process.ExitCode -ne 0) {
+  if ($TimedOut -or $Process.ExitCode -notin $AllowedExitCodes) {
     Write-Host $Text
     throw "$Name failed (timeout=$TimedOut, exit=$($Process.ExitCode))"
   }
@@ -74,7 +75,7 @@ if (!$Text.Contains('PASS: six builtin QML sessions opened and closed')) { throw
 # The older fixture uses this candidate's binary with previous package metadata.
 # It tests QtIFW upgrade operations; it is not a v0.7.2 gameplay/device claim.
 $Fixture = Join-Path $Work 'older-fixture'
-Copy-Item -LiteralPath (Join-Path $Dist 'installer-src') -Destination $Fixture -Recurse
+Copy-Item -LiteralPath $InstallerSourceDir -Destination $Fixture -Recurse
 foreach ($Xml in @('config/config.xml','packages/xyz.younglion.leominigames/meta/package.xml')) {
   $Path = Join-Path $Fixture $Xml
   $Text = [IO.File]::ReadAllText($Path).Replace("<Version>$Version</Version>", '<Version>0.7.2</Version>')
@@ -84,11 +85,19 @@ $Older = Join-Path $Work 'older-setup.exe'
 $null = Invoke-Checked (Join-Path $env:QT_IFW_BIN 'binarycreator.exe') @('--offline-only','-c',"$Fixture/config/config.xml",'-p',"$Fixture/packages",$Older) 'fixture-create'
 $Options = @('--default-answer','--accept-licenses','--confirm-command','--cache-path',$Cache,'--set-temp-repository',$Repository)
 $null = Invoke-Checked $Older ($Options + @('--root',$Prefix,'install')) 'older-install'
+foreach ($Key in @('HKLM:\Software\YoungLion\LeoMiniGames','HKCU:\Software\YoungLion\LeoMiniGames')) {
+  if ((Get-ItemProperty -LiteralPath $Key -Name Version).Version -ne '0.7.2') { throw 'Older fixture registration has the wrong version' }
+}
 $Maintenance = Join-Path $Prefix 'LeoMiniGamesMaintenance.exe'
 if (!(Test-Path -LiteralPath $Maintenance)) { throw 'Maintenance Tool was not installed' }
-$null = Invoke-Checked $Maintenance ($Options + @('update')) 'candidate-upgrade'
+# QtIFW returns EssentialUpdated (6) after successfully updating our essential
+# app component. The next invocation restarts the tool and checks its version.
+$null = Invoke-Checked $Maintenance ($Options + @('update')) 'candidate-upgrade' @(0,6)
 $Text = Invoke-Checked $Maintenance @('list') 'installed-components'
 if (!$Text.Contains($Version)) { throw 'Candidate version missing after upgrade' }
+foreach ($Key in @('HKLM:\Software\YoungLion\LeoMiniGames','HKCU:\Software\YoungLion\LeoMiniGames')) {
+  if ((Get-ItemProperty -LiteralPath $Key -Name Version).Version -ne $Version) { throw 'Upgrade left stale registered version metadata' }
+}
 $Text = Invoke-Checked (Join-Path $Prefix 'LeoMiniGames.exe') @('--smoke-test') 'installed-launch'
 if (!$Text.Contains('PASS: six builtin QML sessions opened and closed')) { throw 'Installed launch evidence missing' }
 

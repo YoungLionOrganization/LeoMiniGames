@@ -80,7 +80,9 @@ jobs:
       - uses: actions/checkout@v7
       - name: Test MSVC runtime discovery
         shell: pwsh
-        run: ./tests/test_msvc_runtime.ps1
+        run: |
+          ./tests/test_msvc_runtime.ps1
+          ./tests/test_windows_package_process.ps1
       - uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
         with:
           version: ${{ env.QT_CI_VERSION }}
@@ -101,10 +103,10 @@ jobs:
           LMG_PLATFORM_SUFFIX: x86_64
           LMG_WINDOWS_ARCH: x86_64
           LMG_WINDOWS_CPU_PROFILE: baseline
-        run: ./tools/package/package_windows.ps1 -BuildDir build
+        run: ./tools/package/package_windows.ps1 -BuildDir build -InstallerSourceDir "$env:RUNNER_TEMP/lmg-ifw-source"
       - name: Test deployed Windows packages and Maintenance Tool
         shell: pwsh
-        run: ./tools/ci/windows_package_smoke.ps1 -Suffix x86_64
+        run: ./tools/ci/windows_package_smoke.ps1 -Suffix x86_64 -InstallerSourceDir "$env:RUNNER_TEMP/lmg-ifw-source"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -124,7 +126,9 @@ jobs:
       - uses: actions/checkout@v7
       - name: Test MSVC runtime discovery
         shell: pwsh
-        run: ./tests/test_msvc_runtime.ps1
+        run: |
+          ./tests/test_msvc_runtime.ps1
+          ./tests/test_windows_package_process.ps1
       - uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
         with:
           version: ${{ env.QT_CI_VERSION }}
@@ -147,10 +151,10 @@ jobs:
           LMG_PLATFORM_SUFFIX: x86_64-AVX2
           LMG_WINDOWS_ARCH: x86_64
           LMG_WINDOWS_CPU_PROFILE: avx2
-        run: ./tools/package/package_windows.ps1 -BuildDir build
+        run: ./tools/package/package_windows.ps1 -BuildDir build -InstallerSourceDir "$env:RUNNER_TEMP/lmg-ifw-source"
       - name: Test deployed AVX2 packages and Maintenance Tool
         shell: pwsh
-        run: ./tools/ci/windows_package_smoke.ps1 -Suffix x86_64-AVX2
+        run: ./tools/ci/windows_package_smoke.ps1 -Suffix x86_64-AVX2 -InstallerSourceDir "$env:RUNNER_TEMP/lmg-ifw-source"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -170,7 +174,9 @@ jobs:
       - uses: actions/checkout@v7
       - name: Test MSVC runtime discovery
         shell: pwsh
-        run: ./tests/test_msvc_runtime.ps1
+        run: |
+          ./tests/test_msvc_runtime.ps1
+          ./tests/test_windows_package_process.ps1
       - uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
         with:
           version: ${{ env.QT_CI_VERSION }}
@@ -191,10 +197,10 @@ jobs:
           LMG_PLATFORM_SUFFIX: ARM64
           LMG_WINDOWS_ARCH: arm64
           LMG_WINDOWS_CPU_PROFILE: baseline
-        run: ./tools/package/package_windows.ps1 -BuildDir build
+        run: ./tools/package/package_windows.ps1 -BuildDir build -InstallerSourceDir "$env:RUNNER_TEMP/lmg-ifw-source"
       - name: Test deployed ARM64 packages and Maintenance Tool
         shell: pwsh
-        run: ./tools/ci/windows_package_smoke.ps1 -Suffix ARM64
+        run: ./tools/ci/windows_package_smoke.ps1 -Suffix ARM64 -InstallerSourceDir "$env:RUNNER_TEMP/lmg-ifw-source"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -622,6 +628,11 @@ jobs:
             --public-output _release-assets \
             --update-output _update-repositories
           python3 tools/release/validate_release_assets.py _release-assets --manifest _release-manifest.json --source-sha "$GITHUB_SHA"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-manifest
+          path: _release-manifest.json
+          if-no-files-found: error
       - uses: actions/upload-artifact@v7
         with:
           name: release-assets

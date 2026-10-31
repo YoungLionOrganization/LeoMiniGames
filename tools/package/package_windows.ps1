@@ -2,7 +2,8 @@ param(
   [Parameter(Mandatory=$true)][string]$BuildDir,
   [string]$QtBin = $env:QT_BIN,
   [string]$IfwBin = $env:QT_IFW_BIN,
-  [string]$Version = $env:LMG_VERSION
+  [string]$Version = $env:LMG_VERSION,
+  [string]$InstallerSourceDir
 )
 $ErrorActionPreference = 'Stop'
 if ([string]::IsNullOrWhiteSpace($Version)) { $Version = '0.7.3' }
@@ -161,7 +162,22 @@ $Setup = Join-Path $Dist "LeoMiniGames-v$Version-Windows-$Suffix-Setup.exe"
 & $Creator --hybrid -c $ConfigPath -p $PackagesDir --include xyz.younglion.leominigames $Setup
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $Setup)) { throw 'QtIFW hybrid installer build failed.' }
 
-Remove-Item $IfwWork -Recurse -Force -ErrorAction SilentlyContinue
+if ($InstallerSourceDir) {
+  # Keep the exact rendered installer inputs outside public artifacts for CI servicing.
+  $SourcePath = [IO.Path]::GetFullPath($IfwWork)
+  $DestinationPath = [IO.Path]::GetFullPath($InstallerSourceDir)
+  $WorkspacePath = [IO.Path]::GetFullPath($Root).TrimEnd('\','/') + [IO.Path]::DirectorySeparatorChar
+  if (!$env:RUNNER_TEMP) { throw 'Installer source retention requires RUNNER_TEMP.' }
+  $RunnerPath = [IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd('\','/') + [IO.Path]::DirectorySeparatorChar
+  if (!$SourcePath.StartsWith($WorkspacePath, [StringComparison]::OrdinalIgnoreCase) -or
+      !$DestinationPath.StartsWith($RunnerPath, [StringComparison]::OrdinalIgnoreCase) -or
+      (Test-Path -LiteralPath $DestinationPath)) {
+    throw 'Installer sources must move to a new directory inside RUNNER_TEMP.'
+  }
+  Move-Item -LiteralPath $SourcePath -Destination $DestinationPath
+} else {
+  Remove-Item $IfwWork -Recurse -Force -ErrorAction SilentlyContinue
+}
 Write-Host "Portable: $Portable"
 Write-Host "Installer: $Setup"
 Write-Host "Update repository: $UpdateRepository"
