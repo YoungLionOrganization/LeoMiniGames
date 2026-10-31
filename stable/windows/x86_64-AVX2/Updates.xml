@@ -6,21 +6,21 @@
   <Name>xyz.younglion.leominigames</Name>
   <DisplayName>LeoMiniGames Application</DisplayName>
   <Description>LeoMiniGames game platform, runtime, bundled games and Maintenance Tool integration.</Description>
-  <Version>0.7.3</Version>
+  <Version>0.7.4</Version>
   <ReleaseDate>2026-10-31</ReleaseDate>
   <Default>true</Default>
   <ForcedInstallation>true</ForcedInstallation>
   <Essential>true</Essential>
   <UpdateText>Updates LeoMiniGames while preserving installed content and user data.</UpdateText>
   <Script>installscript.qs</Script>
-  <UpdateFile CompressedSize="34574277" OS="Any" UncompressedSize="130635236"/>
+  <UpdateFile CompressedSize="34580442" OS="Any" UncompressedSize="130642916"/>
   <DownloadableArchives>generic.7z,iconengines.7z,imageformats.7z,Legal.7z,licenses.7z,multimedia.7z,networkinformation.7z,platforms.7z,qml.7z,qmltooling.7z,tls.7z,translations.7z,content.7z</DownloadableArchives>
   <UserInterfaces>existinginstallation.ui,installoptions.ui,installationsummary.ui</UserInterfaces>
   <Licenses>
    <License file="LICENSE.txt" name="LeoMiniGames Source-Available Publisher Ecosystem License 1.0"/>
   </Licenses>
-  <SHA1>8673be72dcd662404246e993ef414a2a05445966</SHA1>
+  <SHA1>978e6ccbf0c6ce8d76ace6db54294dfcfabab5e6</SHA1>
  </PackageUpdate>
- <SHA1>8673be72dcd662404246e993ef414a2a05445966</SHA1>
- <MetadataName>2026-10-31-0532_meta.7z</MetadataName>
+ <SHA1>978e6ccbf0c6ce8d76ace6db54294dfcfabab5e6</SHA1>
+ <MetadataName>2026-10-31-1710_meta.7z</MetadataName>
 </Updates>
