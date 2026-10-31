@@ -492,7 +492,7 @@ jobs:
           # create response gives the immutable numeric release id and upload URL.
           # Read the body before listing/deleting any existing draft releases.
           [[ -s "$NOTES" ]] || { echo "Release notes missing or empty: $NOTES" >&2; exit 24; }
-          body="$(python3 - <<'PY'
+          python3 - <<'PY' > _release-body.md
           import json, os
           from pathlib import Path
           notes = Path(os.environ['NOTES']).read_text(encoding='utf-8').rstrip()
@@ -505,12 +505,11 @@ jobs:
               raise SystemExit('release validation disclosures missing')
           print(notes + '\n\n' + validation + '\n\n## SHA-256\n\nSource: `' + manifest['source_sha'] + '`\n\n```text\n' + checksums + '\n```\n')
           PY
-          )"
-
-          releases_json="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100")"
-          plan="$(RELEASES_JSON="$releases_json" TAG="$TAG" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" > _releases.json
+          plan="$(TAG="$TAG" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'
           import json, os
-          matches = [r for r in json.loads(os.environ['RELEASES_JSON']) if r.get('tag_name') == os.environ['TAG']]
+          from pathlib import Path
+          matches = [r for r in json.loads(Path('_releases.json').read_text(encoding='utf-8')) if r.get('tag_name') == os.environ['TAG']]
           public = [r for r in matches if not r.get('draft')]
           if public:
               raise SystemExit('a non-draft release with this tag already exists')
@@ -542,43 +541,47 @@ jobs:
 
           if [[ -n "$RELEASE_ID" ]]; then
             echo "Recovering existing draft release id=$RELEASE_ID for $TAG"
-            patch_payload="$(TITLE="$TITLE" BODY="$body" PRERELEASE="$PRERELEASE" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'
+            patch_payload="$(python3 - <<'PY'
           import json, os
+          from pathlib import Path
           print(json.dumps({
               'name': os.environ['TITLE'],
-              'body': os.environ['BODY'],
+              'body': Path('_release-body.md').read_text(encoding='utf-8'),
               'target_commitish': os.environ['TARGET_SHA'],
               'draft': True,
               'prerelease': os.environ['PRERELEASE'].lower() == 'true',
           }))
           PY
           )"
-            release_json="$(printf '%s' "$patch_payload" | gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --input -)"
+            printf '%s' "$patch_payload" | gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --input - > _draft-release.json
           else
-            create_payload="$(TAG="$TAG" TITLE="$TITLE" BODY="$body" PRERELEASE="$PRERELEASE" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'
+            create_payload="$(python3 - <<'PY'
           import json, os
+          from pathlib import Path
           print(json.dumps({
               'tag_name': os.environ['TAG'],
               'target_commitish': os.environ['TARGET_SHA'],
               'name': os.environ['TITLE'],
-              'body': os.environ['BODY'],
+              'body': Path('_release-body.md').read_text(encoding='utf-8'),
               'draft': True,
               'prerelease': os.environ['PRERELEASE'].lower() == 'true',
           }))
           PY
           )"
-            release_json="$(printf '%s' "$create_payload" | gh api --method POST "repos/$GITHUB_REPOSITORY/releases" --input -)"
-            RELEASE_ID="$(RELEASE_JSON="$release_json" python3 - <<'PY'
-          import json, os
-          print(json.loads(os.environ['RELEASE_JSON'])['id'])
+            printf '%s' "$create_payload" | gh api --method POST "repos/$GITHUB_REPOSITORY/releases" --input - > _draft-release.json
+            RELEASE_ID="$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          print(json.loads(Path('_draft-release.json').read_text(encoding='utf-8'))['id'])
           PY
           )"
             echo "Created draft release id=$RELEASE_ID directly from REST response."
           fi
 
-          UPLOAD_URL="$(RELEASE_JSON="$release_json" python3 - <<'PY'
-          import json, os
-          print(json.loads(os.environ['RELEASE_JSON'])['upload_url'].split('{', 1)[0])
+          UPLOAD_URL="$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          print(json.loads(Path('_draft-release.json').read_text(encoding='utf-8'))['upload_url'].split('{', 1)[0])
           PY
           )"
           [[ -n "$RELEASE_ID" && "$UPLOAD_URL" == https://uploads.github.com/* ]] || {
@@ -674,7 +677,7 @@ jobs:
           PY
           )"
           set +e
-          published="$(printf '%s' "$publish_payload" | gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --input - 2>"$RUNNER_TEMP/publish-release.err")"
+          printf '%s' "$publish_payload" | gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --input - > _published-release.json 2>"$RUNNER_TEMP/publish-release.err"
           publish_rc=$?
           set -e
           if (( publish_rc != 0 )); then
@@ -694,9 +697,10 @@ jobs:
 
           # Verify the strongly-related PATCH response itself. Do not add an
           # immediate tag/commit lookup here; tag visibility may lag publication.
-          PUBLISHED_JSON="$published" TAG="$TAG" TARGET_SHA="$TARGET_SHA" python3 - <<'PY'
+          python3 - <<'PY'
           import json, os
-          release = json.loads(os.environ['PUBLISHED_JSON'])
+          from pathlib import Path
+          release = json.loads(Path('_published-release.json').read_text(encoding='utf-8'))
           if release.get('draft'):
               raise SystemExit('release is still draft after publish PATCH')
           if release.get('tag_name') != os.environ['TAG']:
