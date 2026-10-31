@@ -73,5 +73,30 @@ int main(int argc, char **argv)
         else updates->checkForUpdates();
         check(!updates && network.requests == 0, "state observer may retire the service before request creation");
     }
+    {
+        FakeNetwork network;
+        settings.setValue("updates/channel", "stable");
+        UpdateService updates(&settings, nullptr, &network);
+        updates.checkForUpdates();
+        QObject::connect(network.last, &QNetworkReply::finished, &app, [&] {
+            updates.setChannel("preview");
+            updates.checkForUpdates();
+        });
+        updates.clearResult();
+        check(network.requests == 2 && updates.checking() && updates.status() == "checking",
+              "abort observers may start a replacement without a stale idle reset");
+        check(QUrlQuery(network.last->request().url()).queryItemValue("channel") == "preview",
+              "abort observer replacement retains its channel");
+    }
+    {
+        FakeNetwork network;
+        QPointer<UpdateService> updates = new UpdateService(&settings, nullptr, &network);
+        updates->checkForUpdates();
+        QObject::connect(network.last, &QNetworkReply::finished, &app, [&] {
+            delete updates.data();
+        });
+        updates->clearResult();
+        check(!updates, "abort observers may delete the service safely");
+    }
     qInfo() << "PASS:" << assertions << "update reentrancy assertions";
 }

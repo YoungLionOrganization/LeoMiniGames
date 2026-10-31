@@ -121,14 +121,12 @@ void UpdateService::setChannel(const QString &channel)
 
 void UpdateService::clearResult()
 {
-    ++m_requestGeneration;
-    if (m_reply) {
-        QNetworkReply *old = m_reply;
-        m_reply = nullptr;
+    const quint64 generation = ++m_requestGeneration;
+    QPointer<UpdateService> guard(this);
+    QPointer<QNetworkReply> old = m_reply;
+    m_reply = nullptr;
+    if (old)
         old->disconnect(this);
-        old->abort();
-        old->deleteLater();
-    }
     m_latestVersion.clear();
     m_releaseName.clear();
     m_releaseNotes.clear();
@@ -139,6 +137,16 @@ void UpdateService::clearResult()
     m_status = QStringLiteral("idle");
     m_checking = false;
     m_updateAvailable = false;
+
+    // Aborting can synchronously notify other reply observers. Retire state
+    // first so their replacement request owns it, including service deletion.
+    if (old) {
+        old->abort();
+        if (old)
+            old->deleteLater();
+    }
+    if (!guard || m_requestGeneration != generation)
+        return;
     emit updateStateChanged();
 }
 

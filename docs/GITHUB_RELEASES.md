@@ -7,7 +7,7 @@ This document describes the release pipeline. Main now prepares v0.7.4; v0.7.3 w
 | Workflow | Trigger | Purpose | Publishes a Release? |
 | --- | --- | --- | --- |
 | `ci.yml` | push / PR / manual | Static validation plus cross-platform compile/test coverage | No |
-| `build-artifacts.yml` | manual | Builds the exact v0.7.3 artifacts, `release-assets` and QtIFW `update-repositories` | No |
+| `build-artifacts.yml` | manual | Builds the canonical version artifacts, `release-assets` and QtIFW `update-repositories` | No |
 | `platform-qa.yml` | manual | Validates/uploads actual candidate device/platform evidence | No |
 | `qt-next.yml` | PR / manual | Qt 6.12 desktop compatibility build and CTest on GitHub | No |
 | `publish-release.yml` | manual | Validates release gates; in publish mode creates and publishes the GitHub Release | Yes, only in `publish` mode |
@@ -39,7 +39,7 @@ Open:
 
 **GitHub → LeoMiniGames → Actions → Build Release Artifacts → Run workflow**
 
-Select branch **main** and run it. v0.7.3's workflow does not ask for a version input; `LMG_VERSION`, CMake and `release/release.json` are checked against one another.
+Select branch **main** and run it. The workflow does not ask for a version input; `LMG_VERSION`, CMake and `release/release.json` are checked against one another.
 
 Wait until the whole workflow is green. In addition to per-platform artifacts it must produce:
 

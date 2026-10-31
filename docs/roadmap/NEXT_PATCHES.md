@@ -2,7 +2,9 @@
 
 Reviewed 30 October 2026 against the current source, the earlier release plans and the maintainer's later YLPlugin/HarmonyOS architecture discussions. These are staged proposals, not features already supported by v0.7.3.
 
-## Complete v0.7.3 first
+## v0.7.3 publication completed
+
+[v0.7.3 was published](https://github.com/YoungLionOrganization/LeoMiniGames/releases/tag/v0.7.3) on 31 October 2026. The following gates passed for its immutable candidate; they must run again for a later patch.
 
 - Exact-source native CI, signed package builds and the strict 39-file public asset validation.
 - Real deployed Linux package and Windows installer servicing evidence; keep incomplete device checks visible.
@@ -29,6 +31,7 @@ The main development tree integrates the following reliability fixes for the nex
 
 - An update-state observer can synchronously clear the request, select another channel or start a replacement check. Retired requests must not create a second network reply afterward. Observer-driven service deletion must also stop the original method safely.
 - The new regression reproduces a duplicate request against the previous implementation and passes against the prepared fix with the existing local Qt 6.11.1 kit. The prepared changes passed full GitHub CI and the separate Qt 6.12 Windows/Linux/macOS lane at `1c803c9`; integration is validated again on main.
+- Reply-abort observers can start a replacement update or delete the service. Resetting state before abort and checking the generation afterward prevents a stale idle reset. The added regression fails before the fix; the expanded update suite passes 11 assertions locally.
 - Input callbacks receive matching action/value transitions: retired presses, releases, reset batches and physical-key mappings cannot overwrite replacement input or focus. The regression fails against the old implementation and passes 12 checks with the existing local Qt 6.11.1 kit.
 - `prepare_platform_qa.py` binds pending rows to the candidate manifest and clears all test claims. It validates names, sizes and hashes without downloading the package payloads. Manual results must still come from real tests.
 - QA package names follow the canonical release version, and manifest version checks reject an otherwise matching report from another release.
