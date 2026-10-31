@@ -10,7 +10,14 @@
 #include <cmath>
 
 GameInput::GameInput(QObject *parent) : QObject(parent) { if (qApp) qApp->installEventFilter(this); }
-void GameInput::setFocusRoot(QObject *root) { reset(); m_focusRoot = root; }
+void GameInput::setFocusRoot(QObject *root)
+{
+    QPointer<GameInput> guard(this);
+    QPointer<QObject> nextRoot(root);
+    const quint64 generation = m_resetGeneration + 1;
+    reset();
+    if (guard && m_resetGeneration == generation) m_focusRoot = nextRoot;
+}
 bool GameInput::eventFilter(QObject *watched, QEvent *event)
 {
     if (event->type() == QEvent::WindowDeactivate || event->type() == QEvent::FocusOut) { reset(); return false; }
@@ -29,6 +36,11 @@ bool GameInput::eventFilter(QObject *watched, QEvent *event)
     return false;
 }
 void GameInput::press(const QString &action) { press(action, 1.0); }
+bool GameInput::ownsNotification(const QString &action, quint64 serial) const
+{
+    const auto pending = m_pendingNotifications.constFind(action);
+    return pending != m_pendingNotifications.cend() && pending.value() == serial;
+}
 void GameInput::press(const QString &action, qreal value)
 {
     if (action.isEmpty()) return;
@@ -36,15 +48,27 @@ void GameInput::press(const QString &action, qreal value)
     value = qBound<qreal>(-1.0, value, 1.0);
     if (m_values.contains(action) && qFuzzyCompare(m_values.value(action) + 1.0, value + 1.0)) return;
     m_values.insert(action, value);
+    // A nested mutation of this action retires its companion notification;
+    // mutations of unrelated actions keep their own notification sequence.
+    const quint64 serial = ++m_notificationSerial;
+    m_pendingNotifications.insert(action, serial);
+    QPointer<GameInput> guard(this);
     emit actionPressed(action, value);
+    if (!guard || !ownsNotification(action, serial)) return;
     emit actionValueChanged(action, value);
+    if (guard && ownsNotification(action, serial)) m_pendingNotifications.remove(action);
 }
 void GameInput::release(const QString &action)
 {
     if (action.isEmpty() || !m_values.contains(action)) return;
     m_values.remove(action);
+    const quint64 serial = ++m_notificationSerial;
+    m_pendingNotifications.insert(action, serial);
+    QPointer<GameInput> guard(this);
     emit actionReleased(action);
+    if (!guard || !ownsNotification(action, serial)) return;
     emit actionValueChanged(action, 0.0);
+    if (guard && ownsNotification(action, serial)) m_pendingNotifications.remove(action);
 }
 void GameInput::setValue(const QString &action, qreal value) { if (qFuzzyIsNull(value)) { release(action); return; } press(action, value); }
 bool GameInput::isPressed(const QString &action) const { return m_values.contains(action) && !qFuzzyIsNull(m_values.value(action)); }
@@ -97,6 +121,8 @@ QString GameInput::actionForKey(int key, quint32 nativeScanCode, const QString &
 
 bool GameInput::handleKey(int key, quint32 nativeScanCode, const QString &text, bool pressed, bool autoRepeat)
 {
+    const quint64 generation = m_resetGeneration;
+    QPointer<GameInput> guard(this);
     const QString action = actionForKey(key, nativeScanCode, text);
     // A native scan identifies the physical key even if its logical Qt key
     // changes while held (for example after switching keyboard layouts).
@@ -111,7 +137,34 @@ bool GameInput::handleKey(int key, quint32 nativeScanCode, const QString &text, 
     const QString previous = m_physicalKeys.value(token);
     m_physicalKeys.insert(token, action);
     if (!previous.isEmpty() && previous != action && !m_physicalKeys.values().contains(previous)) release(previous);
+    if (!guard || m_resetGeneration != generation || m_physicalKeys.value(token) != action) return true;
     press(action);
     return true;
 }
-void GameInput::reset() { m_physicalKeys.clear(); const auto keys = m_values.keys(); m_values.clear(); for (const QString &k : keys) { emit actionReleased(k); emit actionValueChanged(k, 0.0); } }
+void GameInput::reset()
+{
+    ++m_resetGeneration;
+    m_physicalKeys.clear();
+    const auto keys = m_values.keys();
+    m_values.clear();
+    m_pendingNotifications.clear();
+    // Reserve the whole old release batch before calling observers. New presses
+    // replace these tokens and cannot be released by the retired batch.
+    QHash<QString, quint64> retired;
+    for (const QString &key : keys) {
+        const quint64 serial = ++m_notificationSerial;
+        retired.insert(key, serial);
+        m_pendingNotifications.insert(key, serial);
+    }
+    QPointer<GameInput> guard(this);
+    for (const QString &key : keys) {
+        if (!guard) return;
+        const quint64 serial = retired.value(key);
+        if (!ownsNotification(key, serial)) continue;
+        emit actionReleased(key);
+        if (!guard) return;
+        if (!ownsNotification(key, serial)) continue;
+        emit actionValueChanged(key, 0.0);
+        if (guard && ownsNotification(key, serial)) m_pendingNotifications.remove(key);
+    }
+}

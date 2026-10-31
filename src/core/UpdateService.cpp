@@ -14,6 +14,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QPointer>
 #if defined(Q_OS_WIN)
 #include <QProcess>
 #endif
@@ -111,12 +112,16 @@ void UpdateService::setChannel(const QString &channel)
     m_channel = normalized;
     if (m_settings)
         m_settings->setValue(QStringLiteral("updates/channel"), m_channel);
+    QPointer<UpdateService> guard(this);
     clearResult();
+    if (!guard || m_channel != normalized)
+        return;
     emit channelChanged();
 }
 
 void UpdateService::clearResult()
 {
+    ++m_requestGeneration;
     if (m_reply) {
         QNetworkReply *old = m_reply;
         m_reply = nullptr;
@@ -157,12 +162,21 @@ void UpdateService::checkForUpdates()
         return;
     }
 
+    const quint64 generation = m_requestGeneration + 1;
+    QPointer<UpdateService> guard(this);
     clearResult();
+    if (!guard || m_requestGeneration != generation)
+        return;
     m_errorString.clear();
     m_status = QStringLiteral("checking");
     m_checking = true;
     m_updateAvailable = false;
     emit updateStateChanged();
+
+    // State observers can clear, replace or destroy this request synchronously.
+    // Only the generation that announced checking may create its network reply.
+    if (!guard || m_requestGeneration != generation)
+        return;
 
     QUrl endpoint = kUpdateGatewayUrl;
     QUrlQuery query;

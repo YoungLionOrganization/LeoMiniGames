@@ -45,7 +45,7 @@
 
 The source implements atomic save/session/package fixes, all six builtin state snapshots, Android OpenSSL/plugin discovery and package checks, and a shared effect/media audio fallback for modern/legacy APIs. Themes now resolve relative assets and inherit partial surface fields. The updated [SDK](docs/sdk/OVERVIEW.md) includes API 0.7 examples, a minimal distinct theme, a native ABI compile example, a common RCC builder and a header-generated reference checked in CI.
 
-Fresh signed artifacts, upgrade/device tests and the candidate platform acceptance remain release requirements; local/offscreen tests do not prove those results. Source implementation records are in [docs/releases](docs/releases/V073_IMPLEMENTATION.md).
+Publication uses verified GitHub build/package tests and explicitly discloses physical-device coverage gaps. Optional manual QA must match the exact candidate and package digests; local/offscreen tests do not prove physical-device results. Source implementation records are in [docs/releases](docs/releases/V073_IMPLEMENTATION.md).
 
 ## Install and documentation
 

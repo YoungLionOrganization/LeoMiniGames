@@ -5,7 +5,9 @@ import importlib.util
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
+import textwrap
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,6 +35,52 @@ class AndroidLogcatTests(unittest.TestCase):
     def test_native_tombstone_identifies_the_application(self):
         text = '10-02 22:34:13.872 100 100 F DEBUG: pid: 2495, tid: 2496, name: QtThread >>> xyz.younglion.leominigames <<<'
         self.assertTrue(android_logcat.application_crashes(text, ['3000']))
+
+
+@unittest.skipUnless(sys.platform == 'linux', 'Exercises Linux process environment limits')
+class ReleasePublisherTests(unittest.TestCase):
+    def run_release_plan(self, releases):
+        workflow = (ROOT/'.github/workflows/publish-release.yml').read_text(encoding='utf-8')
+        step = workflow.split('      - name: Prepare draft and upload exact asset set\n', 1)[1]
+        script = textwrap.dedent(step.split('        run: |\n', 1)[1].split('\n      - name:', 1)[0])
+        # Run the actual preparation/plan shell, stopping before any mutation.
+        script = script.split('while IFS= read -r stale_id;', 1)[0] + '\nprintf "%s" "$plan"\n'
+        with tempfile.TemporaryDirectory() as folder:
+            tmp = Path(folder)
+            (tmp/'bin').mkdir()
+            gh = tmp/'bin/gh'
+            gh.write_text('''#!/usr/bin/env python3
+import os, sys
+from pathlib import Path
+if sys.argv[1:] != ['api', 'repos/fixture/repo/releases?per_page=100']:
+    raise SystemExit('Unexpected API mutation or request')
+sys.stdout.buffer.write(Path(os.environ['RELEASE_FIXTURE']).read_bytes())
+''', encoding='utf-8')
+            gh.chmod(0o755)
+            fixture = tmp/'releases.json'
+            fixture.write_text(json.dumps(releases), encoding='utf-8')
+            (tmp/'notes.md').write_text('Release notes', encoding='utf-8')
+            (tmp/'_validation-summary.md').write_text('## Validation and device-test limits\nUntested hardware.', encoding='utf-8')
+            (tmp/'_release-manifest.json').write_text(json.dumps({'source_sha': 'a'*40, 'assets': {}}), encoding='utf-8')
+            env = dict(os.environ, PATH=str(tmp/'bin')+os.pathsep+os.environ['PATH'],
+                       RELEASE_FIXTURE=str(fixture), GITHUB_REPOSITORY='fixture/repo',
+                       NOTES='notes.md', TARGET_SHA='a'*40, TAG='v0.7.3')
+            return subprocess.run(['bash', '-e', '-o', 'pipefail'], input=script, cwd=tmp,
+                                  env=env, text=True, capture_output=True, timeout=15)
+
+    def test_large_release_collection_recovers_exact_draft(self):
+        # Existing repository responses exceed Linux's 128 KiB per-variable limit.
+        releases = [{'id': 1, 'tag_name': 'v0.7.2', 'draft': False, 'body': 'x'*300000},
+                    {'id': 2, 'tag_name': 'v0.7.3', 'draft': True, 'target_commitish': 'b'*40},
+                    {'id': 3, 'tag_name': 'v0.7.3', 'draft': True, 'target_commitish': 'a'*40}]
+        result = self.run_release_plan(releases)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), {'keep': 3, 'delete': [2]})
+
+    def test_large_collection_still_rejects_public_release(self):
+        result = self.run_release_plan([{'id': 1, 'tag_name': 'v0.7.3', 'draft': False, 'body': 'x'*300000}])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('a non-draft release with this tag already exists', result.stderr)
 
 
 class EmulatorWrapperTests(unittest.TestCase):

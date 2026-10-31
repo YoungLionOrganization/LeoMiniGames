@@ -5,6 +5,7 @@ import json
 import re
 from pathlib import Path
 
+VERSION = json.loads((Path(__file__).resolve().parents[1]/'release/release.json').read_text(encoding='utf-8'))['version']
 TARGETS = (
     'Android-arm64-v8a', 'Android-armeabi-v7a', 'Android-x86_64', 'Android-x86', 'Android-universal',
     'Windows-x86_64', 'Windows-x86_64-AVX2', 'Windows-ARM64',
@@ -15,22 +16,25 @@ TARGETS = (
     'iOS-device-arm64', 'iOS-simulator-x86_64', 'iPadOS-device-arm64', 'iPadOS-simulator-x86_64',
 )
 
-def target_artifacts(target):
-    prefix = 'LeoMiniGames-v0.7.3-' + target
+def target_artifacts(target, version=VERSION):
+    prefix = f'LeoMiniGames-v{version}-' + target
     if target.startswith('Android-'): return {prefix + '.apk'}
     if target.startswith('Windows-'): return {prefix + '.zip', prefix + '-Setup.exe'}
     if target.startswith('Linux-'): return {prefix + '.tar.gz', prefix + '.AppImage', prefix + '-Setup.run'}
     if target.startswith('Debian-'): return {prefix + '-native.tar.gz', prefix + '.deb'}
     if target.startswith('Arch-'): return {prefix + '-native.tar.gz', prefix + '.pkg.tar.zst'}
     if target.startswith('Fedora-'): return {prefix + '-native.tar.gz', prefix + '.rpm'}
-    if target.startswith('Flatpak-'): return {'LeoMiniGames-v0.7.3-Linux-' + target.removeprefix('Flatpak-') + '.flatpak'}
+    if target.startswith('Flatpak-'): return {f'LeoMiniGames-v{version}-Linux-' + target.removeprefix('Flatpak-') + '.flatpak'}
     if target.startswith('macOS-'): return {prefix + '.zip', prefix + '.dmg'}
     return set()
 
 def validate(report, sha, manifest=None):
+    if not re.fullmatch(r'[0-9a-f]{40}', sha): raise ValueError('candidate requires a full source SHA')
     if report.get('source_sha') != sha: raise ValueError('QA source SHA differs from candidate')
-    if report.get('version') != '0.7.3': raise ValueError('QA version mismatch')
-    if manifest and manifest.get('source_sha') != sha: raise ValueError('artifact manifest source SHA differs from candidate')
+    if report.get('version') != VERSION: raise ValueError('QA version mismatch')
+    if manifest is not None:
+        if manifest.get('source_sha') != sha: raise ValueError('artifact manifest source SHA differs from candidate')
+        if manifest.get('version') != VERSION: raise ValueError('artifact manifest version differs from candidate')
     rows=report.get('targets', {})
     if set(rows) != set(TARGETS): raise ValueError('QA target coverage incomplete')
     for target, row in rows.items():
@@ -44,8 +48,8 @@ def validate(report, sha, manifest=None):
             if set(tested) != expected_artifacts: raise ValueError(f'{target}: not all package formats were tested')
             for artifact, digest in tested.items():
                 if not re.fullmatch(r'[0-9a-f]{64}', digest): raise ValueError(f'{target}: invalid tested artifact digest')
-                if manifest and (artifact not in manifest['assets'] or manifest['assets'][artifact]['sha256'] != digest): raise ValueError(f'{target}: tested package differs from candidate')
-        if manifest and not target.startswith(('iOS-', 'iPadOS-')):
+                if manifest is not None and (artifact not in manifest['assets'] or manifest['assets'][artifact]['sha256'] != digest): raise ValueError(f'{target}: tested package differs from candidate')
+        if manifest is not None and not target.startswith(('iOS-', 'iPadOS-')):
             artifact = row.get('artifact_name', '')
             if artifact not in target_artifacts(target) or artifact not in manifest['assets'] or manifest['assets'][artifact]['sha256'] != row['artifact_sha256']: raise ValueError(f'{target}: tested artifact differs from candidate')
         if target.startswith('Android-') and not row.get('device_abis'): raise ValueError(f'{target}: missing actual device ABI')

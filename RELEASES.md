@@ -8,13 +8,16 @@ LeoMiniGames uses `MAJOR.MINOR.PATCH` application versions. Patch releases may c
 
 Releases are not created merely by pushing a tag. `build-artifacts.yml` manually builds and aggregates artifacts; `publish-release.yml` is a separate guarded manual workflow. Its default `validate` mode performs release preflight only. Actual publication requires `mode=publish`, an authorized publisher and any configured approval on the protected GitHub `release` Environment.
 
-## v0.7.3 — candidate, platform launch evidence required
+## v0.7.4 — reliability work in progress
+
+Prepared fixes retain ownership across reentrant update/input callbacks, bind mod download tickets to catalog identity, reject stale catalog responses and embedded URL credentials, and prepare pending QA reports from immutable package manifests. See [next patch priorities](docs/roadmap/NEXT_PATCHES.md). These changes are not part of the immutable v0.7.3 binaries; canonical package metadata remains at v0.7.3 until the next candidate is cut.
+
+## v0.7.3 — automated validation with disclosed device limits
 
 The patch implementation is described in [the patch plan](docs/releases/V073_PATCH_PLAN.md), [the supplied TODO](docs/releases/V073_TODO.md) and [the supplied platform audit](docs/releases/V073_PLATFORM_AUDIT.md). Implementation and test status is tracked in [V073_IMPLEMENTATION.md](docs/releases/V073_IMPLEMENTATION.md).
 
-Publishing additionally requires a `platform-qa` workflow artifact containing `platform-qa.json`, based on `release/platform-qa.template.json`, for the exact build candidate SHA. Run **Record candidate platform QA** (`platform-qa.yml`) with the full candidate SHA and completed JSON, then set Publish Release `qa_run_id` to that evidence run. Publication compares all `tested_artifacts` digests with the candidate manifest; both Windows ZIP/Setup, Linux tar/AppImage and macOS ZIP/DMG must be covered. The report covers actual device ABIs, clean launches and Windows servicing; pending checks block publication. Unsigned Apple-mobile build success alone is not device launch evidence.
-
-Android binary validation includes TLS SONAME and dependency closure; emulator startup tests cover x86, x86_64 and universal APK lanes. The compiled Android manifest must request native extraction, and emulator evidence must include a certificate-validated HTTPS catalog probe. All six builtins now support validated state restoration through GameSave; see [the builtin/TLS update](docs/releases/V073_BUILTIN_TLS_UPDATE.md). Physical ARM devices and all other launch/upgrade checks remain explicit QA requirements. No backend deployment is implied by this patch.
+Publication uses successful GitHub CI and artifact tests with source-bound Windows/macOS package evidence and mandatory release disclosures. A manual `platform-qa` report is optional; if supplied, it must pass the strict 25-target validator for the exact candidate and package digests. Missing physical-device results remain explicitly untested. See [the operator guide](docs/GITHUB_RELEASES.md).
+Android binary validation includes TLS SONAME and dependency closure; emulator startup tests cover x86, x86_64 and universal APK lanes. The compiled Android manifest must request native extraction, and emulator evidence must include a certificate-validated HTTPS catalog probe. All six builtins now support validated state restoration through GameSave; see [the builtin/TLS update](docs/releases/V073_BUILTIN_TLS_UPDATE.md). Physical ARM devices and other untested launch/upgrade scenarios remain disclosed coverage gaps. No backend deployment is implied by this patch.
 
 ## v0.7.2 — installer, transport, persistence and package safety
 

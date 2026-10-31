@@ -6,7 +6,7 @@ Reviewed 30 October 2026 against the current source, the earlier release plans a
 
 - Exact-source native CI, signed package builds and the strict 39-file public asset validation.
 - Real deployed Linux package and Windows installer servicing evidence; keep incomplete device checks visible.
-- Matching platform QA for the immutable candidate, followed by release preflight and publication through the protected release workflow.
+- Verified automated evidence for the immutable candidate, explicit untested-device disclosures and optional strict manual QA, followed by the protected release workflow.
 - User installation documentation included in the desktop payloads and accessible from the repository.
 
 The public mods/themes services returned 200 and schema health reported ready during this review. That resolves the earlier observed HTTP 500 blocker as an external-state change; this application branch did not deploy a backend repair.
@@ -23,7 +23,21 @@ The public mods/themes services returned 200 and schema health reported ready du
 
 v0.7.4 must not turn a package-format experiment into a forced migration for existing games. Save Transfer remains a separately planned feature for the v0.8 line unless its scope is explicitly changed.
 
+### Prepared reliability changes
+
+The main development tree integrates the following reliability fixes for the next patch. They do not change the immutable v0.7.3 package candidate.
+
+- An update-state observer can synchronously clear the request, select another channel or start a replacement check. Retired requests must not create a second network reply afterward. Observer-driven service deletion must also stop the original method safely.
+- The new regression reproduces a duplicate request against the previous implementation and passes against the prepared fix with the existing local Qt 6.11.1 kit. The prepared changes passed full GitHub CI and the separate Qt 6.12 Windows/Linux/macOS lane at `1c803c9`; integration is validated again on main.
+- Input callbacks receive matching action/value transitions: retired presses, releases, reset batches and physical-key mappings cannot overwrite replacement input or focus. The regression fails against the old implementation and passes 12 checks with the existing local Qt 6.11.1 kit.
+- `prepare_platform_qa.py` binds pending rows to the candidate manifest and clears all test claims. It validates names, sizes and hashes without downloading the package payloads. Manual results must still come from real tests.
+- QA package names follow the canonical release version, and manifest version checks reject an otherwise matching report from another release.
+- Update guidance no longer labels every installation without a Maintenance Tool as portable. Linux native packages, Flatpak and mobile packages retain their installation-format choices.
+- Mod download tickets cannot replace the catalog's digest or package length. Older providers that omit these fields continue to use the catalog identity. Pending mod/theme tickets stop when the configured catalog changes, and catalog/download URLs reject embedded credentials. The regression reproduces the previous digest mismatch and passes 22 local assertions; existing catalog operations and theme-package identity tests also pass.
+
 ## YLSpec / YLPlugin / YLPkg boundaries
+
+The later pixel-format discussions are tracked separately in [Pixel asset format groundwork](PIXEL_FORMATS.md). `.ylpix` and `.ylpxm` describe visual assets and must not be conflated with plugin execution or installation permissions.
 
 The maintainer's later design separates three responsibilities:
 

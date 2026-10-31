@@ -48,10 +48,10 @@ The initial implementation was recorded on 1 October 2026, based on v0.7.2 commi
 
 The initial 1 October Linux Qt 6.8.2 implementation passed 15 Release CTest entries, 10 package-validator tests, source/project/sanity checks and 293 distribution checks. Those dated results do not validate later commits. Subsequent native runs expanded to 22 CTest entries; follow-up records identify the changes and reproduction cases. Current verification must use the final source SHA and actual package digests.
 
-## Publication conditions
+## Publication conditions (31 October policy)
 
-The workflows build an immutable candidate and enforce the current 39-file public asset contract. `release/platform-qa.template.json` starts pending/failed for 25 targets. Actual environment, tester, time, evidence, package names and SHA-256 values must match that candidate, including all formats required for each target.
+The maintainer authorizes v0.7.3 publication from successful GitHub CI and artifact tests, source-bound Windows/macOS package evidence, strict 39-file validation and explicit device-test disclosures. The publisher verifies source SHA and package digests before publication. Linux installer lifecycle, Windows servicing, Android emulator HTTPS and macOS package launch checks retain their actual tested environments.
 
-The platform QA workflow validates the report. Before draft/tag/publication, the publisher compares its source SHA and package digests to the validated manifest. Android ABI/signing/upgrade, Windows servicing, Linux installer lifecycle and macOS Gatekeeper retain distinct requirements. Compilation/offscreen results do not establish physical audio, touch, secure storage or device-signing behavior.
+A manual 25-target report is optional. `release/platform-qa.template.json` starts pending/failed; when a report is supplied, actual environment, tester, time, evidence, package names and digests must match the exact candidate and pass the strict validator. The publisher does not infer manual passes from automated results.
 
-See the [release operator guide](../GITHUB_RELEASES.md). Current workflow results and the candidate QA report determine release readiness.
+Compilation/offscreen results do not establish physical audio, touch, secure storage or signed-device behavior. Android ARM hardware, signed iOS/iPadOS devices and macOS Developer ID notarization remain explicit coverage gaps. See the [release operator guide](../GITHUB_RELEASES.md).

@@ -279,7 +279,7 @@ Item {
                         width: parent.width
                         text: Updates.maintenanceAvailable
                               ? qsTr("Installed build · updates are applied by LeoMiniGames Maintenance.")
-                              : qsTr("Portable build · updates download through LeoMiniGames Update Service.")
+                              : qsTr("Package updates · choose the matching platform, architecture and installation format.")
                         color: Constants.textMuted
                         font.pixelSize: Constants.u10
                         wrapMode: Text.WordWrap

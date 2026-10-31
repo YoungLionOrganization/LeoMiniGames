@@ -40,6 +40,7 @@ jobs:
           python3 tools/audit_prebuilt_binaries.py
           python3 tools/validate_release_contract.py
           python3 tests/test_package_validators.py
+          python3 tests/test_prepare_platform_qa.py
           node tests/test_installer_scripts.js
           node --check < installer/config/control.qs
           node --check < installer/packages/xyz.younglion.leominigames/meta/installscript.qs

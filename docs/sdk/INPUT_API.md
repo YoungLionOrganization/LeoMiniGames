@@ -4,6 +4,8 @@ Consume actions instead of platform keycodes/scancodes. Methods are `press(actio
 
 NaN and infinite values release the affected action to neutral instead of creating a held input.
 
+In the next patch, callbacks that replace or reset an action retire its pending value notification. A reset cannot release replacement actions pressed by its callbacks, and a newer focus-root request retains ownership. Unrelated actions continue to receive their own notifications.
+
 | Physical/logical input | Action |
 | --- | --- |
 | Left / physical A | move_left |

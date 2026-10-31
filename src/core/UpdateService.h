@@ -78,4 +78,5 @@ private:
     QString m_errorString;
     bool m_checking = false;
     bool m_updateAvailable = false;
+    quint64 m_requestGeneration = 0;
 };

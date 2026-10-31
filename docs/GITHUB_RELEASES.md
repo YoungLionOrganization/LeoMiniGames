@@ -45,14 +45,27 @@ Wait until the whole workflow is green. In addition to per-platform artifacts it
 
 - `release-assets`
 - `update-repositories`
+- `release-manifest` (a small internal JSON file with the candidate SHA, package sizes and SHA-256 values)
 
 `release-assets` is the only artifact set used for public GitHub Release upload. The current allowlist expects 39 public files, including Arch, Debian, Fedora, Flatpak and Linux user installers. Files such as `*.aab`, `*.sha256`, `*-unsigned.zip`, `*-Legal.zip`, `Updates.xml` and repository metadata are intentionally not public Release assets.
 
-## Candidate platform QA (required before publishing)
+## Automated evidence and optional manual platform QA
 
-Record actual clean-system/device results for the 25 targets using `release/platform-qa.template.json`, exact candidate source SHA and tested artifact digests. Run **Record candidate platform QA** with candidate_sha/report_json; preserve its successful run ID. The template starts failed and must not be relabeled passing without tests. Android upgrade/signing/TLS/audio, Windows servicing and macOS Gatekeeper evidence are separate from CTest.
+For v0.7.3, the maintainer authorizes publication from successful GitHub tests with explicit device-test limitations. Preflight verifies source SHA, version, target, package names and digests in all three Windows servicing reports and all three macOS package reports. The same evidence is verified again before publication. Release descriptions include the build URL, tested environments and limitations before the checksums.
 
-In Publish Release provide qa_run_id (the run containing platform-qa) and, when selecting a particular successful artifact build, build_run_id. Publishing compares QA artifact names/digests to the candidate manifest before the draft/tag stage. Docs/operator-only commit reuse is controlled by the workflow; source changes require a fresh candidate build and matching QA.
+Linux install/reinstall/uninstall and builtin-launch tests run in the artifact pipeline. Android x86/x86_64/universal emulator checks include certificate-validated HTTPS. Android ARM hardware, signed iOS/iPadOS devices, physical touch/haptics/audio and keychain persistence are not qualified by those runs. macOS packages are ad-hoc signed, without Developer ID notarization; a universal package is launched only on the runner architecture. Do not describe these outputs as fully device-qualified.
+
+`qa_run_id` is optional. Leave it blank to use verified automated evidence with these disclosures. When actual additional 25-target manual evidence is available, record it with `release/platform-qa.template.json`, the candidate SHA and tested artifact digests, then run **Record candidate platform QA**. The template starts failed; never mark an untested row passing.
+
+Download only the `release-manifest` artifact to prepare a pending report without downloading the complete package set:
+
+```sh
+python tools/release/prepare_platform_qa.py _release-manifest.json --build-run RUN_ID --output platform-qa.pending.json
+```
+
+Use the successful build's actual numeric run ID. The tool checks the exact public asset names, sizes, digests and source SHA. It fills candidate hashes and clears all test results; it cannot create a passing QA report. Existing output files are never overwritten. Review the environment and source-bound evidence for each target before entering its real results. Apple mobile developer outputs require their separate artifact digests because they are outside the public manifest.
+
+In Publish Release provide `build_run_id` to select the exact successful artifact build. If `qa_run_id` is supplied, all manual report fields and package digests must pass the strict validator before draft creation. Binary reuse is limited to an identical source tree or the workflow's explicit publisher/contract file allowlist; arbitrary documentation or application changes require a fresh build.
 
 ## Step 3 — validate the release gates
 
@@ -97,7 +110,7 @@ After approval, the workflow:
 
 1. verifies that `main` still points to the exact preflight SHA;
 2. rechecks the authorized publisher and duplicate tag/release guards;
-3. downloads the already validated release assets;
+3. downloads the already validated release assets, rechecks the automated package evidence and prepares mandatory device-test disclosures;
 4. creates the GitHub Release as a **draft**;
 5. uploads the entire validated public asset set;
 6. compares remote Release asset names against the validated local set;
@@ -160,9 +173,9 @@ $bytes = [IO.File]::ReadAllBytes("C:\path\to\your-upload-key.jks")
 
 Retain the correct signing/upload key for application update continuity. If Google Play App Signing is enabled, CI normally uses the registered upload key rather than Google's protected app-signing key.
 
-## Current v0.7.3 state
+## Historical publication failure
 
-At candidate `a020647bfd7dacb49727b4683bede6807eec7d67`, CI and Build Release Artifacts succeeded, with 27 public assets validated. [Publish Release run 36470448493](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/36470448493) failed during `Prepare draft and upload exact asset set`: `cat: release/notes/v0.7.3.md: No such file or directory`. No public v0.7.3 release was created.
+The earlier candidate `a020647bfd7dacb49727b4683bede6807eec7d67` used a historical 27-file contract. [Publish Release run 36470448493](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/36470448493) failed during `Prepare draft and upload exact asset set`: `cat: release/notes/v0.7.3.md: No such file or directory`. That failed run did not create a public v0.7.3 release. It does not describe the current 39-file asset contract or current candidate test results.
 
 The notes file is now present, and preflight checks it before the publisher can delete a stale draft. A new source commit requires successful CI and **Build Release Artifacts** on the new exact SHA, followed by `mode=validate` and `mode=publish`. Do not select the old build run ID.
 
@@ -170,5 +183,7 @@ The notes file is now present, and preflight checks it before the publisher can 
 
 The publish transaction is retry-safe. GitHub does not expose a draft release through the normal `releases/tags/{tag}` REST lookup used for published releases. A failed publish can therefore leave an `untagged-*` draft even though the final tag does not exist yet. The workflow resolves drafts from the release collection, recovers a draft that targets the exact current `main` SHA, removes any partial asset set, re-uploads the validated assets, and carries the numeric release ID into the final publish step. If a draft with the same tag targets an older SHA, the authorized publish transaction deletes that stale draft and creates a fresh draft for the current exact SHA.
 
-If `Prepare draft and upload exact asset set` fails, fix the source/workflow issue, obtain successful CI and **Build Release Artifacts** for the resulting exact SHA, and rerun `Publish Release` in `publish` mode.
+Release API collections, draft responses and final publication responses are read from JSON files. They must not be exported through environment variables: the existing release collection already exceeds Linux's per-variable size limit.
+
+If `Prepare draft and upload exact asset set` fails, inspect its logs before retrying. A publisher-only correction may reuse a verified candidate within the explicit allowlist; application changes require a new successful artifact build.
 
