@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 env:
-  LMG_VERSION: "0.7.3"
+  LMG_VERSION: "0.7.4"
 
 jobs:
   flatpak:

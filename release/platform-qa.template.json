@@ -1,5 +1,5 @@
 {
-  "version": "0.7.3",
+  "version": "0.7.4",
   "source_sha": "REPLACE_WITH_BUILD_CANDIDATE_SHA",
   "targets": {
     "Android-arm64-v8a": {
@@ -13,7 +13,7 @@
       "artifact_name": "",
       "device_abis": [],
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Android-arm64-v8a.apk": ""
+        "LeoMiniGames-v0.7.4-Android-arm64-v8a.apk": ""
       }
     },
     "Android-armeabi-v7a": {
@@ -27,7 +27,7 @@
       "artifact_name": "",
       "device_abis": [],
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Android-armeabi-v7a.apk": ""
+        "LeoMiniGames-v0.7.4-Android-armeabi-v7a.apk": ""
       }
     },
     "Android-x86_64": {
@@ -41,7 +41,7 @@
       "artifact_name": "",
       "device_abis": [],
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Android-x86_64.apk": ""
+        "LeoMiniGames-v0.7.4-Android-x86_64.apk": ""
       }
     },
     "Android-x86": {
@@ -55,7 +55,7 @@
       "artifact_name": "",
       "device_abis": [],
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Android-x86.apk": ""
+        "LeoMiniGames-v0.7.4-Android-x86.apk": ""
       }
     },
     "Android-universal": {
@@ -69,7 +69,7 @@
       "artifact_name": "",
       "device_abis": [],
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Android-universal.apk": ""
+        "LeoMiniGames-v0.7.4-Android-universal.apk": ""
       }
     },
     "Windows-x86_64": {
@@ -83,8 +83,8 @@
       "artifact_name": "",
       "installer_upgrade_modify_uninstall": false,
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Windows-x86_64-Setup.exe": "",
-        "LeoMiniGames-v0.7.3-Windows-x86_64.zip": ""
+        "LeoMiniGames-v0.7.4-Windows-x86_64-Setup.exe": "",
+        "LeoMiniGames-v0.7.4-Windows-x86_64.zip": ""
       }
     },
     "Windows-x86_64-AVX2": {
@@ -98,8 +98,8 @@
       "artifact_name": "",
       "installer_upgrade_modify_uninstall": false,
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Windows-x86_64-AVX2-Setup.exe": "",
-        "LeoMiniGames-v0.7.3-Windows-x86_64-AVX2.zip": ""
+        "LeoMiniGames-v0.7.4-Windows-x86_64-AVX2-Setup.exe": "",
+        "LeoMiniGames-v0.7.4-Windows-x86_64-AVX2.zip": ""
       }
     },
     "Windows-ARM64": {
@@ -113,8 +113,8 @@
       "artifact_name": "",
       "installer_upgrade_modify_uninstall": false,
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Windows-ARM64-Setup.exe": "",
-        "LeoMiniGames-v0.7.3-Windows-ARM64.zip": ""
+        "LeoMiniGames-v0.7.4-Windows-ARM64-Setup.exe": "",
+        "LeoMiniGames-v0.7.4-Windows-ARM64.zip": ""
       }
     },
     "Linux-Ubuntu-22.04-x86_64": {
@@ -127,9 +127,9 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Linux-Ubuntu-22.04-x86_64-Setup.run": "",
-        "LeoMiniGames-v0.7.3-Linux-Ubuntu-22.04-x86_64.AppImage": "",
-        "LeoMiniGames-v0.7.3-Linux-Ubuntu-22.04-x86_64.tar.gz": ""
+        "LeoMiniGames-v0.7.4-Linux-Ubuntu-22.04-x86_64-Setup.run": "",
+        "LeoMiniGames-v0.7.4-Linux-Ubuntu-22.04-x86_64.AppImage": "",
+        "LeoMiniGames-v0.7.4-Linux-Ubuntu-22.04-x86_64.tar.gz": ""
       },
       "installer_install_reinstall_uninstall": false
     },
@@ -143,9 +143,9 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-x86_64-Setup.run": "",
-        "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-x86_64.AppImage": "",
-        "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-x86_64.tar.gz": ""
+        "LeoMiniGames-v0.7.4-Linux-Ubuntu-24.04-x86_64-Setup.run": "",
+        "LeoMiniGames-v0.7.4-Linux-Ubuntu-24.04-x86_64.AppImage": "",
+        "LeoMiniGames-v0.7.4-Linux-Ubuntu-24.04-x86_64.tar.gz": ""
       },
       "installer_install_reinstall_uninstall": false
     },
@@ -159,9 +159,9 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-arm64-Setup.run": "",
-        "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-arm64.AppImage": "",
-        "LeoMiniGames-v0.7.3-Linux-Ubuntu-24.04-arm64.tar.gz": ""
+        "LeoMiniGames-v0.7.4-Linux-Ubuntu-24.04-arm64-Setup.run": "",
+        "LeoMiniGames-v0.7.4-Linux-Ubuntu-24.04-arm64.AppImage": "",
+        "LeoMiniGames-v0.7.4-Linux-Ubuntu-24.04-arm64.tar.gz": ""
       },
       "installer_install_reinstall_uninstall": false
     },
@@ -175,8 +175,8 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Debian-13-x86_64-native.tar.gz": "",
-        "LeoMiniGames-v0.7.3-Debian-13-x86_64.deb": ""
+        "LeoMiniGames-v0.7.4-Debian-13-x86_64-native.tar.gz": "",
+        "LeoMiniGames-v0.7.4-Debian-13-x86_64.deb": ""
       },
       "installer_install_reinstall_uninstall": false
     },
@@ -190,8 +190,8 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Debian-13-arm64-native.tar.gz": "",
-        "LeoMiniGames-v0.7.3-Debian-13-arm64.deb": ""
+        "LeoMiniGames-v0.7.4-Debian-13-arm64-native.tar.gz": "",
+        "LeoMiniGames-v0.7.4-Debian-13-arm64.deb": ""
       },
       "installer_install_reinstall_uninstall": false
     },
@@ -205,8 +205,8 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Arch-x86_64-native.tar.gz": "",
-        "LeoMiniGames-v0.7.3-Arch-x86_64.pkg.tar.zst": ""
+        "LeoMiniGames-v0.7.4-Arch-x86_64-native.tar.gz": "",
+        "LeoMiniGames-v0.7.4-Arch-x86_64.pkg.tar.zst": ""
       },
       "installer_install_reinstall_uninstall": false
     },
@@ -221,8 +221,8 @@
       "artifact_name": "",
       "gatekeeper_assessed": false,
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-macOS-arm64.dmg": "",
-        "LeoMiniGames-v0.7.3-macOS-arm64.zip": ""
+        "LeoMiniGames-v0.7.4-macOS-arm64.dmg": "",
+        "LeoMiniGames-v0.7.4-macOS-arm64.zip": ""
       }
     },
     "macOS-x86_64": {
@@ -236,8 +236,8 @@
       "artifact_name": "",
       "gatekeeper_assessed": false,
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-macOS-x86_64.dmg": "",
-        "LeoMiniGames-v0.7.3-macOS-x86_64.zip": ""
+        "LeoMiniGames-v0.7.4-macOS-x86_64.dmg": "",
+        "LeoMiniGames-v0.7.4-macOS-x86_64.zip": ""
       }
     },
     "macOS-universal": {
@@ -251,8 +251,8 @@
       "artifact_name": "",
       "gatekeeper_assessed": false,
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-macOS-universal.dmg": "",
-        "LeoMiniGames-v0.7.3-macOS-universal.zip": ""
+        "LeoMiniGames-v0.7.4-macOS-universal.dmg": "",
+        "LeoMiniGames-v0.7.4-macOS-universal.zip": ""
       }
     },
     "iOS-device-arm64": {
@@ -309,8 +309,8 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Fedora-43-x86_64-native.tar.gz": "",
-        "LeoMiniGames-v0.7.3-Fedora-43-x86_64.rpm": ""
+        "LeoMiniGames-v0.7.4-Fedora-43-x86_64-native.tar.gz": "",
+        "LeoMiniGames-v0.7.4-Fedora-43-x86_64.rpm": ""
       },
       "installer_install_reinstall_uninstall": false
     },
@@ -324,8 +324,8 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Fedora-43-arm64-native.tar.gz": "",
-        "LeoMiniGames-v0.7.3-Fedora-43-arm64.rpm": ""
+        "LeoMiniGames-v0.7.4-Fedora-43-arm64-native.tar.gz": "",
+        "LeoMiniGames-v0.7.4-Fedora-43-arm64.rpm": ""
       },
       "installer_install_reinstall_uninstall": false
     },
@@ -339,7 +339,7 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Linux-x86_64.flatpak": ""
+        "LeoMiniGames-v0.7.4-Linux-x86_64.flatpak": ""
       },
       "installer_install_reinstall_uninstall": false
     },
@@ -353,7 +353,7 @@
       "tester": "",
       "artifact_name": "",
       "tested_artifacts": {
-        "LeoMiniGames-v0.7.3-Linux-aarch64.flatpak": ""
+        "LeoMiniGames-v0.7.4-Linux-aarch64.flatpak": ""
       },
       "installer_install_reinstall_uninstall": false
     }

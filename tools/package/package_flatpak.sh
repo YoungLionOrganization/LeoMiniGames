@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-VERSION="${LMG_VERSION:-0.7.3}"
+VERSION="${LMG_VERSION:-0.7.4}"
 ARCH="${LMG_FLATPAK_ARCH:-$(flatpak --default-arch)}"
 [[ "$ARCH" == x86_64 || "$ARCH" == aarch64 ]] || { echo "Unsupported Flatpak architecture: $ARCH" >&2; exit 2; }
 DIST="$ROOT/dist/flatpak"

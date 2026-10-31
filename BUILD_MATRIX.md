@@ -1,10 +1,12 @@
-# LeoMiniGames v0.7.3 Build Matrix
+# LeoMiniGames v0.7.4 development build matrix
 
 This matrix distinguishes **configured CI coverage** from **physically verified release behavior**. A successful GitHub Actions job proves that the source builds/packages on that runner; it does not replace real-device QA.
 
 ## Current GitHub evidence
 
-CI run [39050064290](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/39050064290) for `3747c5f2f0ed4fdf348d056f354928eea714423e` initially passed 23 jobs, including Windows, Linux distro servicing and both Flatpak architectures. Three Android emulator catalog probes received HTTP 500 after successful APK compilation and OpenSSL loading. The public mods/themes APIs returned HTTP 200 when rechecked on 30 October; the failed jobs were rerun. These results apply only to that source SHA. A new source commit requires its own CI and artifact validation.
+Published v0.7.3 uses source `b1ca094ef719dc203a362633435a56920b5741e5`: [CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41171541199), [28-job artifact build](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41171558444) and [publication](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41220223343) succeeded. All 39 public package names, sizes and remote SHA-256 digests matched the candidate manifest. Physical-device limitations are disclosed in the [release](https://github.com/YoungLionOrganization/LeoMiniGames/releases/tag/v0.7.3).
+
+The prepared reliability changes passed [CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41135263224) and [Qt 6.12 desktop tests](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41135263148) at `1c803c9`. Main now prepares v0.7.4; its new version/source requires fresh CI and artifact validation before any later publication.
 
 This is CI/build evidence only. It does not convert any platform row into a physical-device verification claim.
 

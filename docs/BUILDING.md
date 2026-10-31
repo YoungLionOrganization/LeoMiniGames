@@ -1,4 +1,4 @@
-# Building LeoMiniGames 0.7.3
+# Building LeoMiniGames 0.7.4
 
 See [Linux package choices](LINUX_PACKAGES.md) for package formats and installation/lifecycle tests.
 

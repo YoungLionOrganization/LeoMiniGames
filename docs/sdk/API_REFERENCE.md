@@ -1,4 +1,4 @@
-# Host service reference — API 0.7 / application 0.7.3
+# Host service reference — API 0.7 / application 0.7.4
 
 Generated from `src/core` declarations with `python3 tools/sdk/generate_api_reference.py`. Do not edit the signature lists manually. Check drift with `--check`.
 

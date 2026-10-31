@@ -3,7 +3,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BUILD_DIR="$(realpath "${1:?usage: package_linux_distro.sh BUILD_DIR deb|rpm|arch}")"
 FORMAT="${2:?Specify deb, rpm or arch}"
-VERSION="${LMG_VERSION:-0.7.3}"
+VERSION="${LMG_VERSION:-0.7.4}"
 SUFFIX="${LMG_PLATFORM_SUFFIX:?Set the target distro/architecture label}"
 DIST="$ROOT/dist/linux-native"
 mkdir -p "$DIST"

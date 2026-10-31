@@ -6,7 +6,7 @@ OUT="${2:-macos-package-smoke}"
 [[ "${GITHUB_ACTIONS:-}" == true && "$(uname -s)" == Darwin ]] || {
   echo 'Run packaged macOS checks only on a disposable GitHub macOS runner.' >&2; exit 2;
 }
-VERSION="${LMG_VERSION:-0.7.3}"
+VERSION="${LMG_VERSION:-0.7.4}"
 DIST="$PWD/dist/macos"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
@@ -77,7 +77,7 @@ def digest(path):
     return checksum.hexdigest()
 artifacts = {Path(name).name: digest(Path(name)) for name in sys.argv[3:5]}
 report = {
-    'source_sha': os.environ['GITHUB_SHA'], 'version': os.environ.get('LMG_VERSION', '0.7.3'),
+    'source_sha': os.environ['GITHUB_SHA'], 'version': os.environ.get('LMG_VERSION', '0.7.4'),
     'target': 'macOS-' + sys.argv[1], 'environment': 'GitHub macOS ' + platform.mac_ver()[0] + ' / ' + platform.machine(),
     'evidence': 'https://github.com/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + os.environ['GITHUB_RUN_ID'],
     'tested_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),

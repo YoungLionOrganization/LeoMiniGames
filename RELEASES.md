@@ -10,9 +10,11 @@ Releases are not created merely by pushing a tag. `build-artifacts.yml` manually
 
 ## v0.7.4 — reliability work in progress
 
-Prepared fixes retain ownership across reentrant update/input callbacks, bind mod download tickets to catalog identity, reject stale catalog responses and embedded URL credentials, and prepare pending QA reports from immutable package manifests. See [next patch priorities](docs/roadmap/NEXT_PATCHES.md). These changes are not part of the immutable v0.7.3 binaries; canonical package metadata remains at v0.7.3 until the next candidate is cut.
+Prepared fixes retain ownership across reentrant update/input callbacks, bind mod download tickets to catalog identity, reject stale catalog responses and embedded URL credentials, and prepare pending QA reports from immutable package manifests. See [next patch priorities](docs/roadmap/NEXT_PATCHES.md). These changes are not part of the immutable v0.7.3 binaries; canonical package metadata is now v0.7.4 (Android versionCode 704), with new candidate builds required before publication.
 
-## v0.7.3 — automated validation with disclosed device limits
+## v0.7.3 — published 31 October 2026
+
+[Published release](https://github.com/YoungLionOrganization/LeoMiniGames/releases/tag/v0.7.3): 39 assets, source `b1ca094ef719dc203a362633435a56920b5741e5`; [publication workflow](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41220223343) succeeded. The remote asset names, sizes and SHA-256 digests were independently checked against the validated manifest.
 
 The patch implementation is described in [the patch plan](docs/releases/V073_PATCH_PLAN.md), [the supplied TODO](docs/releases/V073_TODO.md) and [the supplied platform audit](docs/releases/V073_PLATFORM_AUDIT.md). Implementation and test status is tracked in [V073_IMPLEMENTATION.md](docs/releases/V073_IMPLEMENTATION.md).
 

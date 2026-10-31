@@ -11,7 +11,7 @@
 
 - [Building](BUILDING.md), [contributing](../CONTRIBUTING.md) and [security reports](../SECURITY.md).
 - [SDK overview](sdk/OVERVIEW.md), [quickstart](sdk/QUICKSTART.md) and [API reference](sdk/API_REFERENCE.md).
-- [Release workflow](GITHUB_RELEASES.md), [release notes](../release/notes/v0.7.3.md) and [implementation history](releases/V073_IMPLEMENTATION.md).
+- [Release workflow](GITHUB_RELEASES.md), [next patch notes](../release/notes/v0.7.4.md) and [published v0.7.3 notes](../release/notes/v0.7.3.md) and [implementation history](releases/V073_IMPLEMENTATION.md).
 
 ## Next work
 

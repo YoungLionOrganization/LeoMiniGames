@@ -6,7 +6,7 @@ param(
   [string]$InstallerSourceDir
 )
 $ErrorActionPreference = 'Stop'
-if ([string]::IsNullOrWhiteSpace($Version)) { $Version = '0.7.3' }
+if ([string]::IsNullOrWhiteSpace($Version)) { $Version = '0.7.4' }
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $Suffix = if ($env:LMG_PLATFORM_SUFFIX) { $env:LMG_PLATFORM_SUFFIX } else { 'x86_64' }
 $WindowsArch = if ($env:LMG_WINDOWS_ARCH) { $env:LMG_WINDOWS_ARCH.ToLowerInvariant() } elseif ($Suffix -ieq 'ARM64') { 'arm64' } else { 'x86_64' }

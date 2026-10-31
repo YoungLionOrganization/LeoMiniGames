@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
     app.setOrganizationName(QStringLiteral("YoungLion"));
     app.setOrganizationDomain(QStringLiteral("xyz.younglion.leominigames"));
     app.setApplicationName(QStringLiteral("LeoMiniGames"));
-    app.setApplicationVersion(QStringLiteral("0.7.3"));
+    app.setApplicationVersion(QStringLiteral("0.7.4"));
     app.setApplicationDisplayName(QStringLiteral("LeoMiniGames"));
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
     app.setDesktopFileName(QStringLiteral("xyz.younglion.leominigames"));
