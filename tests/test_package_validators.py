@@ -61,7 +61,8 @@ class PackageValidators(unittest.TestCase):
             output=io.BytesIO()
             with tarfile.open(fileobj=output,mode='w:gz') as tar:
                 for name,data in [('usr/bin/LeoMiniGames',elf('arm64-v8a','LeoMiniGames',['libQt6Multimedia.so.6'])),
-                                  ('LICENSE',b'license'),('usr/plugins/multimedia/libffmpegmediaplugin.so',b'backend')]:
+                                  ('LICENSE',b'license'),('usr/plugins/multimedia/libffmpegmediaplugin.so',b'backend'),
+                                  ('usr/plugins/imageformats/libqsvg.so',b'svg'),('usr/plugins/imageformats/libqwebp.so',b'webp')]:
                     info=tarfile.TarInfo('LeoMiniGames.AppDir/'+name)
                     info.size=len(data);info.mode=0o755;tar.addfile(info,io.BytesIO(data))
                 info=tarfile.TarInfo('LeoMiniGames.AppDir/AppRun')
@@ -106,6 +107,15 @@ class PackageValidators(unittest.TestCase):
         libs=self.libs('arm64-v8a');del libs['libplugins_multimedia_ffmpegmediaplugin.so']
         with self.assertRaisesRegex(ValueError, 'Multimedia'):
             android.check_groups({'arm64-v8a':libs}, ['arm64-v8a'], True)
+    def test_desktop_image_contract_rejects_missing_webp_and_svg(self):
+        for prefix, extension in (('', 'dll'), ('lib', 'so'), ('lib', 'dylib')):
+            svg = f'app/plugins/imageformats/{prefix}qsvg.{extension}'
+            webp = f'app/plugins/imageformats/{prefix}qwebp.{extension}'
+            assets.require_image_backends([svg, webp])
+            with self.assertRaisesRegex(ValueError, 'qwebp'):
+                assets.require_image_backends([svg])
+            with self.assertRaisesRegex(ValueError, 'qsvg'):
+                assets.require_image_backends([webp, 'app/libQt6Svg.so'])
     def test_published_openssl_name_is_rejected(self):
         for abi in android.MACHINES:
             with self.assertRaises(ValueError):android.check_groups({abi:self.libs(abi,'libcrypto.so')},[abi],True)

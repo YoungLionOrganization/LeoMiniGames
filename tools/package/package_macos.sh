@@ -25,6 +25,7 @@ cp "$ROOT/docs/INSTALLATION.md" "$DIST/LeoMiniGames.app/Contents/Resources/Docum
 # signing provides integrity only; Developer ID/notarization remain separate.
 "$MACDEPLOYQT" "$DIST/LeoMiniGames.app" -qmldir="$ROOT/qml" -codesign=-
 python3 "$ROOT/tools/validate_audio_deployment.py" "$DIST/LeoMiniGames.app"
+python3 "$ROOT/tools/validate_graphics_deployment.py" "$DIST/LeoMiniGames.app"
 codesign --verify --deep --strict --verbose=2 "$DIST/LeoMiniGames.app"
 ditto -c -k --sequesterRsrc --keepParent "$DIST/LeoMiniGames.app" "$DIST/LeoMiniGames-v${VERSION}-macOS-${SUFFIX}.zip"
 DMG="$DIST/LeoMiniGames-v${VERSION}-macOS-${SUFFIX}.dmg"

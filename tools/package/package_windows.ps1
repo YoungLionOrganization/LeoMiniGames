@@ -93,6 +93,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Packaged MSVC runtime validation failed.' }
 
 & python (Join-Path $Root 'tools/validate_audio_deployment.py') $Stage
 if ($LASTEXITCODE -ne 0) { throw 'Packaged Qt Multimedia backend is missing.' }
+& python (Join-Path $Root 'tools/validate_graphics_deployment.py') $Stage
+if ($LASTEXITCODE -ne 0) { throw 'Packaged Qt image codecs are missing.' }
 
 $Portable = Join-Path $Dist "LeoMiniGames-v$Version-Windows-$Suffix.zip"
 Compress-Archive -Path (Join-Path $Stage '*') -DestinationPath $Portable -Force

@@ -22,9 +22,19 @@ for pass in install reinstall; do
   esac
   [[ -f /usr/share/applications/xyz.younglion.leominigames.desktop ]]
   [[ -f /usr/share/licenses/leominigames/LICENSE ]]
+  if [[ "${LMG_REQUIRE_RUNTIME_ONLY:-0}" == 1 ]]; then
+    if find /usr -name Qt6Config.cmake -print -quit | grep -q .; then
+      echo 'Clean-runtime test unexpectedly contains a Qt development SDK.' >&2
+      exit 1
+    fi
+  fi
   QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=software \
     xvfb-run -a timeout 40 LeoMiniGames --smoke-test > "$OUT/$pass.log" 2>&1
   grep -F 'PASS: six builtin QML sessions opened and closed' "$OUT/$pass.log"
+  grep -F 'PASS: PNG JPEG WebP SVG codecs and Controls Shapes Dialogs imports' "$OUT/$pass.log"
+  if [[ "${LMG_TEST_AUDIO:-0}" == 1 ]]; then
+    bash "$(dirname "$0")/linux_audio_smoke.sh" "$OUT/$pass-audio" LeoMiniGames
+  fi
 done
 case "$FORMAT" in
   deb) apt-get remove -y leominigames;;

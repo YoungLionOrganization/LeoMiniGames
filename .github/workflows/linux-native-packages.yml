@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
+        include: &native_targets
           - runner: ubuntu-24.04
             image: debian:13-slim
             distro: debian
@@ -53,14 +53,14 @@ jobs:
           DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             ca-certificates git python3 build-essential cmake ninja-build libsecret-1-dev pkg-config tar gzip \
             dpkg-dev xvfb xauth libgl1-mesa-dri libgl-dev \
-            qt6-base-dev qt6-declarative-dev qt6-declarative-private-dev qt6-svg-dev qt6-multimedia-dev
+            qt6-base-dev qt6-declarative-dev qt6-declarative-private-dev qt6-svg-dev qt6-multimedia-dev qt6-image-formats-plugins
       - name: Arch dependencies
         if: matrix.distro == 'arch'
         shell: bash
         run: |
           pacman -Syu --noconfirm
           pacman -S --needed --noconfirm git python base-devel cmake ninja libsecret pkgconf tar gzip zstd \
-            qt6-base qt6-declarative qt6-svg qt6-multimedia xorg-server-xvfb xorg-xauth mesa
+            qt6-base qt6-declarative qt6-svg qt6-multimedia qt6-imageformats xorg-server-xvfb xorg-xauth mesa
           useradd --create-home lmg-build
       - name: Fedora dependencies
         if: matrix.distro == 'fedora'
@@ -68,7 +68,7 @@ jobs:
         run: |
           dnf install -y ca-certificates git python3 gcc-c++ cmake ninja-build libsecret-devel pkgconf-pkg-config \
             tar gzip rpm-build xorg-x11-server-Xvfb xorg-x11-xauth mesa-dri-drivers \
-            qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtsvg-devel qt6-qtmultimedia-devel
+            qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtsvg-devel qt6-qtmultimedia-devel qt6-qtimageformats
       - uses: actions/checkout@v7
       - name: Build and CTest
         shell: bash
@@ -112,3 +112,51 @@ jobs:
             dist/linux-native/*.rpm
             dist/linux-native/*.pkg.tar.zst
           if-no-files-found: error
+
+  clean-runtime:
+    name: ${{ matrix.label }} clean runtime codecs audio and games
+    needs: packages
+    strategy:
+      fail-fast: false
+      matrix:
+        include: *native_targets
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install test harness only (no Qt development packages)
+        shell: bash
+        run: |
+          case '${{ matrix.distro }}' in
+            debian)
+              apt-get update
+              DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates python3 xvfb xauth pulseaudio pulseaudio-utils libgl1-mesa-dri
+              ;;
+            fedora)
+              dnf install -y python3 xorg-x11-server-Xvfb xorg-x11-xauth pulseaudio pulseaudio-utils mesa-dri-drivers
+              ;;
+            arch)
+              pacman -Syu --noconfirm
+              pacman -S --needed --noconfirm python xorg-server-xvfb xorg-xauth pulseaudio mesa
+              ;;
+          esac
+      - uses: actions/download-artifact@v8
+        with:
+          name: LeoMiniGames-${{ env.LMG_VERSION }}-${{ matrix.label }}-native
+          path: candidate
+      - name: Verify package-declared runtime in a fresh image
+        shell: bash
+        env:
+          LMG_REQUIRE_RUNTIME_ONLY: "1"
+          LMG_TEST_AUDIO: "1"
+        run: |
+          case '${{ matrix.format }}' in
+            deb) extension=deb;; rpm) extension=rpm;; arch) extension=pkg.tar.zst;;
+          esac
+          bash tools/ci/linux_package_smoke.sh "candidate/LeoMiniGames-v${LMG_VERSION}-${{ matrix.label }}.$extension" '${{ matrix.format }}' linux-clean-runtime
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: linux-clean-${{ matrix.label }}-evidence
+          path: linux-clean-runtime/

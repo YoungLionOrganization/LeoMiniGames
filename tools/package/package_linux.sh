@@ -49,6 +49,7 @@ EOF
 [ -x "$APPDIR/AppRun" ] || { echo 'linuxdeploy did not create a runnable AppDir/AppRun.' >&2; exit 5; }
 
 python3 "$ROOT/tools/validate_audio_deployment.py" "$APPDIR"
+python3 "$ROOT/tools/validate_graphics_deployment.py" "$APPDIR"
 
 tar -C "$DIST" -czf "$DIST/LeoMiniGames-v${VERSION}-Linux-${SUFFIX}.tar.gz" "$(basename "$APPDIR")"
 SETUP="$DIST/LeoMiniGames-v${VERSION}-Linux-${SUFFIX}-Setup.run"

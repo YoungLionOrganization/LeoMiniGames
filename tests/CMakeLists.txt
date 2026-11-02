@@ -52,6 +52,11 @@ add_executable(test_catalog_tickets test_catalog_tickets.cpp)
 target_link_libraries(test_catalog_tickets PRIVATE lmg_core)
 add_test(NAME catalog_tickets COMMAND test_catalog_tickets)
 
+add_executable(test_runtime_platform test_runtime_platform.cpp)
+target_link_libraries(test_runtime_platform PRIVATE lmg_core)
+add_test(NAME runtime_platform_contract COMMAND test_runtime_platform)
+set_tests_properties(runtime_platform_contract PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
 add_executable(test_publisher_trust_resolver
     test_publisher_trust_resolver.cpp
     ${CMAKE_SOURCE_DIR}/src/core/PublisherTrustResolver.cpp

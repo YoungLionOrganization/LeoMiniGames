@@ -64,6 +64,7 @@
 #include "core/ThemeInstalledModel.h"
 #include "core/UpdateService.h"
 #include "core/ThemeFilterProxyModel.h"
+#include "core/RuntimeChecks.h"
 
 Q_IMPORT_PLUGIN(XoxPlugin)
 Q_IMPORT_PLUGIN(BlackjackPlugin)
@@ -100,6 +101,7 @@ int main(int argc, char *argv[])
     }
 #endif
     if (tlsSmokeTest) return TlsRuntime::probe();
+    if (app.arguments().contains(QStringLiteral("--audio-smoke-test"))) return RuntimeChecks::audio();
     const bool smokeTest = app.arguments().contains(QStringLiteral("--smoke-test"));
     std::unique_ptr<QTemporaryDir> smokeDirectory;
     if (smokeTest) {
@@ -328,6 +330,20 @@ int main(int argc, char *argv[])
     if (!smokeTest) QTimer::singleShot(1500, &updates, &UpdateService::checkForUpdatesAutomatically);
 #endif
     if (smokeTest) {
+        QString runtimeError;
+        if (!RuntimeChecks::graphics(&engine, &runtimeError)) {
+            qCritical().noquote() << "Smoke runtime:" << runtimeError;
+            return 6;
+        }
+        const QString themeFixture = qEnvironmentVariable("LMG_SMOKE_THEME_RCC");
+        if (!themeFixture.isEmpty()) {
+            if (!theme.installThemeRcc(themeFixture)) { qCritical() << theme.lastError(); return 7; }
+            const auto installed = theme.themes();
+            QString fixtureId;
+            for (const auto &entry : installed)
+                if (!entry.toMap().value(QStringLiteral("builtIn")).toBool()) fixtureId = entry.toMap().value(QStringLiteral("id")).toString();
+            if (fixtureId.isEmpty() || !theme.applyTheme(fixtureId)) return 7;
+        }
         const QString sizeText = qEnvironmentVariable("LMG_SMOKE_SIZE");
         const QStringList dimensions = sizeText.split(QLatin1Char('x'));
         auto *smokeWindow = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0));

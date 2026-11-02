@@ -25,7 +25,7 @@ Section: games
 Priority: optional
 Architecture: $ARCH
 Maintainer: YoungLion <contact@younglion.xyz>
-Depends: $DEPS, qml6-module-qtquick, qml6-module-qtquick-window, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-templates, qml6-module-qtqml-workerscript, qml6-module-qtmultimedia, libsecret-1-0
+Depends: $DEPS, qt6-qpa-plugins, qt6-wayland, qml6-module-qtquick, qml6-module-qtquick-window, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-shapes, qml6-module-qtquick-dialogs, qml6-module-qtquick-templates, qml6-module-qtqml, qml6-module-qtqml-models, qml6-module-qtqml-workerscript, qml6-module-qtmultimedia, qt6-svg-plugins, qt6-image-formats-plugins, fonts-dejavu-core, libsecret-1-0
 Description: Modular Qt mini-game platform
  Six builtin games, downloadable QML games and themes, and Developer Lab.
 EOF
@@ -40,7 +40,7 @@ Release: 1
 Summary: Modular Qt mini-game platform
 License: LicenseRef-LMG-SAPEL-1.0
 URL: https://github.com/YoungLionOrganization/LeoMiniGames
-Requires: qt6-qtbase, qt6-qtdeclarative, qt6-qtsvg, qt6-qtmultimedia, libsecret
+Requires: qt6-qtbase, qt6-qtdeclarative, qt6-qtsvg, qt6-qtmultimedia, qt6-qtwayland, qt6-qtimageformats, dejavu-sans-fonts, libsecret
 %description
 Six builtin games, downloadable QML games and themes, and Developer Lab.
 %install

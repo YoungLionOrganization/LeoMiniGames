@@ -75,7 +75,7 @@ jobs:
           version: ${{ env.QT_CI_VERSION }}
           host: ${{ matrix.host }}
           arch: ${{ matrix.qt_arch }}
-          modules: qtmultimedia
+          modules: qtmultimedia qtimageformats
           aqtversion: "==3.3.*"
           cache: true
       - name: Configure
@@ -103,7 +103,7 @@ jobs:
         with:
           version: ${{ env.QT_CI_VERSION }}
           arch: win64_msvc2022_64
-          modules: qtmultimedia
+          modules: qtmultimedia qtimageformats
           aqtversion: "==3.3.*"
           cache: true
       - run: cmake -S . -B build -A x64 -DBUILD_TESTING=ON
@@ -120,7 +120,7 @@ jobs:
         with:
           version: ${{ env.QT_CI_VERSION }}
           arch: win64_llvm_mingw
-          modules: qtmultimedia
+          modules: qtmultimedia qtimageformats
           tools: tools_llvm_mingw1706,qt.tools.win64_llvm_mingw1706
           aqtversion: "==3.3.*"
           cache: true
@@ -144,7 +144,7 @@ jobs:
           version: ${{ env.QT_CI_VERSION }}
           host: windows_arm64
           arch: win64_msvc2022_arm64
-          modules: qtmultimedia
+          modules: qtmultimedia qtimageformats
           aqtversion: "==3.3.*"
           cache: true
       - run: cmake -S . -B build -A ARM64 -DBUILD_TESTING=OFF
@@ -172,7 +172,7 @@ jobs:
       - uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125
         with:
           version: ${{ env.QT_CI_VERSION }}
-          modules: qtmultimedia
+          modules: qtmultimedia qtimageformats
           aqtversion: "==3.3.*"
           cache: true
       - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="${{ matrix.cmake_arch }}" -DBUILD_TESTING=ON
@@ -216,7 +216,7 @@ jobs:
           host: all_os
           target: android
           arch: ${{ matrix.qt_arch }}
-          modules: qtmultimedia
+          modules: qtmultimedia qtimageformats
           aqtversion: "==3.3.*"
           cache: true
       - name: Build verified OpenSSL 3.5 LTS for Android
@@ -281,7 +281,7 @@ jobs:
           QT_BASE="$RUNNER_TEMP/Qt"
           for qt_arch in android_arm64_v8a android_armv7 android_x86_64 android_x86; do
             python3 -m aqt install-qt all_os android "$QT_CI_VERSION" "$qt_arch" \
-              --autodesktop -m qtmultimedia -O "$QT_BASE"
+              --autodesktop -m qtmultimedia qtimageformats -O "$QT_BASE"
           done
           echo "LMG_QT_BASE=$QT_BASE" >> "$GITHUB_ENV"
       - name: Build verified OpenSSL 3.5 LTS for Android
@@ -359,7 +359,7 @@ jobs:
           host: mac
           target: ios
           arch: ios
-          modules: qtmultimedia
+          modules: qtmultimedia qtimageformats
           aqtversion: "==3.3.*"
           cache: true
       - name: Configure unsigned Apple-mobile build

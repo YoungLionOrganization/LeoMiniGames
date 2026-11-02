@@ -17,6 +17,7 @@ import posixpath
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from validate_audio_deployment import require_audio_backend
+from validate_graphics_deployment import require_image_backends
 from validate_android_package import dynamic_dependencies
 
 
@@ -60,6 +61,7 @@ def validate_linux_tar(archive, name, bundled=False):
     if not any(Path(m.name).name == 'LICENSE' for m in entries): raise ValueError(f'{name}: license missing')
     if bundled:
         require_audio_backend(m.name for m in entries)
+        require_image_backends(m.name for m in entries)
         indexed = {posixpath.normpath(m.name): m for m in members}
         if not any(m.name.endswith('/AppRun') and executable_archive_entry(m, indexed) for m in members):
             raise ValueError(f'{name}: executable AppRun missing')
@@ -129,6 +131,7 @@ def validate_content(path, root):
                 if 'AndroidManifest.xml' not in names or not any(n.startswith('classes') and n.endswith('.dex') for n in names): raise ValueError(f'{path.name}: missing Android application metadata/code')
             if '-Windows-' in path.name or '-macOS-' in path.name:
                 require_audio_backend(i.filename for i in entries)
+                require_image_backends(i.filename for i in entries)
             if '-Windows-' in path.name:
                 required = {'leominigames.exe', 'vcruntime140.dll', 'msvcp140.dll'}
                 if not required <= {Path(n).name.lower() for n in names}: raise ValueError(f'{path.name}: missing executable/runtime')

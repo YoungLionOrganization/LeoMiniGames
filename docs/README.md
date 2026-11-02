@@ -13,6 +13,8 @@
 - [SDK overview](sdk/OVERVIEW.md), [quickstart](sdk/QUICKSTART.md) and [API reference](sdk/API_REFERENCE.md).
 - [Release workflow](GITHUB_RELEASES.md), [next patch notes](../release/notes/v0.7.4.md) and [published v0.7.3 notes](../release/notes/v0.7.3.md) and [implementation history](releases/V073_IMPLEMENTATION.md).
 
+- [Linux runtime investigation](releases/V074_LINUX_RUNTIME.md): theme timing, image codecs, clean package environments and audio output.
+
 ## Next work
 
 - [Next patch priorities and package-layer groundwork](roadmap/NEXT_PATCHES.md).

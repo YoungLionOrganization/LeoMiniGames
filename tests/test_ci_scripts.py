@@ -14,6 +14,24 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('android_logcat', ROOT/'tools/ci/validate_android_logcat.py')
 android_logcat = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(android_logcat)
+spec = importlib.util.spec_from_file_location('audio_capture', ROOT/'tools/ci/validate_audio_capture.py')
+audio_capture = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(audio_capture)
+
+
+class AudioCaptureTests(unittest.TestCase):
+    def test_real_pcm_accepts_both_wave_polarities(self):
+        self.assertEqual(audio_capture.validate(b'\x00\x20\x00\xe0'*100)['audible'], 200)
+
+    def test_silence_and_single_spike_cannot_pass(self):
+        for data in (b'\0\0'*1000, b'\xff\x7f'+b'\0\0'*1000):
+            with self.assertRaisesRegex(ValueError, 'silent or incomplete'):
+                audio_capture.validate(data)
+
+    def test_empty_or_truncated_pcm_cannot_pass(self):
+        for data in (b'', b'\0'):
+            with self.assertRaises(ValueError):
+                audio_capture.validate(data)
 
 
 class AndroidLogcatTests(unittest.TestCase):

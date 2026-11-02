@@ -62,15 +62,24 @@ qreal sanitizedThemeNumber(const QString &key, qreal value)
     if (!std::isfinite(value))
         return 0.0;
     const QString lower = key.toLower();
-    if (lower.contains(QStringLiteral("opacity"))
-        || lower.contains(QStringLiteral("ratio"))
-        || lower.contains(QStringLiteral("progress"))) {
+    const QString leaf = lower.section(QLatin1Char('.'), -1);
+    const auto category = [&lower](const QString &name) {
+        return lower.startsWith(name + QLatin1Char('.'))
+            || lower.contains(QLatin1Char('.') + name + QLatin1Char('.'));
+    };
+    // Match semantic segments/suffixes, not arbitrary substrings: "duration"
+    // contains "ratio", and progressHeight/progressRadius are layout units.
+    if (category(QStringLiteral("duration")) || category(QStringLiteral("delay"))
+        || leaf.endsWith(QStringLiteral("duration")) || leaf.endsWith(QStringLiteral("delay")))
+        return qBound<qreal>(0.0, value, 60000.0);
+    if (category(QStringLiteral("opacity")) || category(QStringLiteral("ratio"))
+        || leaf.endsWith(QStringLiteral("opacity")) || leaf.endsWith(QStringLiteral("ratio"))
+        || leaf == QStringLiteral("progress") || leaf == QStringLiteral("progressminimum")
+        || leaf == QStringLiteral("progressmaximum")) {
         return qBound<qreal>(0.0, value, 1.0);
     }
-    if (lower.contains(QStringLiteral("scale")))
+    if (category(QStringLiteral("scale")) || leaf.endsWith(QStringLiteral("scale")))
         return qBound<qreal>(0.0, value, 8.0);
-    if (lower.contains(QStringLiteral("duration")) || lower.contains(QStringLiteral("delay")))
-        return qBound<qreal>(0.0, value, 60000.0);
     if (lower.contains(QStringLiteral("offset")) || lower.contains(QStringLiteral("letterspacing")))
         return qBound<qreal>(-4096.0, value, 4096.0);
     return qBound<qreal>(0.0, value, 4096.0);

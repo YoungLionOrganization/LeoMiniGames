@@ -37,7 +37,7 @@ jobs:
         with:
           version: "6.12.0"
           arch: ${{ matrix.arch }}
-          modules: qtmultimedia
+          modules: qtmultimedia qtimageformats
           aqtversion: "==3.3.*"
           cache: true
       - name: Install Qt from the split Windows MSVC repository
@@ -45,7 +45,7 @@ jobs:
         shell: pwsh
         run: |
           python -m pip install aqtinstall==3.3.0
-          python tools/ci/install_qt_next.py install-qt windows desktop 6.12.0 win64_msvc2022_64 --outputdir "$env:RUNNER_TEMP/Qt" --modules qtmultimedia
+          python tools/ci/install_qt_next.py install-qt windows desktop 6.12.0 win64_msvc2022_64 --outputdir "$env:RUNNER_TEMP/Qt" --modules qtmultimedia qtimageformats
           if ($LASTEXITCODE -ne 0) { throw 'Qt 6.12 installation failed' }
           $qtNextRoot = "$env:RUNNER_TEMP/Qt/6.12.0/msvc2022_64"
           if (!(Test-Path "$qtNextRoot/bin/Qt6Core.dll")) { throw 'Qt runtime missing' }
