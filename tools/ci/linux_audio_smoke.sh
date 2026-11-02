@@ -5,6 +5,9 @@ OUT="${1:?usage: linux_audio_smoke.sh OUT COMMAND [ARGS...]}"
 shift
 mkdir -p "$OUT"
 OUT="$(realpath "$OUT")"
+flatpak_mode=false
+if [[ "${1:-}" == --flatpak ]]; then flatpak_mode=true; shift; fi
+[[ $# -gt 0 ]] || { echo 'Missing application command or Flatpak ID.' >&2; exit 2; }
 WORK="$(mktemp -d)"
 server= recorder=
 cleanup() {
@@ -34,7 +37,14 @@ pactl set-sink-mute lmg 0
 parec --device=lmg.monitor --format=s16le --rate=48000 --channels=2 > "$OUT/output.pcm" 2> "$OUT/record.log" &
 recorder=$!
 sleep 0.2
-if ! QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=software xvfb-run -a timeout 15 "$@" --audio-smoke-test > "$OUT/playback.log" 2>&1; then
+if [[ "$flatpak_mode" == true ]]; then
+  # Only the private test socket is exposed; production permissions are unchanged.
+  command=(flatpak run --filesystem="$WORK:ro" --env="PULSE_SERVER=$PULSE_SERVER"
+    --env=QT_QPA_PLATFORM=xcb --env=QT_QUICK_BACKEND=software "$@")
+else
+  command=("$@")
+fi
+if ! QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=software xvfb-run -a timeout 15 "${command[@]}" --audio-smoke-test > "$OUT/playback.log" 2>&1; then
   cat "$OUT/playback.log" >&2
   exit 1
 fi
