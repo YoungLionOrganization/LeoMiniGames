@@ -3,11 +3,18 @@
 #include "AudioClip.h"
 #include "AudioManager.h"
 #include "SettingsManager.h"
+#include "RccPackageInspector.h"
+#include "PackageCompatibility.h"
 #include <QBuffer>
 #include <QDebug>
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QImage>
+#include <QDir>
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QSaveFile>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QTemporaryDir>
@@ -46,6 +53,37 @@ bool RuntimeChecks::graphics(QQmlEngine *engine, QString *error)
         return false;
     }
     std::puts("PASS: PNG JPEG WebP SVG codecs and Controls Shapes Dialogs imports");
+    return true;
+}
+
+bool RuntimeChecks::stageMod(const QString &source, const QString &modsRoot, QString *id, QString *error)
+{
+    const auto inspection = RccPackageInspector::inspect(source);
+    if (!inspection.valid) { *error = inspection.error; return false; }
+    *error = PackageCompatibility::error(inspection.manifest);
+    if (!error->isEmpty()) return false;
+    // Called only with --smoke-test's isolated temporary storage. The normal
+    // installed-package loader still validates and mounts this untrusted RCC.
+    const QString directory = modsRoot + QLatin1Char('/') + inspection.packageId;
+    const QString target = directory + QStringLiteral("/package.rcc");
+    if (!QDir().mkpath(directory) || !QFile::copy(source, target)) {
+        *error = QStringLiteral("Cannot stage the test RCC in isolated storage"); return false;
+    }
+    QJsonObject entry = inspection.manifest;
+    entry.insert(QStringLiteral("id"), inspection.packageId);
+    entry.insert(QStringLiteral("file"), target);
+    entry.insert(QStringLiteral("entry"), inspection.entryPath);
+    entry.insert(QStringLiteral("installed_version"), inspection.manifest.value(QStringLiteral("version")));
+    entry.insert(QStringLiteral("publisher_verified"), false);
+    entry.insert(QStringLiteral("reviewed"), false);
+    entry.insert(QStringLiteral("native"), false);
+    entry.insert(QStringLiteral("plugin_level"), 1);
+    QSaveFile index(modsRoot + QStringLiteral("/installed.json"));
+    const QByteArray bytes = QJsonDocument(QJsonArray{entry}).toJson();
+    if (!index.open(QIODevice::WriteOnly) || index.write(bytes) != bytes.size() || !index.commit()) {
+        *error = QStringLiteral("Cannot write the isolated package index"); return false;
+    }
+    *id = inspection.packageId;
     return true;
 }
 

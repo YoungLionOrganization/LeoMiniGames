@@ -119,7 +119,10 @@ bool ExternalGameRuntime::load(QQuickItem *parentItem,const QUrl &source,const Q
     m_impl->engine->setNetworkAccessManagerFactory(m_impl->networkFactory.get());
     if (m_diagnostics)
         m_diagnostics->attachEngine(m_impl->engine);
-    QQmlContext *context=new QQmlContext(m_impl->engine->rootContext(),m_impl->engine);for(auto it=m_services.cbegin();it!=m_services.cend();++it)context->setContextProperty(it.key(),it.value());context->setContextProperty(QStringLiteral("ExternalGameId"),gameId);
+    // QML singletons are created in the engine root context, not the entry
+    // component's child context. Each game already owns an isolated engine;
+    // publish the same restricted facades there so imported host modules work.
+    QQmlContext *context=m_impl->engine->rootContext();for(auto it=m_services.cbegin();it!=m_services.cend();++it)context->setContextProperty(it.key(),it.value());context->setContextProperty(QStringLiteral("ExternalGameId"),gameId);
     QQmlComponent component(m_impl->engine,source,QQmlComponent::PreferSynchronous);
     const auto componentError=[&component] {
         QStringList errors;for(const QQmlError &error:component.errors())errors<<error.toString();

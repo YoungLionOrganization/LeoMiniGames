@@ -37,5 +37,13 @@ int main(int argc,char **argv) {
  check(themes.color("color.background")==QColor("#112233"),"active token applied");
  check(themes.removeTheme("test_theme"),"remove theme");
  check(themes.activeThemeId()=="younglion.bronze-espresso"&&themes.number("alias.card.radius")>0,"active removal returns to complete built-in theme");check(!QFile::exists(mounted)&&!themes.isInstalled("test_theme"),"remove actually unmounts and updates model");
+ for(const QString &name:{QStringLiteral("legacy_outside"),QStringLiteral("legacy_bad_id"),QStringLiteral("legacy_bad_data"),QStringLiteral("qml_payload")})
+   check(!themes.installThemeRcc(QString::fromLocal8Bit(argv[1])+"/"+name+".rcc"),"legacy boundaries, identity, literal data and canonical no-code policy remain enforced");
+ check(themes.installThemeRcc(QString::fromLocal8Bit(argv[1])+"/legacy_data.rcc",{},"legacy_data","1.0.1",1),"legacy JSON is adapted without loading companion QML");
+ check(themes.applyTheme("legacy_data"),"legacy theme can be selected");
+ check(themes.color("color.primary")==QColor("#2468ac")&&themes.color("color.background")==QColor("#102030"),"legacy semantic colors drive current host aliases");
+ check(themes.number("metric.radius.md")==17&&themes.number("alias.motion.standard.duration")==180,"legacy geometry overrides preserve complete default timing");
+ check(themes.surface("surface.app").value("fillType")=="solid","legacy colors do not inherit an unrelated default gradient");
+ check(themes.removeTheme("legacy_data"),"legacy theme unmounts using the same servicing path");
  qInfo()<<"PASS:"<<count<<"theme package assertions";
 }

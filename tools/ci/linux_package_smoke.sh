@@ -23,8 +23,10 @@ for pass in install reinstall; do
   [[ -f /usr/share/applications/xyz.younglion.leominigames.desktop ]]
   [[ -f /usr/share/licenses/leominigames/LICENSE ]]
   if [[ "${LMG_REQUIRE_RUNTIME_ONLY:-0}" == 1 ]]; then
-    if find /usr -name Qt6Config.cmake -print -quit | grep -q .; then
-      echo 'Clean-runtime test unexpectedly contains a Qt development SDK.' >&2
+    # Arch bundles CMake metadata with its runtime packages. Check build tools
+    # instead of rejecting that legitimate distro layout as a development kit.
+    if command -v cmake >/dev/null || command -v c++ >/dev/null || command -v g++ >/dev/null; then
+      echo 'Clean-runtime test unexpectedly contains a build toolchain.' >&2
       exit 1
     fi
   fi

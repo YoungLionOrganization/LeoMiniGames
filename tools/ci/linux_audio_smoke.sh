@@ -9,6 +9,12 @@ flatpak_mode=false
 if [[ "${1:-}" == --flatpak ]]; then flatpak_mode=true; shift; fi
 [[ $# -gt 0 ]] || { echo 'Missing application command or Flatpak ID.' >&2; exit 2; }
 WORK="$(mktemp -d)"
+if [[ "$(id -u)" == 0 ]]; then
+  # GitHub containers can map HOME to a directory owned by the runner UID.
+  # libpulse rejects that mismatched home even with an explicit test socket.
+  export HOME="$WORK/home"
+  mkdir -m 700 "$HOME"
+fi
 server= recorder=
 cleanup() {
   [[ -z "$recorder" ]] || { kill "$recorder" 2>/dev/null || true; wait "$recorder" 2>/dev/null || true; }

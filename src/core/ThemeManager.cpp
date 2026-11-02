@@ -84,6 +84,69 @@ qreal sanitizedThemeNumber(const QString &key, qreal value)
         return qBound<qreal>(-4096.0, value, 4096.0);
     return qBound<qreal>(0.0, value, 4096.0);
 }
+
+QJsonObject legacyThemeData(const QJsonObject &document, const QString &id)
+{
+    if (document.value(QStringLiteral("schema_version")).toDouble() != 1.0
+        || document.value(QStringLiteral("type")).toString() != QStringLiteral("theme")
+        || document.value(QStringLiteral("id")).toString() != id
+        || document.value(QStringLiteral("resource_prefix")).toString() != QStringLiteral("/themes/") + id
+        || !document.value(QStringLiteral("colors")).isObject()) return QJsonObject{};
+    const QJsonObject colors = document.value(QStringLiteral("colors")).toObject();
+    const QJsonObject aliases = document.value(QStringLiteral("aliases")).toObject();
+    QJsonObject tokens;
+    const auto color = [&](const char *target, std::initializer_list<const char *> names) {
+        for (const char *name : names) {
+            const QString key = QString::fromLatin1(name);
+            const QString value = colors.value(key).toString(aliases.value(key).toString());
+            if (!QColor(value).isValid()) continue;
+            tokens.insert(QString::fromLatin1(target), value);
+            return;
+        }
+    };
+    // Read literal JSON only. Legacy Constants.qml/Theme.qml are never loaded,
+    // evaluated or imported into either the host or a game's QML engine.
+    color("color.background", {"appBackgroundColor", "backgroundColor", "pageBackgroundColor"});
+    color("color.backgroundRaised", {"backgroundElevatedColor", "backgroundSecondaryColor"});
+    color("color.surface", {"surfaceColor", "panelColor", "cardColor"});
+    color("color.surfaceRaised", {"surfaceElevatedColor", "cardElevatedColor"});
+    color("color.surfaceInteractive", {"cardHoverColor", "buttonSecondaryColor"});
+    color("color.surfaceHover", {"hoverColor", "cardHoverColor"});
+    color("color.border", {"borderColor"});
+    color("color.borderStrong", {"borderStrongColor", "glassBorderStrongColor"});
+    color("color.primary", {"primaryColor", "brandColor"});
+    color("color.primaryHover", {"primaryHoverColor"});
+    color("color.accent", {"accentColor"});
+    color("color.accentSoft", {"accentSecondaryColor", "accentColor"});
+    color("color.text", {"textColor", "fontColor", "textPrimaryColor"});
+    color("color.textMuted", {"textMutedColor", "fontMutedColor", "textSecondaryColor"});
+    color("color.textSubtle", {"textTertiaryColor", "fontDisabledColor"});
+    color("color.danger", {"dangerColor", "errorColor"});
+    color("color.success", {"successColor"});
+    color("color.info", {"infoColor", "accentColor"});
+    color("color.special", {"accentAlternativeColor", "violet500Color"});
+    color("color.playingCard.background", {"cardColor", "surfaceColor"});
+    color("color.playingCard.redSuit", {"dangerColor", "errorColor"});
+    color("color.playingCard.blackSuit", {"textColor", "fontColor"});
+    color("color.overlay.scrim", {"overlayColor", "backgroundOverlayColor"});
+    if (tokens.isEmpty()) return QJsonObject{};
+    const QJsonObject metrics = document.value(QStringLiteral("metrics")).toObject();
+    for (const auto &pair : {qMakePair("metric.radius.sm", "radiusSmall"), qMakePair("metric.radius.md", "radiusMedium"),
+                             qMakePair("metric.radius.lg", "radiusLarge"), qMakePair("metric.radius.xl", "radiusXLarge")}) {
+        const auto value = metrics.value(QString::fromLatin1(pair.second));
+        if (value.isDouble() && std::isfinite(value.toDouble()))
+            tokens.insert(QString::fromLatin1(pair.first), qBound(0.0, value.toDouble(), 4096.0));
+    }
+    QJsonObject surfaces;
+    for (const char *name : {"surface.app", "surface.dialog"}) {
+        surfaces.insert(QString::fromLatin1(name), QJsonObject{{QStringLiteral("fillType"), QStringLiteral("solid")}});
+    }
+    return {{QStringLiteral("id"), id}, {QStringLiteral("name"), document.value(QStringLiteral("name"))},
+            {QStringLiteral("version"), document.value(QStringLiteral("version"))},
+            {QStringLiteral("publisher"), document.value(QStringLiteral("publisher"))},
+            {QStringLiteral("theme_api_version"), 1}, {QStringLiteral("tokens"), tokens},
+            {QStringLiteral("surfaces"), surfaces}};
+}
 }
 
 ThemeManager::ThemeManager(AppPaths *paths, QObject *parent)
@@ -439,11 +502,17 @@ bool ThemeManager::loadExternalRecord(const QString &filePath, ThemeRecord *reco
         setError(QStringLiteral("Theme RCC registration failed."));
         return false;
     }
-    if (!validateThemeResources(root)) {
-        QResource::unregisterResource(filePath, root);
-        return false;
+    QString legacyId;
+    QString contentRoot = root + QStringLiteral("/theme");
+    if (!QFile::exists(QLatin1Char(':') + contentRoot + QStringLiteral("/theme.json"))) {
+        const QStringList ids = QDir(QStringLiteral(":%1/themes").arg(root)).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        static const QRegularExpression idPattern(QStringLiteral("^[a-z0-9][a-z0-9_.-]{1,127}$"));
+        if (ids.size() == 1 && idPattern.match(ids.first()).hasMatch()) {
+            legacyId = ids.first();
+            contentRoot = root + QStringLiteral("/themes/") + legacyId;
+        }
     }
-    QFile manifest(QStringLiteral(":%1/theme/theme.json").arg(root));
+    QFile manifest(QLatin1Char(':') + contentRoot + QStringLiteral("/theme.json"));
     if (!manifest.open(QIODevice::ReadOnly)) {
         QResource::unregisterResource(filePath, root);
         setError(QStringLiteral("Theme package does not contain /theme/theme.json."));
@@ -454,7 +523,18 @@ bool ThemeManager::loadExternalRecord(const QString &filePath, ThemeRecord *reco
         setError(QStringLiteral("Theme manifest size is invalid."));
         return false;
     }
-    if (!parseDocument(manifest.readAll(), record, QStringLiteral("qrc:%1/theme").arg(root), filePath, false)) {
+    QByteArray json = manifest.readAll();
+    if (!legacyId.isEmpty()) {
+        const QJsonObject converted = legacyThemeData(QJsonDocument::fromJson(json).object(), legacyId);
+        if (converted.isEmpty()) {
+            QResource::unregisterResource(filePath, root);
+            setError(QStringLiteral("Legacy theme JSON identity, schema or literal colors are invalid."));
+            return false;
+        }
+        json = QJsonDocument(converted).toJson(QJsonDocument::Compact);
+    }
+    if (!validateThemeResources(root, legacyId)
+        || !parseDocument(json, record, QStringLiteral("qrc:") + contentRoot, filePath, false)) {
         QResource::unregisterResource(filePath, root);
         return false;
     }
@@ -463,9 +543,10 @@ bool ThemeManager::loadExternalRecord(const QString &filePath, ThemeRecord *reco
     return true;
 }
 
-bool ThemeManager::validateThemeResources(const QString &resourceRoot)
+bool ThemeManager::validateThemeResources(const QString &resourceRoot, const QString &legacyId)
 {
-    const QString themeRoot = QStringLiteral(":%1/theme").arg(resourceRoot);
+    const QString themeRoot = legacyId.isEmpty() ? QStringLiteral(":%1/theme").arg(resourceRoot)
+                                               : QStringLiteral(":%1/themes/%2").arg(resourceRoot, legacyId);
     QDirIterator it(QStringLiteral(":%1").arg(resourceRoot), QDir::Files, QDirIterator::Subdirectories);
     qint64 totalBytes = 0;
     int resourceCount = 0;
@@ -475,7 +556,10 @@ bool ThemeManager::validateThemeResources(const QString &resourceRoot)
         if (path.endsWith(QStringLiteral("/theme.json"), Qt::CaseInsensitive))
             foundManifest = true;
         totalBytes += QResource(path).uncompressedSize();
-        if (++resourceCount > 4096 || totalBytes > 64LL * 1024 * 1024 || !path.startsWith(themeRoot + QLatin1Char('/')) || !isAllowedThemeResource(path)) {
+        const QString relative = path.mid(themeRoot.size() + 1);
+        const bool inertLegacyFile = !legacyId.isEmpty() && (relative == QStringLiteral("Constants.qml")
+            || relative == QStringLiteral("Theme.qml") || relative == QStringLiteral("qmldir"));
+        if (++resourceCount > 4096 || totalBytes > 64LL * 1024 * 1024 || !path.startsWith(themeRoot + QLatin1Char('/')) || (!isAllowedThemeResource(path) && !inertLegacyFile)) {
             setError(QStringLiteral("Theme packages may contain data/assets only; forbidden resource: %1")
                          .arg(QFileInfo(path).fileName()));
             return false;
