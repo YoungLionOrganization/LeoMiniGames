@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.4 — Runtime reliability and release verification
+
+- Preserve newer update checks and input state when callbacks change the active request, actions or focus.
+- Verify mod downloads against catalog package metadata and use installation-format-specific update guidance.
+- Prepare optional platform QA reports from the source-bound artifact manifest and publish verified package evidence with device-test limits.
+- Retain API 0.7 and legacy RCC compatibility. See the [release notes](release/notes/v0.7.4.md).
+
 ## 0.7.3 — Runtime recovery and platform packaging
 
 - Fix cross-platform SDK control style and test isolation, report emulator startup failures with a clean host Qt environment, and find the installed ARM64 MSVC runtime across redist versions.

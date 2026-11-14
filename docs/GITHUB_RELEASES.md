@@ -1,6 +1,6 @@
 # GitHub Releases and release operator guide
 
-This document describes the release pipeline. Main now prepares v0.7.4; v0.7.3 was published on 31 October 2026 with 39 verified assets. Always read the intended version from `release/release.json`. The pipeline is intentionally manual at the publication boundary, but asset collection, validation and GitHub Release publication are automated after the maintainer selects publish mode and approves the protected environment.
+This document describes the release pipeline. [v0.7.4 was published on 31 October 2026](https://github.com/YoungLionOrganization/LeoMiniGames/releases/tag/v0.7.4) with 39 verified assets. Always read the intended version from `release/release.json`. The pipeline is intentionally manual at the publication boundary, but asset collection, validation and GitHub Release publication are automated after the maintainer selects publish mode and approves the protected environment.
 
 ## Pipeline overview
 
