@@ -5,7 +5,9 @@ import QtQuick.Controls
 Flickable {
     id: root
     contentWidth: width
-    contentHeight: Math.max(height, content.implicitHeight + Math.max(Constants.spaceMd, Viewport.safeTop) + Math.max(Constants.spaceMd, Viewport.safeBottom))
+    readonly property real topInset: Math.max(Constants.spaceMd, Viewport.safeTop)
+    readonly property real bottomInset: Math.max(Constants.spaceMd, Viewport.safeBottom)
+    contentHeight: Math.max(height, content.implicitHeight + topInset + bottomInset)
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     interactive: contentHeight > height
@@ -14,7 +16,7 @@ Flickable {
 
     function titleText() {
         if (game.state === "idle") return qsTr("Ready?")
-        if (game.state === "waiting") return qsTr("Wait for gold…")
+        if (game.state === "waiting") return qsTr("Wait…")
         if (game.state === "ready") return qsTr("TAP!")
         if (game.state === "false_start") return qsTr("Too early!")
         return game.lastMs + " ms"
@@ -40,11 +42,12 @@ Flickable {
     Column {
         id: content
         anchors.horizontalCenter: parent.horizontalCenter
-        y: Math.max(Math.max(Constants.spaceMd, Viewport.safeTop), (root.height - height) / Constants.u2)
+        y: root.topInset + Math.max(0, (root.height - root.topInset - root.bottomInset - height) / 2)
         width: Math.min(parent.width - Constants.n("alias.game.common.horizontalInset"), Constants.n("alias.game.reaction.maxWidth"))
         spacing: Constants.n("alias.game.reaction.contentSpacing")
 
         Flow {
+            id: stats
             width: parent.width
             spacing: Constants.n("alias.game.reaction.statGap")
             StatChip { label: qsTr("Last"); value: game.lastMs > 0 ? game.lastMs + " ms" : "—"; accent: Constants.accent }
@@ -55,10 +58,16 @@ Flickable {
 
         ThemeSurface {
             id: pad
+            objectName: "reactionPad"
             width: Math.min(parent.width, Constants.n("alias.game.reaction.padMaxSize"))
-            height: width
+            height: {
+                const available = root.height - root.topInset - root.bottomInset - stats.implicitHeight - content.spacing
+                const minimum = Math.max(Constants.touchTarget,
+                                         padCopy.implicitHeight + 2 * Constants.spaceMd)
+                return Math.max(minimum, Math.min(width, available))
+            }
             anchors.horizontalCenter: parent.horizontalCenter
-            radius: width * Constants.ratio50
+            radius: Math.min(width, height) * Constants.ratio50
             color: game.state === "ready" ? Constants.accent
                  : game.state === "false_start" ? Constants.danger
                  : Constants.surfaceRaised
@@ -78,6 +87,7 @@ Flickable {
             }
 
             Column {
+                id: padCopy
                 anchors.centerIn: parent
                 width: parent.width * Constants.n("alias.game.reaction.contentWidthRatio")
                 spacing: Constants.n("alias.game.reaction.innerGap")
@@ -89,6 +99,7 @@ Flickable {
                     font.pixelSize: game.state === "ready" ? Constants.n("alias.game.reaction.readyFontSize") : Constants.n("alias.game.reaction.normalFontSize")
                     font.bold: true
                     horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
                 }
                 Text {
                     width: parent.width
