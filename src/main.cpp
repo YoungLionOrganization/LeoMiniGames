@@ -117,6 +117,13 @@ int main(int argc, char *argv[])
 
     AppPaths paths(smokeTest ? smokeDirectory->path() + QStringLiteral("/data") : QString{},
                    smokeTest ? smokeDirectory->path() + QStringLiteral("/cache") : QString{});
+    QString smokeModId;
+    if (smokeTest && !qEnvironmentVariableIsEmpty("LMG_SMOKE_MOD_RCC")) {
+        QString error;
+        if (!RuntimeChecks::stageMod(qEnvironmentVariable("LMG_SMOKE_MOD_RCC"), paths.mods(), &smokeModId, &error)) {
+            qCritical().noquote() << "Smoke RCC:" << error; return 8;
+        }
+    }
     SettingsManager settings;
     UpdateService updates(&settings);
     ThemeManager theme(&paths);
@@ -352,13 +359,18 @@ int main(int argc, char *argv[])
             smokeWindow->resize(dimensions.at(0).toInt(), dimensions.at(1).toInt());
         }
         auto *timer = new QTimer(&app);
-        const QStringList games{QStringLiteral("xox"), QStringLiteral("blackjack"), QStringLiteral("minesweeper"), QStringLiteral("2048"), QStringLiteral("memory_match"), QStringLiteral("reaction_tap")};
+        QStringList games{QStringLiteral("xox"), QStringLiteral("blackjack"), QStringLiteral("minesweeper"), QStringLiteral("2048"), QStringLiteral("memory_match"), QStringLiteral("reaction_tap")};
+        if (!smokeModId.isEmpty()) {
+            if (qEnvironmentVariableIntValue("LMG_SMOKE_ONLY_MOD") == 1) games.clear();
+            games.append(smokeModId);
+        }
         QObject::connect(timer, &QTimer::timeout, &app, [&, timer, games, index = 0, opened = false]() mutable {
             if (!opened) {
                 if (index == games.size()) {
                     // Distro Qt logging rules can suppress qInfo; test evidence
                     // must remain observable after a successful full session run.
-                    std::puts("PASS: six builtin QML sessions opened and closed");
+                    if (games.size() >= 6) std::puts("PASS: six builtin QML sessions opened and closed");
+                    if (!smokeModId.isEmpty()) std::puts("PASS: validated external RCC session opened and closed through the installed-package runtime");
                     std::fflush(stdout);
                     app.exit(0); return;
                 }
@@ -373,7 +385,9 @@ int main(int argc, char *argv[])
             if (!screenshotDir.isEmpty()) {
                 QDir().mkpath(screenshotDir);
                 auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0));
-                if (window) window->grabWindow().save(screenshotDir + QLatin1Char('/') + games.at(index) + QStringLiteral(".png"));
+                if (!window || !window->grabWindow().save(screenshotDir + QLatin1Char('/') + games.at(index) + QStringLiteral(".png"))) {
+                    qCritical("Smoke: rendered frame could not be captured"); app.exit(5); return;
+                }
             }
             controller.closeGame();
             if (!controller.currentGameId().isEmpty() || !lifecycle.gameId().isEmpty() || !gameStats.gameId().isEmpty()) { app.exit(4); return; }

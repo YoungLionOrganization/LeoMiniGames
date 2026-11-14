@@ -1,4 +1,4 @@
-# LeoMiniGames Theme System (0.7.3)
+# LeoMiniGames Theme System (0.7.4 development)
 
 LeoMiniGames uses one runtime design-token contract for the application shell and theme-aware games. A theme can replace presentation values and surface specifications without replacing application/game code.
 
@@ -56,7 +56,7 @@ External themes are data-only Qt RCC packages. They are separate from game/mod R
 /theme/assets/...
 ```
 
-Allowed resource types are limited to JSON, images and supported font data. QML, JavaScript, native libraries and executable files are rejected. The Theme Market download path additionally requires HTTPS, validates catalog/ticket metadata, enforces package-size limits and verifies SHA-256 before installation.
+Allowed resource types are limited to JSON, images and supported font data. QML, JavaScript, native libraries and executable files are rejected. Canonical packages keep this data-only rule. A bounded compatibility reader also accepts legacy schema-1 JSON at `/themes/<id>/theme.json`: identity and namespace must match, and only literal colors/metrics are adapted to current tokens. Its top-level `Constants.qml`, `Theme.qml` and `qmldir` companions may remain as inert bytes; they are never evaluated, imported or used as host code. Arbitrary code files, native libraries, identity mismatches and resources outside that theme namespace remain rejected. New packages must use the canonical layout. The Theme Market download path additionally requires HTTPS, validates catalog/ticket metadata, enforces package-size limits and verifies SHA-256 before installation.
 
 ## Protected primitives and gameplay isolation
 

@@ -1,0 +1,1 @@
+<RCC><qresource prefix="/themes/legacy_data"><file>theme.json</file><file>Theme.qml</file><file alias="Constants.qml">Theme.qml</file><file>qmldir</file></qresource></RCC>

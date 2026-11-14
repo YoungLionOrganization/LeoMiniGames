@@ -1,0 +1,1 @@
+{"schema_version":1,"type":"theme","id":"legacy_data","name":"Legacy data fixture","version":"1.0.1","publisher":"Test","publisher_verified":true,"resource_prefix":"/themes/legacy_data","entry":"Theme.qml","constants":"Constants.qml","colors":{"primaryColor":"#2468ac","backgroundColor":"#102030","textColor":"#edf4ff"},"metrics":{"radiusMedium":17}}

@@ -76,7 +76,7 @@ private:
     bool loadBuiltIn();
     bool registerExternal(const QString &filePath);
     bool loadExternalRecord(const QString &filePath, ThemeRecord *record);
-    bool validateThemeResources(const QString &resourceRoot);
+    bool validateThemeResources(const QString &resourceRoot, const QString &legacyId = QString{});
     bool parseDocument(const QByteArray &json, ThemeRecord *record, const QString &resourceRoot, const QString &filePath, bool builtIn);
     bool recordContainsKey(const ThemeRecord &record, const QString &key) const;
     QVariant resolveKey(const QString &key, int depth = 0) const;

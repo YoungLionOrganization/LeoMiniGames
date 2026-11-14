@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
     LanguageManager language(&settings); LegacyLanguageFacade legacyLanguage(&language);
     GameThemeFacade theme(nullptr); GameResources resources; GameRuntime gameRuntime;
     GameAudio gameAudio(nullptr,&settings); GameLifecycleFacade legacyLifecycle(&lifecycle);
-    runtime.setServices({{"GameSave",&save},{"App",&facade},{"Settings",&legacySettings},{"Audio",&legacyAudio},{"Lang",&legacyLanguage},{"GameTheme",&theme},{"GameAudio",&gameAudio},{"Lifecycle",&legacyLifecycle},{"GameRuntime",&gameRuntime},{"GameResources",&resources}});
+    runtime.setServices({{"GameSave",&save},{"App",&facade},{"Settings",&legacySettings},{"Audio",&legacyAudio},{"Lang",&legacyLanguage},{"GameTheme",&theme},{"ThemeRuntime",&theme},{"GameAudio",&gameAudio},{"Lifecycle",&legacyLifecycle},{"GameRuntime",&gameRuntime},{"GameResources",&resources}});
     for (const QString &fixture : {QStringLiteral("v0_5_canonical"),QStringLiteral("v0_5_legacy_prefix"),QStringLiteral("v0_6_services"),QStringLiteral("v0_7_modern")}) {
         const QString package=QString::fromLocal8Bit(argv[1])+QLatin1Char('/')+fixture+QStringLiteral(".rcc");
         const auto inspected=RccPackageInspector::inspect(package); check(inspected.valid,"legacy inspection");

@@ -84,6 +84,10 @@ foreach(name IN ITEMS v0_5_canonical v0_5_legacy_prefix v0_6_services v0_7_moder
     list(APPEND COMPAT_RCC_FILES ${out})
 endforeach()
 add_custom_target(compat_rcc_fixtures ALL DEPENDS ${COMPAT_RCC_FILES})
+add_dependencies(LeoMiniGames compat_rcc_fixtures)
+add_test(NAME installed_rcc_session COMMAND LeoMiniGames --smoke-test)
+set_tests_properties(installed_rcc_session PROPERTIES TIMEOUT 35
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;LMG_SMOKE_MOD_RCC=${COMPAT_RCC_DIR}/v0_6_services.rcc;LMG_SMOKE_ONLY_MOD=1")
 
 add_executable(test_rcc_compat
     test_rcc_compat.cpp
@@ -156,7 +160,7 @@ add_test(NAME credential_store_order COMMAND test_credential_order)
 set(THEME_RCC_DIR ${CMAKE_CURRENT_BINARY_DIR}/theme-rcc)
 file(MAKE_DIRECTORY ${THEME_RCC_DIR})
 set(THEME_RCC_FILES)
-foreach(name IN ITEMS valid outside cycle bad_api bad_version)
+foreach(name IN ITEMS valid outside cycle bad_api bad_version legacy_data legacy_outside legacy_bad_id legacy_bad_data qml_payload)
     file(GLOB_RECURSE theme_inputs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/tests/fixtures/themes/${name}/*)
     set(out ${THEME_RCC_DIR}/${name}.rcc)
     add_custom_command(OUTPUT ${out}

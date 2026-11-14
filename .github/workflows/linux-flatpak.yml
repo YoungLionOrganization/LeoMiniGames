@@ -26,7 +26,7 @@ jobs:
       - name: Install build tools and runtime remote
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder xvfb xauth
+          sudo apt-get install -y flatpak flatpak-builder xvfb xauth pulseaudio pulseaudio-utils
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
       - name: Build bundle
@@ -49,6 +49,7 @@ jobs:
               --env=QT_QPA_PLATFORM=xcb --env=QT_QUICK_BACKEND=software \
               xyz.younglion.leominigames --smoke-test > "flatpak-smoke/$pass.log" 2>&1
             grep -F 'PASS: six builtin QML sessions opened and closed' "flatpak-smoke/$pass.log"
+            bash tools/ci/linux_audio_smoke.sh "flatpak-smoke/$pass-audio" --flatpak xyz.younglion.leominigames
             mkdir -p "$HOME/.var/app/xyz.younglion.leominigames/data"
             if [[ "$pass" == install ]]; then
               echo keep-save > "$HOME/.var/app/xyz.younglion.leominigames/data/servicing-sentinel"
