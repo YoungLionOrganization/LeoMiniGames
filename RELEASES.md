@@ -8,15 +8,15 @@ LeoMiniGames uses `MAJOR.MINOR.PATCH` application versions. Patch releases may c
 
 Releases are not created merely by pushing a tag. `build-artifacts.yml` manually builds and aggregates artifacts; `publish-release.yml` is a separate guarded manual workflow. Its default `validate` mode performs release preflight only. Actual publication requires `mode=publish`, an authorized publisher and any configured approval on the protected GitHub `release` Environment.
 
+## v0.7.5 — in development
+
+See the [development notes](release/notes/v0.7.5.md) for the Reaction Tap layout and Linux runtime changes. This version requires a new exact-source package build before publication.
+
 ## v0.7.4 — published 31 October 2026
 
 The [published release](https://github.com/YoungLionOrganization/LeoMiniGames/releases/tag/v0.7.4) contains 39 public assets from `3e85f539d66111a51c59fad5c8c4390527489afd`. [CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41221757853), [artifact build](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41221918528) and [publication](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41224455680) succeeded at that source. The release page records each package's SHA-256 and the automated and physical-device test coverage.
 
 The patch preserves newer update and input state when callbacks run synchronously, checks mod download tickets against catalog identity, and gives update guidance for the user's package format. See the [v0.7.4 notes](release/notes/v0.7.4.md).
-
-### Changes after v0.7.4
-
-The development branch adds [Linux runtime, theme and external game fixes](docs/releases/V074_LINUX_RUNTIME.md). These changes will ship with a later release after exact-source package verification. See [next patch priorities](docs/roadmap/NEXT_PATCHES.md).
 
 ## v0.7.3 — published 31 October 2026
 

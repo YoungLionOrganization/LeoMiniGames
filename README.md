@@ -3,7 +3,7 @@
 [![CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml/badge.svg)](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml)
 [![Qt](https://img.shields.io/badge/Qt-6.8%2B-41CD52?logo=qt&logoColor=white)](https://www.qt.io/)
 [![License](https://img.shields.io/badge/license-Source--Available%20SAPEL--1.0-orange)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.7.4-B8860B)](RELEASES.md)
+[![Version](https://img.shields.io/badge/development-0.7.5-B8860B)](RELEASES.md)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20iOS%20%7C%20macOS-informational)](#platform-and-architecture-matrix)
 
 **LeoMiniGames** is a modular, cross-platform Qt 6 / Qt Quick mini-game launcher, runtime and content ecosystem. Games, mods and themes are designed to remain as independent from the host application as practical while reusing a common service layer for theme, save, localization, audio, haptics, input, lifecycle, statistics, achievements, package management and developer tooling.
