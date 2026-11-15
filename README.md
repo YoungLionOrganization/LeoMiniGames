@@ -3,12 +3,12 @@
 [![CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml/badge.svg)](https://github.com/YoungLionOrganization/LeoMiniGames/actions/workflows/ci.yml)
 [![Qt](https://img.shields.io/badge/Qt-6.8%2B-41CD52?logo=qt&logoColor=white)](https://www.qt.io/)
 [![License](https://img.shields.io/badge/license-Source--Available%20SAPEL--1.0-orange)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.7.4-B8860B)](RELEASES.md)
+[![Version](https://img.shields.io/badge/development-0.7.5-B8860B)](RELEASES.md)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20iOS%20%7C%20macOS-informational)](#platform-and-architecture-matrix)
 
 **LeoMiniGames** is a modular, cross-platform Qt 6 / Qt Quick mini-game launcher, runtime and content ecosystem. Games, mods and themes are designed to remain as independent from the host application as practical while reusing a common service layer for theme, save, localization, audio, haptics, input, lifecycle, statistics, achievements, package management and developer tooling.
 
-**Development: v0.7.4 (unreleased).** The latest published version is [v0.7.3](https://github.com/YoungLionOrganization/LeoMiniGames/releases/tag/v0.7.3). Main includes the next patch's update/input callback ownership and catalog integrity fixes.
+**Latest release: [v0.7.4](https://github.com/YoungLionOrganization/LeoMiniGames/releases/tag/v0.7.4).** It fixes update checks and input callbacks that could discard newer state, verifies mod downloads against the catalog, and keeps installation choices visible. See the [release guide](RELEASES.md#v074--published-31-october-2026) for package coverage and later development changes.
 
 **v0.7.3** repairs Android TLS dependencies, packages Windows runtimes and improves save recovery, session teardown and package installation. It keeps the v0.7.0 compatibility/security contract: supported v0.5/v0.6 RCC games continue to run through compatibility adapters rather than being rejected merely because they predate the current API negotiation model.
 
@@ -51,13 +51,13 @@ Publication uses verified GitHub build/package tests and explicitly discloses ph
 
 ## Install and documentation
 
-Download a published package from [Releases](https://github.com/YoungLionOrganization/LeoMiniGames/releases). The version badge describes this source tree; it does not mean the candidate has been published. Windows Setup/ZIP, Linux native/portable/Flatpak, Android APK and macOS packages have separate architecture choices.
+Download a published package from [Releases](https://github.com/YoungLionOrganization/LeoMiniGames/releases). Windows Setup/ZIP, Linux native/portable/Flatpak, Android APK and macOS packages have separate architecture choices.
 
 **[Installation guide](docs/INSTALLATION.md)** covers installation, upgrades, removal and save preservation. **[Documentation index](docs/README.md)** links user, build and SDK guides.
 
 Arch builds include a native `.pkg.tar.zst` and x86_64 Flatpak bundle. Flatpak also has an aarch64 build; Debian DEB, Fedora RPM, AppImage, portable tar.gz and the user-level `Setup.run` are included in the Linux matrix. See [Linux package choices](docs/LINUX_PACKAGES.md). No AUR/Flathub store publication is claimed.
 
-The primary release kit remains Qt 6.10.2. A separate [Qt 6.12 compatibility workflow](.github/workflows/qt-next.yml) builds and tests on GitHub runners. [HarmonyOS preparation](docs/roadmap/HARMONYOS.md) is tracked for a later patch; v0.7.3 does not contain a HarmonyOS package.
+The primary release kit remains Qt 6.10.2. A separate [Qt 6.12 compatibility workflow](.github/workflows/qt-next.yml) builds and tests on GitHub runners. [HarmonyOS preparation](docs/roadmap/HARMONYOS.md) is tracked for a later patch; v0.7.4 does not contain a HarmonyOS package.
 
 ## v0.7.2 highlights
 
@@ -380,7 +380,7 @@ Application update discovery and downloads are resolved through `https://leomini
 - `release-assets` — the validated public Release payload;
 - `update-repositories` — the Windows QtIFW repositories used by Maintenance Tool.
 
-The v0.7.3 public asset allowlist contains 39 files: source ZIP; six Windows ZIP/Setup files; three Linux portable tarballs, three AppImages, three Setup.run installers, five native tarballs, two DEBs, two RPMs, one Arch package and two Flatpak bundles; six macOS ZIP/DMG files; and five Android APKs. See [Linux package choices](docs/LINUX_PACKAGES.md). AABs, unsigned Apple test bundles, checksum/legal sidecars and QtIFW repository internals remain excluded from public assets.
+The v0.7.4 public asset allowlist contains 39 files: source ZIP; six Windows ZIP/Setup files; three Linux portable tarballs, three AppImages, three Setup.run installers, five native tarballs, two DEBs, two RPMs, one Arch package and two Flatpak bundles; six macOS ZIP/DMG files; and five Android APKs. See [Linux package choices](docs/LINUX_PACKAGES.md). AABs, unsigned Apple test bundles, checksum/legal sidecars and QtIFW repository internals remain excluded from public assets.
 
 Windows packaging runs `windeployqt` before creating the portable archive. QtIFW produces hybrid installers so the installed Maintenance Tool can later consume the published update repository.
 

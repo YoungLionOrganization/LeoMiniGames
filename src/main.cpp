@@ -9,6 +9,7 @@
 #include <QSslSocket>
 #include <QTimer>
 #include <QQuickWindow>
+#include <QQuickItem>
 #include <QQmlError>
 #include <QImage>
 #include <QDir>
@@ -82,7 +83,7 @@ int main(int argc, char *argv[])
     app.setOrganizationName(QStringLiteral("YoungLion"));
     app.setOrganizationDomain(QStringLiteral("xyz.younglion.leominigames"));
     app.setApplicationName(QStringLiteral("LeoMiniGames"));
-    app.setApplicationVersion(QStringLiteral("0.7.4"));
+    app.setApplicationVersion(QStringLiteral("0.7.5"));
     app.setApplicationDisplayName(QStringLiteral("LeoMiniGames"));
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
     app.setDesktopFileName(QStringLiteral("xyz.younglion.leominigames"));
@@ -353,6 +354,7 @@ int main(int argc, char *argv[])
         }
         const QString sizeText = qEnvironmentVariable("LMG_SMOKE_SIZE");
         const QStringList dimensions = sizeText.split(QLatin1Char('x'));
+        const bool compactLandscape = sizeText == QStringLiteral("640x360");
         auto *smokeWindow = qobject_cast<QQuickWindow *>(engine.rootObjects().value(0));
         if (smokeWindow && dimensions.size() == 2) {
             smokeWindow->setMinimumSize(QSize(0, 0));
@@ -364,7 +366,7 @@ int main(int argc, char *argv[])
             if (qEnvironmentVariableIntValue("LMG_SMOKE_ONLY_MOD") == 1) games.clear();
             games.append(smokeModId);
         }
-        QObject::connect(timer, &QTimer::timeout, &app, [&, timer, games, index = 0, opened = false]() mutable {
+        QObject::connect(timer, &QTimer::timeout, &app, [&, timer, games, smokeWindow, compactLandscape, index = 0, opened = false]() mutable {
             if (!opened) {
                 if (index == games.size()) {
                     // Distro Qt logging rules can suppress qInfo; test evidence
@@ -380,6 +382,24 @@ int main(int argc, char *argv[])
             }
             if (smokeQmlWarnings || lifecycle.gameId() != games.at(index) || !diagnostics.lastError().isEmpty()) {
                 qCritical() << "Smoke: lifecycle/QML failure" << games.at(index) << diagnostics.lastError(); app.exit(3); return;
+            }
+            if (compactLandscape && games.at(index) == QStringLiteral("reaction_tap")) {
+                QList<QQuickItem *> items = smokeWindow ? smokeWindow->contentItem()->childItems() : QList<QQuickItem *>{};
+                QQuickItem *pad = nullptr;
+                while (!items.isEmpty()) {
+                    auto *item = items.takeLast();
+                    if (item->objectName() == QStringLiteral("reactionPad")) {
+                        pad = item;
+                        break;
+                    }
+                    items.append(item->childItems());
+                }
+                const auto bottom = pad ? pad->mapToScene(QPointF(0, pad->height())).y() : 0;
+                if (!pad || bottom > smokeWindow->height()) {
+                    qCritical("Smoke: Reaction Tap pad must fit in the compact window");
+                    app.exit(8);
+                    return;
+                }
             }
             const QString screenshotDir = qEnvironmentVariable("LMG_SMOKE_OUTPUT");
             if (!screenshotDir.isEmpty()) {

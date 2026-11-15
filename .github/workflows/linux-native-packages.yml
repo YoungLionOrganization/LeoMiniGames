@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 env:
-  LMG_VERSION: "0.7.4"
+  LMG_VERSION: "0.7.5"
 
 jobs:
   packages:

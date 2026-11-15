@@ -1,4 +1,6 @@
-# v0.7.4 Linux runtime investigation
+# Linux runtime investigation after v0.7.4
+
+The changes below landed after the [v0.7.4 release](https://github.com/YoungLionOrganization/LeoMiniGames/releases/tag/v0.7.4). At `83cd89c`, [CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41451134016), [Qt 6.12 desktop compatibility](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41451135802) and the [live-catalog workflow](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41451140842) passed.
 
 ## Host responsibilities
 
@@ -27,4 +29,4 @@ The 2 November catalog contained 15 themes (542,406 bytes total) and 18 games (4
 
 Local reproduction uses the existing Qt 6.11.1 kit, with outputs on the maintainer's D drive. Linux package installation, plugin loading and PulseAudio output checks run on GitHub, without installing a Linux SDK on the maintainer's computer. Live catalog themes are downloaded only to private test storage after checking their catalog digests; they are not redistributed as repository fixtures.
 
-These changes do not alter the published v0.7.3 tag or its assets. v0.7.4 remains unreleased. A simulated audio sink proves that PCM reaches an audio server; it does not qualify every physical sound device, Bluetooth route, desktop compositor or graphics driver. New workflow results must be reviewed before release.
+A simulated audio sink proves that PCM reaches an audio server; it does not qualify every physical sound device, Bluetooth route, desktop compositor or graphics driver. A later release requires fresh artifact verification at the source SHA selected for publication.

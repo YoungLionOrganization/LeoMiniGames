@@ -1,4 +1,4 @@
-# LeoMiniGames v0.7.4 development build matrix
+# LeoMiniGames build matrix
 
 This matrix distinguishes **configured CI coverage** from **physically verified release behavior**. A successful GitHub Actions job proves that the source builds/packages on that runner; it does not replace real-device QA.
 
@@ -6,7 +6,9 @@ This matrix distinguishes **configured CI coverage** from **physically verified 
 
 Published v0.7.3 uses source `b1ca094ef719dc203a362633435a56920b5741e5`: [CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41171541199), [28-job artifact build](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41171558444) and [publication](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41220223343) succeeded. All 39 public package names, sizes and remote SHA-256 digests matched the candidate manifest. Physical-device limitations are disclosed in the [release](https://github.com/YoungLionOrganization/LeoMiniGames/releases/tag/v0.7.3).
 
-The prepared reliability changes passed [CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41135263224) and [Qt 6.12 desktop tests](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41135263148) at `1c803c9`. Main now prepares v0.7.4; its new version/source requires fresh CI and artifact validation before any later publication.
+Published v0.7.4 uses source `3e85f539d66111a51c59fad5c8c4390527489afd`. [CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41221757853), [artifact build](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41221918528) and [publication](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41224455680) succeeded. The [release page](https://github.com/YoungLionOrganization/LeoMiniGames/releases/tag/v0.7.4) lists 39 validated assets and device-test limits.
+
+Development source `83cd89c` passed [CI](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41451134016), [Qt 6.12 desktop compatibility](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41451135802) and [live-catalog testing](https://github.com/YoungLionOrganization/LeoMiniGames/actions/runs/41451140842). The [runtime investigation](docs/releases/V074_LINUX_RUNTIME.md) covers changes made after publication.
 
 This is CI/build evidence only. It does not convert any platform row into a physical-device verification claim.
 
@@ -41,13 +43,13 @@ The official Docker `archlinux` image does not currently publish a Linux/arm64 m
 
 The Qt 6.10.2 online iOS kit used by CI supplies an arm64 **device** slice and an x86_64 **simulator** slice. It does not provide a usable arm64 simulator slice for the Qt libraries/plugins in this lane. Therefore CI does not claim an iOS/iPadOS arm64-simulator build. Device arm64 and simulator x86_64 remain covered for both iOS and iPadOS.
 
-The source minimum is Qt **6.8**. The v0.7.3 online-package release lanes use **6.10.2**. The separate `Qt 6.12 compatibility` workflow builds/tests **6.12.0** on Linux, Windows and macOS GitHub runners. It does not install Qt onto the maintainer's computer or change the release kit. A configured lane is not a passing result until its own run completes.
+The source minimum is Qt **6.8**. The v0.7.4 online-package release lanes use **6.10.2**. The separate `Qt 6.12 compatibility` workflow builds/tests **6.12.0** on Linux, Windows and macOS GitHub runners. It does not install Qt onto the maintainer's computer or change the release kit. A configured lane is not a passing result until its own run completes.
 
 ## Compatibility and packaging notes
 
 Debian 13 validates the Qt 6.8 source floor with distro Qt. Filter refresh uses the Qt 6.10 filter-change API when available and the older API on supported earlier kits. Native distro tarballs depend on system Qt; AppImage/portable tarballs deploy their runtime. Flatpak uses its declared KDE runtime and keeps its own data directory.
 
-Package selection and installation are documented in [Installation guide](docs/INSTALLATION.md) and [Linux packages](docs/LINUX_PACKAGES.md). HarmonyOS/HAP work is [planned separately](docs/roadmap/HARMONYOS.md); it is not a v0.7.3 release target.
+Package selection and installation are documented in [Installation guide](docs/INSTALLATION.md) and [Linux packages](docs/LINUX_PACKAGES.md). HarmonyOS/HAP work is [planned separately](docs/roadmap/HARMONYOS.md); it is not a v0.7.4 release target.
 
 Ubuntu AppImage packaging installs both GStreamer Good and Bad runtime plugin libraries before linuxdeploy scans Qt Multimedia, covering `libgstphotography` and `libgstplay` dependencies on supported Ubuntu runners.
 

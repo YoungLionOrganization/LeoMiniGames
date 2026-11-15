@@ -1,6 +1,6 @@
 # Next patch priorities
 
-Reviewed 30 October 2026 against the current source, the earlier release plans and the maintainer's later YLPlugin/HarmonyOS architecture discussions. These are staged proposals, not features already supported by v0.7.3.
+Reviewed 30 October 2026 against the current source, the earlier release plans and the maintainer's later YLPlugin/HarmonyOS architecture discussions. Release status and verification links were updated on 14 November 2026.
 
 ## v0.7.3 publication completed
 
@@ -13,7 +13,9 @@ Reviewed 30 October 2026 against the current source, the earlier release plans a
 
 The public mods/themes services returned 200 and schema health reported ready during this review. That resolves the earlier observed HTTP 500 blocker as an external-state change; this application branch did not deploy a backend repair.
 
-## v0.7.4: reliability before new formats
+## Reliability after v0.7.4
+
+[The v0.7.4 release](https://github.com/YoungLionOrganization/LeoMiniGames/releases/tag/v0.7.4) was published on 31 October 2026. The [runtime investigation](../releases/V074_LINUX_RUNTIME.md) records the Linux and catalog fixes that landed afterward and the GitHub runs that verified them.
 
 | Priority | Work | Acceptance |
 | --- | --- | --- |
@@ -23,11 +25,11 @@ The public mods/themes services returned 200 and schema health reported ready du
 | Medium | Evaluate moving release kits to Qt 6.12 after the separate desktop lane is stable | Windows/Linux/macOS and later Android packaging all pass before changing the baseline |
 | Lower | HarmonyOS native-port experiment | Follow the [platform checklist](HARMONYOS.md); advertise support only after HAP/device evidence |
 
-v0.7.4 must not turn a package-format experiment into a forced migration for existing games. Save Transfer remains a separately planned feature for the v0.8 line unless its scope is explicitly changed.
+Keep raw RCC compatibility when experimenting with new package formats. Save Transfer remains a separately planned feature for the v0.8 line unless its scope is explicitly changed.
 
-### Prepared reliability changes
+### Reliability changes shipped in v0.7.4
 
-The main development tree integrates the following reliability fixes for the next patch. They do not change the immutable v0.7.3 package candidate.
+The following reliability changes shipped in v0.7.4.
 
 - An update-state observer can synchronously clear the request, select another channel or start a replacement check. Retired requests must not create a second network reply afterward. Observer-driven service deletion must also stop the original method safely.
 - The new regression reproduces a duplicate request against the previous implementation and passes against the prepared fix with the existing local Qt 6.11.1 kit. The prepared changes passed full GitHub CI and the separate Qt 6.12 Windows/Linux/macOS lane at `1c803c9`; integration is validated again on main.

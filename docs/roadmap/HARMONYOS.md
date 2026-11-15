@@ -1,6 +1,6 @@
 # Qt 6.12 and HarmonyOS preparation
 
-Status: 30 October 2026. v0.7.3 remains the release priority. HarmonyOS is a possible v0.7.4 target, subject to a successful native port and device evidence. There is no HAP in the current release contract.
+Status: platform exploration. HarmonyOS support requires a successful native port and device evidence. The v0.7.4 release contract has no HAP target.
 
 ## Verified upstream baseline
 
@@ -10,11 +10,11 @@ The [packaging documentation](https://doc.qt.io/qt-6/harmonyos-building-deployin
 
 ## First step: desktop compatibility
 
-`.github/workflows/qt-next.yml` tests the complete native CTest suite with Qt 6.12.0 on Linux x86_64, Windows x86_64 and macOS arm64. It installs tools only on GitHub runners. This verifies source compatibility with the new Qt minor version; it does not prove HarmonyOS build, HAP signing or device behavior. Qt 6.10.2 remains the v0.7.3 online-package release kit until an explicit migration is validated.
+`.github/workflows/qt-next.yml` tests the complete native CTest suite with Qt 6.12.0 on Linux x86_64, Windows x86_64 and macOS arm64. It installs tools only on GitHub runners. This verifies source compatibility with the new Qt minor version; it does not prove HarmonyOS build, HAP signing or device behavior. Qt 6.10.2 is the v0.7.4 online-package release kit until an explicit migration is validated.
 
 ## Port work, in priority order
 
-1. Finish v0.7.3 and keep the API 0.7 and legacy RCC fixtures passing.
+1. Keep the API 0.7 and legacy RCC fixtures passing.
 2. Run the Qt 6.12 desktop lane and address actual compiler/runtime regressions before changing release kits.
 3. Provision the licensed/distributable Qt HarmonyOS kit and matching SDK on a disposable Linux GitHub runner. Verify artifact provenance and tool availability before enabling the job. Do not download DevEco Studio/SDKs onto the maintainer's C drive.
 4. Add an opt-in HarmonyOS CMake path and HAP metadata using the upstream functions. Keep the package identity, app version and code synchronized with canonical release metadata. Do not route HarmonyOS through Linux distro packaging.
@@ -31,4 +31,4 @@ The [packaging documentation](https://doc.qt.io/qt-6/harmonyos-building-deployin
 - Credential storage and external file selection have explicit, tested platform behavior.
 - The release/update contract serves HarmonyOS packages separately, with checksums and signing guidance.
 
-Until those conditions are met, documentation and UI must describe HarmonyOS as planned/experimental. Upstream preview status and SDK distribution constraints may move this work beyond v0.7.4.
+Until those conditions are met, documentation and UI must describe HarmonyOS as planned/experimental. Upstream preview status and SDK distribution constraints will determine which future release can include the port.
