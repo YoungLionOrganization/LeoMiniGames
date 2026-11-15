@@ -1,10 +1,10 @@
 # LeoMiniGames installation guide
 
-This guide covers v0.7.4 packages. Download published packages from [the v0.7.4 release](https://github.com/YoungLionOrganization/LeoMiniGames/releases/tag/v0.7.4). Actions artifacts are test candidates until publication. Running the application does not require Qt, CMake or a compiler.
+This guide uses v0.7.5 package examples. Download published packages from [GitHub Releases](https://github.com/YoungLionOrganization/LeoMiniGames/releases) and use the version in your downloaded filename. Actions artifacts are test candidates until publication. Running the application does not require Qt, CMake or a compiler.
 
 ## Choose a package
 
-Full filenames begin with `LeoMiniGames-v0.7.4-`.
+Full filenames begin with `LeoMiniGames-v0.7.5-`.
 
 | System | Package selection |
 | --- | --- |
@@ -26,13 +26,13 @@ On Linux, `uname -m` reports `x86_64` for Intel/AMD or `aarch64` for ARM64. Ther
 Compare the downloaded file's SHA-256 value with its entry in the release description's **SHA-256** section.
 
 ```sh
-sha256sum LeoMiniGames-v0.7.4-Arch-x86_64.pkg.tar.zst
+sha256sum LeoMiniGames-v0.7.5-Arch-x86_64.pkg.tar.zst
 ```
 
 Windows PowerShell example:
 
 ```powershell
-Get-FileHash .\LeoMiniGames-v0.7.4-Windows-x86_64-Setup.exe -Algorithm SHA256
+Get-FileHash .\LeoMiniGames-v0.7.5-Windows-x86_64-Setup.exe -Algorithm SHA256
 ```
 
 ## Windows
@@ -47,7 +47,7 @@ Install the native package on an up-to-date Arch system:
 
 ```sh
 sudo pacman -Syu
-sudo pacman -U ./LeoMiniGames-v0.7.4-Arch-x86_64.pkg.tar.zst
+sudo pacman -U ./LeoMiniGames-v0.7.5-Arch-x86_64.pkg.tar.zst
 LeoMiniGames
 ```
 
@@ -59,7 +59,7 @@ On Arch, install Flatpak with `sudo pacman -S flatpak` if needed. Other distribu
 
 ```sh
 flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-flatpak install --user ./LeoMiniGames-v0.7.4-Linux-x86_64.flatpak
+flatpak install --user ./LeoMiniGames-v0.7.5-Linux-x86_64.flatpak
 flatpak run xyz.younglion.leominigames
 ```
 
@@ -67,7 +67,7 @@ On ARM64, choose the filename containing `aarch64`. To replace a local bundle, r
 
 ```sh
 flatpak uninstall --user xyz.younglion.leominigames
-flatpak install --user ./LeoMiniGames-v0.7.4-Linux-x86_64.flatpak
+flatpak install --user ./LeoMiniGames-v0.7.5-Linux-x86_64.flatpak
 ```
 
 Do not use `--delete-data` for an ordinary upgrade: it explicitly deletes data. Flatpak stores data under `~/.var/app/xyz.younglion.leominigames/`. Native installation data is not migrated there automatically. Use the file portal for external file selection.
@@ -77,13 +77,13 @@ Do not use `--delete-data` for an ordinary upgrade: it explicitly deletes data. 
 Debian 13 x86_64:
 
 ```sh
-sudo apt install ./LeoMiniGames-v0.7.4-Debian-13-x86_64.deb
+sudo apt install ./LeoMiniGames-v0.7.5-Debian-13-x86_64.deb
 ```
 
 Fedora 43 x86_64:
 
 ```sh
-sudo dnf install ./LeoMiniGames-v0.7.4-Fedora-43-x86_64.rpm
+sudo dnf install ./LeoMiniGames-v0.7.5-Fedora-43-x86_64.rpm
 ```
 
 Choose the `arm64` file on ARM64 systems. Remove with `sudo apt remove leominigames` or `sudo dnf remove leominigames`, respectively. These native packages use distribution Qt libraries. For a different distribution/version, use Flatpak or a compatible portable build instead of forcing a mismatched native package.
@@ -93,7 +93,7 @@ Choose the `arm64` file on ARM64 systems. Remove with `sudo apt remove leominiga
 Ubuntu 24.04 x86_64 example:
 
 ```sh
-bash ./LeoMiniGames-v0.7.4-Linux-Ubuntu-24.04-x86_64-Setup.run
+bash ./LeoMiniGames-v0.7.5-Linux-Ubuntu-24.04-x86_64-Setup.run
 ```
 
 Setup runs without root and defaults to `~/.local/opt/LeoMiniGames`. Append `--prefix /absolute/path/LeoMiniGames` for another dedicated application directory, or `--no-integration` to skip the launcher/menu entry. Do not select a directory containing unrelated software.
@@ -111,14 +111,14 @@ For a custom prefix, use its own `uninstall.sh`.
 ## AppImage and portable tar.gz
 
 ```sh
-chmod +x ./LeoMiniGames-v0.7.4-Linux-Ubuntu-24.04-x86_64.AppImage
-./LeoMiniGames-v0.7.4-Linux-Ubuntu-24.04-x86_64.AppImage
+chmod +x ./LeoMiniGames-v0.7.5-Linux-Ubuntu-24.04-x86_64.AppImage
+./LeoMiniGames-v0.7.5-Linux-Ubuntu-24.04-x86_64.AppImage
 ```
 
 If FUSE is unavailable, try `--appimage-extract-and-run` or use the portable tar.gz. Delete an AppImage to remove it; user data remains separate.
 
 ```sh
-tar -xzf ./LeoMiniGames-v0.7.4-Linux-Ubuntu-24.04-x86_64.tar.gz
+tar -xzf ./LeoMiniGames-v0.7.5-Linux-Ubuntu-24.04-x86_64.tar.gz
 ./LeoMiniGames.AppDir/AppRun
 ```
 
@@ -128,11 +128,11 @@ Keep the complete AppDir together. Files ending in `-native.tar.gz` are diagnost
 
 On Android, open the APK with the device's package installer. Same-identity, same-key upgrades preserve data. If a signature mismatch occurs, preserve the existing installation and select the correctly signed package. The minimum version is Android 9 / API 28. AAB files are not directly installable.
 
-On macOS, open the matching DMG and drag the app to Applications, or use the ZIP. Release notes describe signing/notarization status. Verify the source and checksum when assessing Gatekeeper warnings. Unsigned iOS/iPadOS ZIPs are developer test outputs requiring an appropriate signing environment. v0.7.4 does not contain a HarmonyOS HAP.
+On macOS, open the matching DMG and drag the app to Applications, or use the ZIP. Release notes describe signing/notarization status. Verify the source and checksum when assessing Gatekeeper warnings. Unsigned iOS/iPadOS ZIPs are developer test outputs requiring an appropriate signing environment. v0.7.5 does not contain a HarmonyOS HAP.
 
 ## Preserve saves and report problems
 
-Close the application before backing up its complete user data directory. Native Linux defaults to `~/.local/share/YoungLion/LeoMiniGames`; Flatpak uses its sandbox. `XDG_DATA_HOME` changes the native Linux location. Changing package formats does not automatically transfer saves; v0.7.4 has no Save Transfer wizard.
+Close the application before backing up its complete user data directory. Native Linux defaults to `~/.local/share/YoungLion/LeoMiniGames`; Flatpak uses its sandbox. `XDG_DATA_HOME` changes the native Linux location. Changing package formats does not automatically transfer saves; v0.7.5 has no Save Transfer wizard.
 
 After installation, open and close a builtin game, check that its state survives reopening, and check catalog/theme access. For missing sound, check the system output and application settings. A locked/unavailable keyring can prevent Developer Lab credential persistence; exclude credentials from reports.
 

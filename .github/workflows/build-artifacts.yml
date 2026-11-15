@@ -267,7 +267,16 @@ jobs:
       - name: Package
         env:
           LMG_PLATFORM_SUFFIX: ${{ matrix.label }}
-        run: bash tools/package/package_linux.sh build
+        run: |
+          # The Qt online kit can ship a TIFF plugin linked to the older
+          # libtiff ABI. TIFF is optional for the portable package.
+          tiff_plugin="$QT_ROOT_DIR/plugins/imageformats/libqtiff.so"
+          if [[ -f "$tiff_plugin" ]] &&
+             LC_ALL=C ldd "$tiff_plugin" | grep -E '^[[:space:]]*libtiff\.so\.5[[:space:]]+=>[[:space:]]+not found' >/dev/null; then
+            echo "Omitting the optional Qt TIFF plugin because libtiff.so.5 is unavailable."
+            rm -- "$tiff_plugin"
+          fi
+          bash tools/package/package_linux.sh build
       - name: Test packaged Linux installer
         run: |
           LMG_TEST_SETUP="$PWD/dist/linux/LeoMiniGames-v${LMG_VERSION}-Linux-${{ matrix.label }}-Setup.run" \
